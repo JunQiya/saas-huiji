@@ -1,0 +1,22 @@
+# 后端构建产物
+server/target/
+*.class
+*.jar
+
+# 前端构建产物
+admin/dist/
+h5/dist/
+
+# 前端依赖
+admin/node_modules/
+h5/node_modules/
+
+# 日志与本地临时
+*.log
+.DS_Store
+.idea/
+.vscode/
+.vite/
+
+# 内部测试脚本
+.test-scripts/

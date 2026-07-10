@@ -1,0 +1,51 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+spring:
+  profiles:
+    active: dev
+  application:
+    name: huiji-server
+  jackson:
+    time-zone: Asia/Shanghai
+    serialization:
+      write-dates-as-timestamps: false
+    default-property-inclusion: non_null
+
+  # 数据源(MySQL), dev/prod 均使用本地 MySQL
+  datasource:
+    url: jdbc:mysql://localhost:3306/huiji?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: false
+        # 自动给 SQL 标识符加反引号, 避免 type/status/trigger 等 MySQL 保留字冲突
+        globally_quoted_identifiers: true
+
+# JWT
+huiji-jwt:
+  secret: huiji-secret-key-for-jwt-signing-please-change-in-production-2024
+  expire-minutes: 720
+  member-expire-minutes: 1440
+
+# CORS (逗号分隔, @Value List<String> 自动拆分)
+huiji-cors:
+  allowed-origins: http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174
+
+# 是否初始化演示数据(dev 开启, prod 关闭)
+huiji:
+  init-data: false
+
+logging:
+  level:
+    com.huiji: INFO
+    org.hibernate.SQL: warn

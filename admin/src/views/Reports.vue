@@ -1,0 +1,277 @@
+<template>
+  <div class="page">
+    <div class="page-header is-enhanced">
+      <div class="header-left">
+        <div class="header-icon"><el-icon><DataAnalysis /></el-icon></div>
+        <div class="header-text">
+          <h2 class="page-title">报表中心</h2>
+          <div class="page-sub">{{ reportSlogan }}</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <el-button :icon="RefreshRight" @click="loadAll">刷新</el-button>
+        <el-button type="primary" :icon="Plus" @click="openCreate" class="btn-scale">新建报表</el-button>
+      </div>
+    </div>
+
+    <!-- KPI -->
+    <div class="kpi-row">
+      <KpiCard label="今日生成" :value="stats.todayRuns || 0" suffix="次" icon="Document" />
+      <KpiCard label="今日文件" :value="stats.todayFiles || 0" suffix="份" icon="Folder" />
+      <KpiCard label="订阅总数" :value="stats.tasksTotal || 0" suffix="个" icon="List" />
+      <KpiCard label="启用中" :value="stats.tasksEnabled || 0" suffix="个" icon="Select" />
+    </div>
+
+    <!-- 列表 -->
+    <div class="x-card table-wrap">
+      <el-table v-loading="loading" :data="list" stripe>
+        <el-table-column label="报表名称" min-width="180">
+          <template #default="{ row }">
+            <div class="rp-name">{{ row.name }}</div>
+            <div class="rp-sub">{{ typeText(row.type) }} · {{ scheduleText(row.schedule) }}</div>
+          </template>
+        </el-table-column>
+        <el-table-column label="接收人" min-width="200">
+          <template #default="{ row }">
+            <el-tag v-for="(r, i) in (row.recipients || []).slice(0, 3)" :key="i" size="small" effect="plain" class="rcpt-tag">{{ r }}</el-tag>
+            <span v-if="(row.recipients || []).length > 3" class="muted">+{{ (row.recipients || []).length - 3 }}</span>
+            <span v-if="!(row.recipients || []).length" class="muted">—</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="上次运行" width="160">
+          <template #default="{ row }">{{ formatDateTime(row.lastRunAt) }}</template>
+        </el-table-column>
+        <el-table-column label="下次运行" width="160">
+          <template #default="{ row }">{{ formatDateTime(row.nextRunAt) }}</template>
+        </el-table-column>
+        <el-table-column label="状态" width="100">
+          <template #default="{ row }">
+            <el-switch :model-value="row.enabled" @change="(v: any) => onToggle(row, !!v)" inline-prompt active-text="开" inactive-text="关" />
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="280" fixed="right">
+          <template #default="{ row }">
+            <el-button size="small" link type="primary" @click="onRun(row)">立即运行</el-button>
+            <el-button size="small" link type="primary" @click="onEdit(row)">编辑</el-button>
+            <el-dropdown @command="(c: string) => onDownload(row, c)">
+              <el-button size="small" link type="primary">下载最新 <el-icon><ArrowDown /></el-icon></el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="pdf">PDF</el-dropdown-item>
+                  <el-dropdown-item command="xlsx">Excel</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+            <el-button size="small" link type="danger" @click="onRemove(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div class="pager">
+        <el-pagination
+          v-model:current-page="query.page"
+          v-model:page-size="query.size"
+          :total="total"
+          :page-sizes="[20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
+          @current-change="loadList"
+          @size-change="loadList"
+        />
+      </div>
+    </div>
+
+    <!-- 新建/编辑 -->
+    <el-dialog v-model="formVisible" :title="editing ? '编辑报表' : '新建报表'" width="560px" :close-on-click-modal="false">
+      <el-form ref="formRef" :model="form" :rules="formRules" label-width="92px">
+        <el-form-item label="名称" prop="name">
+          <el-input v-model="form.name" placeholder="如：每日营业额简报" />
+        </el-form-item>
+        <el-form-item label="类型" prop="type">
+          <el-select v-model="form.type" placeholder="请选择" style="width: 100%">
+            <el-option label="经营看板" value="DASHBOARD" />
+            <el-option label="营业额" value="REVENUE" />
+            <el-option label="会员" value="MEMBER" />
+            <el-option label="优惠券" value="COUPON" />
+            <el-option label="订单" value="ORDER" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="调度" prop="schedule">
+          <el-radio-group v-model="form.schedule">
+            <el-radio value="DAILY">每日</el-radio>
+            <el-radio value="WEEKLY">每周</el-radio>
+            <el-radio value="MONTHLY">每月</el-radio>
+            <el-radio value="ONCE">仅一次</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="接收邮箱" prop="recipients">
+          <el-input v-model="recipientsText" placeholder="多个邮箱用英文逗号分隔" />
+          <div class="form-hint">已填 {{ form.recipients.length }} 位</div>
+        </el-form-item>
+        <el-form-item label="启用">
+          <el-switch v-model="form.enabled" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="formVisible = false">取消</el-button>
+        <el-button type="primary" :loading="saving" @click="submitForm">保存</el-button>
+      </template>
+    </el-dialog>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { onMounted, reactive, ref } from 'vue'
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
+import { Plus, RefreshRight, ArrowDown, DataAnalysis } from '@element-plus/icons-vue'
+import { reportsApi } from '@/api'
+import KpiCard from '@/components/KpiCard.vue'
+import { formatDateTime } from '@/utils/format'
+
+const reportSlogan = [
+  '把每个月的经营，写成一段可被回望的故事',
+  '报表是给生意的一份温热小结',
+  '数字之外，还有用心在生长'
+][Math.floor(Math.random() * 3)]
+
+const loading = ref(false)
+const list = ref<any[]>([])
+const total = ref(0)
+const query = reactive({ page: 1, size: 20 })
+const stats = reactive<any>({ todayRuns: 0, todayFiles: 0, tasksTotal: 0, tasksEnabled: 0 })
+
+function loadAll() { loadList(); loadStats() }
+
+async function loadList() {
+  loading.value = true
+  try {
+    const res: any = await reportsApi.list({ page: query.page, size: query.size })
+    list.value = res?.list || []
+    total.value = res?.total || 0
+  } catch {/* */}
+  finally { loading.value = false }
+}
+
+async function loadStats() {
+  try {
+    const s: any = await reportsApi.stats()
+    Object.assign(stats, s || {})
+  } catch {/* */}
+}
+
+function typeText(t: string) {
+  return ({ DASHBOARD: '经营看板', REVENUE: '营业额', MEMBER: '会员', COUPON: '优惠券', ORDER: '订单' } as any)[t] || t
+}
+function scheduleText(s: string) {
+  return ({ DAILY: '每日', WEEKLY: '每周', MONTHLY: '每月', ONCE: '仅一次' } as any)[s] || s
+}
+
+// ============ 表单 ============
+const formVisible = ref(false)
+const editing = ref(false)
+const saving = ref(false)
+const formRef = ref<FormInstance>()
+const recipientsText = ref('')
+const form = reactive({
+  id: 0,
+  name: '',
+  type: 'DASHBOARD' as 'DASHBOARD' | 'REVENUE' | 'MEMBER' | 'COUPON' | 'ORDER',
+  schedule: 'DAILY' as 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'ONCE',
+  recipients: [] as string[],
+  enabled: true
+})
+const formRules: FormRules = {
+  name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
+  type: [{ required: true, message: '请选择类型', trigger: 'change' }],
+  schedule: [{ required: true, message: '请选择调度', trigger: 'change' }],
+  recipients: [{
+    validator: (_r, _v, cb) => {
+      if (!form.recipients || form.recipients.length === 0) cb(new Error('请填写至少 1 个邮箱'))
+      else cb()
+    },
+    trigger: 'change'
+  }]
+}
+
+function openCreate() {
+  editing.value = false
+  Object.assign(form, { id: 0, name: '', type: 'DASHBOARD', schedule: 'DAILY', recipients: [], enabled: true })
+  recipientsText.value = ''
+  formVisible.value = true
+}
+function onEdit(row: any) {
+  editing.value = true
+  Object.assign(form, {
+    id: row.id, name: row.name, type: row.type, schedule: row.schedule,
+    recipients: [...(row.recipients || [])], enabled: row.enabled
+  })
+  recipientsText.value = (form.recipients || []).join(',')
+  formVisible.value = true
+}
+async function submitForm() {
+  form.recipients = recipientsText.value
+    .split(/[,，\s]+/)
+    .map(s => s.trim())
+    .filter(s => s && /.+@.+\..+/.test(s))
+  await formRef.value?.validate()
+  if (form.recipients.length === 0) {
+    ElMessage.error('请填写至少 1 个合法邮箱')
+    return
+  }
+  saving.value = true
+  try {
+    const payload: any = { name: form.name, type: form.type, schedule: form.schedule, recipients: form.recipients }
+    if (editing.value) {
+      await reportsApi.update(form.id, payload)
+      ElMessage.success('已更新')
+    } else {
+      await reportsApi.create({ ...payload, enabled: form.enabled })
+      ElMessage.success('已创建')
+    }
+    formVisible.value = false
+    loadAll()
+  } catch {/* */}
+  finally { saving.value = false }
+}
+
+async function onRun(row: any) {
+  const loading = ElMessage({ message: '正在生成...', duration: 0 })
+  try {
+    const r: any = await reportsApi.run(row.id)
+    loading.close()
+    ElMessage.success('已生成: ' + (r?.lastRunAt ? formatDateTime(r.lastRunAt) : '完成'))
+    loadList()
+  } catch { loading.close() }
+}
+async function onToggle(row: any, enabled: boolean) {
+  await reportsApi.toggle(row.id, enabled)
+  row.enabled = enabled
+  ElMessage.success(enabled ? '已启用' : '已停用')
+  loadList()
+}
+async function onRemove(row: any) {
+  try {
+    await ElMessageBox.confirm(`确认删除报表「${row.name}」?`, '提示', { type: 'warning', closeOnPressEscape: true })
+  } catch { return }
+  await reportsApi.remove(row.id)
+  ElMessage.success('已删除')
+  loadList()
+}
+function onDownload(row: any, type: string) {
+  // 直接打开下载链接(走 cookie/JWT 时使用 _self 跳转)
+  const url = `/api/reports/${row.id}/download?type=${type}`
+  window.open(url, '_blank')
+}
+
+onMounted(loadAll)
+</script>
+
+<style scoped>
+.kpi-row {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 14px;
+}
+@media (max-width: 1100px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
+.rp-name { font-size: 13.5px; color: var(--ink); font-weight: 500; }
+.rp-sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.rcpt-tag { margin-right: 4px; margin-bottom: 2px; }
+.muted { color: var(--muted); font-size: 12px; }
+.form-hint { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+</style>

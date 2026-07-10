@@ -1,0 +1,28 @@
+# Maven 构建产物
+target/
+build/
+
+# 编译类文件
+*.class
+*.jar
+*.war
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+
+# 系统
+.DS_Store
+*.log
+*.swp
+
+# Spring Boot 本地运行时数据
+*.db
+*.h2.mv.db
+data/
