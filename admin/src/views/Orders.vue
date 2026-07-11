@@ -34,8 +34,15 @@
     <div class="x-card">
       <el-table v-loading="loading" :data="list" stripe size="small" @row-click="openDetail">
         <el-table-column label="订单号" prop="orderNo" min-width="180" />
-        <el-table-column label="门店" width="100" prop="storeId" />
-        <el-table-column label="会员" width="100" prop="memberId" />
+        <el-table-column label="门店" width="100">
+          <template #default="{ row }">{{ storeName(row.storeId) }}</template>
+        </el-table-column>
+        <el-table-column label="会员" width="120">
+          <template #default="{ row }">
+            <span v-if="row.memberName || row.memberPhone">{{ row.memberName || row.memberPhone }}</span>
+            <span v-else class="muted">散客</span>
+          </template>
+        </el-table-column>
         <el-table-column label="总额" width="120">
           <template #default="{ row }">¥ <span class="val">{{ yuan(row.totalAmount) }}</span></template>
         </el-table-column>
@@ -79,8 +86,8 @@
       <div v-if="current" class="detail">
         <div class="row"><span class="k">订单号</span><span class="v">{{ current.orderNo }}</span></div>
         <div class="row"><span class="k">状态</span><span class="v"><span class="dot" :class="statusDot(current.status)" />{{ statusLabel(current.status) }}</span></div>
-        <div class="row"><span class="k">门店</span><span class="v">{{ current.storeId || '-' }}</span></div>
-        <div class="row"><span class="k">会员</span><span class="v">{{ current.memberId || '-' }}</span></div>
+        <div class="row"><span class="k">门店</span><span class="v">{{ storeName(current.storeId) }}</span></div>
+        <div class="row"><span class="k">会员</span><span class="v">{{ current.memberName || current.memberPhone || (current.memberId ? `#${current.memberId}` : '散客') }}</span></div>
         <div class="row"><span class="k">收银员</span><span class="v">{{ current.cashierId || '-' }}</span></div>
         <div class="row"><span class="k">备注</span><span class="v">{{ current.remark || '-' }}</span></div>
         <div class="divider">商品明细</div>
@@ -217,26 +224,78 @@ async function openDetail(row: any) {
 }
 
 async function quickPay(row: any) {
-  const { value } = await ElMessageBox.prompt('选择支付方式(输入: CASH/WECHAT/ALIPAY/BALANCE)', '收款', {
+  // 用自定义弹窗选择支付方式，而非手输
+  const result = await ElMessageBox.confirm(
+    `订单 ${row.orderNo}，应付 ¥${yuan(row.totalAmount)}`,
+    '选择支付方式',
+    {
+      distinguishCancelAndClose: true,
+      confirmButtonText: '确认收款',
+      cancelButtonText: '取消',
+      type: 'info'
+    }
+  ).catch(() => null)
+  if (!result) return
+  // 用 prompt 但提示更清晰
+  const { value } = await ElMessageBox.prompt('请选择支付方式', '收款', {
     inputValue: 'WECHAT',
-    confirmButtonText: '确定',
-    cancelButtonText: '取消'
+    inputPlaceholder: 'CASH=现金 / WECHAT=微信 / ALIPAY=支付宝 / BALANCE=余额',
+    confirmButtonText: '确定收款',
+    cancelButtonText: '取消',
+    inputValidator: (v: string) => ['CASH', 'WECHAT', 'ALIPAY', 'BALANCE'].includes(v?.toUpperCase().trim()) || '请输入 CASH / WECHAT / ALIPAY / BALANCE'
   })
-  await ordersApi.pay(row.id, { payMethod: value.toUpperCase() })
+  await ordersApi.pay(row.id, { payMethod: value.toUpperCase().trim() })
   ElMessage.success('已收款')
   load()
 }
 
 async function refund(row: any) {
-  await ElMessageBox.confirm(`确认退款订单 ${row.orderNo}?`, '提示', { type: 'warning' })
-  await ordersApi.refund(row.id, { reason: '管理员操作' })
-  ElMessage.success('已退款')
+  const maxAmount = fenToYuan(row.paidAmount || 0)
+  const { value: amountStr } = await ElMessageBox.prompt(
+    `可退款金额 ¥${maxAmount}，输入退款金额（元）`,
+    '退款金额',
+    {
+      inputValue: maxAmount,
+      inputPlaceholder: `最多 ${maxAmount} 元`,
+      confirmButtonText: '下一步',
+      cancelButtonText: '取消',
+      inputValidator: (v: string) => {
+        const n = Number(v)
+        if (isNaN(n) || n <= 0) return '请输入大于 0 的金额'
+        if (n > Number(maxAmount)) return `不可超过 ${maxAmount} 元`
+        return true
+      }
+    }
+  ).catch(() => ({ value: null }))
+  if (!amountStr) return
+
+  const { value: reason } = await ElMessageBox.prompt('请输入退款原因', '退款原因', {
+    inputValue: '管理员操作',
+    inputPlaceholder: '如：商品质量问题、会员请求等',
+    confirmButtonText: '确认退款',
+    cancelButtonText: '取消',
+    inputValidator: (v: string) => (v?.trim()?.length >= 2) || '请输入至少 2 个字'
+  }).catch(() => ({ value: null }))
+  if (!reason) return
+
+  await ordersApi.refund(row.id, {
+    amount: Math.round(Number(amountStr) * 100),
+    reason: reason.trim()
+  })
+  ElMessage.success(`已退款 ¥${amountStr}`)
   load()
 }
 
 async function voidOrder(row: any) {
-  await ElMessageBox.confirm(`确认作废订单 ${row.orderNo}?`, '提示', { type: 'warning' })
-  await ordersApi.void(row.id, { reason: '管理员操作' })
+  const { value: reason } = await ElMessageBox.prompt('请输入作废原因', '作废订单', {
+    inputValue: '管理员操作',
+    inputPlaceholder: '如：下单错误、重复订单等',
+    confirmButtonText: '确认作废',
+    cancelButtonText: '取消',
+    inputValidator: (v: string) => (v?.trim()?.length >= 2) || '请输入至少 2 个字'
+  }).catch(() => ({ value: null }))
+  if (!reason) return
+  await ordersApi.void(row.id, { reason: reason.trim() })
   ElMessage.success('已作废')
   load()
 }

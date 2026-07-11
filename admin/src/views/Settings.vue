@@ -187,11 +187,12 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus, Delete, Setting } from '@element-plus/icons-vue'
 import { settingsApi, settingsPlanApi, storesApi } from '@/api'
 import { fenToYuan, yuanToFen } from '@/utils/format'
+import { useUserStore } from '@/stores/user'
 import type { TenantSettings } from '@/types'
 
 const settingsSlogan = [
@@ -204,6 +205,15 @@ const tab = ref('basic')
 const loading = ref(false)
 const saving = ref(false)
 const upgrading = ref(false)
+const userStore = useUserStore()
+
+// 品牌色实时生效
+watch(() => form.brandColor, (color) => {
+  if (color) {
+    document.documentElement.style.setProperty('--brand', color)
+    document.documentElement.style.setProperty('--primary-action', color)
+  }
+}, { immediate: true })
 
 const form = reactive({
   tenantName: '',
@@ -319,9 +329,13 @@ async function confirmUpgrade() {
 }
 
 async function onSwitch(row: any) {
-  await settingsPlanApi.switchStore(row.id)
+  const res: any = await settingsPlanApi.switchStore(row.id)
+  if (res?.token) {
+    userStore.setToken(res.token)
+  }
   ElMessage.success(`已切换到: ${row.name}`)
-  await loadStores()
+  // 刷新当前页面以让新 storeId 全局生效
+  setTimeout(() => window.location.reload(), 600)
 }
 
 onMounted(() => { loadBasic(); loadPlan(); loadStores() })

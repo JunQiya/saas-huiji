@@ -287,6 +287,47 @@ public class MemberService {
                 updated + "位 -> " + level);
     }
 
+    /** 调整单个会员积分: delta 为正增加, 为负扣减 */
+    @Transactional
+    public Map<String, Object> adjustPoints(Long memberId, MemberDto.PointsAdjustRequest req) {
+        Long tenantId = LoginUserHolder.currentTenantId();
+        Member m = memberRepository.findByIdAndTenantIdAndDeletedFalse(memberId, tenantId)
+                .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "会员不存在"));
+        if (req.getDelta() == null || req.getDelta() == 0) {
+            throw new BizException(ErrorCode.VALIDATION, "积分变化量不能为 0");
+        }
+        long current = m.getPoints() == null ? 0L : m.getPoints();
+        long after = current + req.getDelta();
+        if (after < 0) {
+            throw new BizException(ErrorCode.BIZ_ERROR, "积分不足，当前积分 " + current);
+        }
+        m.setPoints(after);
+        memberRepository.save(m);
+        auditHelper.record("调整积分", "member:" + memberId,
+                (req.getDelta() > 0 ? "+" : "") + req.getDelta() + ",余" + after + "," + (req.getReason() == null ? "" : req.getReason()));
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("points", after);
+        return resp;
+    }
+
+    /** 修改单个会员等级 */
+    @Transactional
+    public Map<String, Object> setLevel(Long memberId, Integer level) {
+        Long tenantId = LoginUserHolder.currentTenantId();
+        Member m = memberRepository.findByIdAndTenantIdAndDeletedFalse(memberId, tenantId)
+                .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "会员不存在"));
+        if (level == null || level < 1) {
+            throw new BizException(ErrorCode.VALIDATION, "等级不合法");
+        }
+        m.setLevel(level);
+        memberRepository.save(m);
+        auditHelper.record("修改等级", "member:" + memberId, "-> " + level);
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("level", m.getLevel());
+        resp.put("levelName", settingsService.levelName(tenantId, m.getLevel()));
+        return resp;
+    }
+
     /** CSV 导入: 解析 name/phone/gender/birthday, 返回成功/失败 */
     public Map<String, Object> importCsv(java.io.InputStream in) {
         Long tenantId = LoginUserHolder.currentTenantId();

@@ -24,6 +24,16 @@
           <div class="meta-row"><el-icon><Phone /></el-icon><span>{{ s.phone || '—' }}</span></div>
           <div class="meta-row"><el-icon><Clock /></el-icon><span>{{ s.businessHours || '—' }}</span></div>
         </div>
+        <div class="store-toggle">
+          <span class="toggle-label">营业状态</span>
+          <el-switch
+            :model-value="s.status !== 'CLOSED'"
+            active-text="营业中"
+            inactive-text="已停业"
+            inline-prompt
+            @change="(v: any) => onToggleStatus(s, v)"
+          />
+        </div>
         <div class="store-actions">
           <el-button link type="primary" @click="openEdit(s)">编辑</el-button>
           <el-button link type="danger" @click="onRemove(s)">删除</el-button>
@@ -144,6 +154,17 @@ async function onRemove(row: Store) {
   loadList()
 }
 
+async function onToggleStatus(row: Store, open: boolean) {
+  const newStatus = open ? 'OPEN' : 'CLOSED'
+  try {
+    await storesApi.update(row.id, { ...row, status: newStatus })
+    row.status = newStatus
+    ElMessage.success(`${row.name} 已${open ? '营业' : '停业'}`)
+  } catch {
+    ElMessage.error('操作失败')
+  }
+}
+
 onMounted(() => loadList())
 </script>
 
@@ -201,6 +222,18 @@ onMounted(() => loadList())
   gap: 4px;
   border-top: 1px solid var(--line);
   padding-top: 10px;
+}
+.store-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-top: 1px dashed var(--line);
+  margin-bottom: 8px;
+}
+.toggle-label {
+  font-size: 13px;
+  color: var(--muted);
 }
 .empty {
   grid-column: 1 / -1;

@@ -107,6 +107,19 @@ public class MemberController {
         return Result.success();
     }
 
+    /** 调整单个会员积分 */
+    @PostMapping("/{id}/points")
+    public Result<Map<String, Object>> adjustPoints(@PathVariable Long id, @RequestBody MemberDto.PointsAdjustRequest req) {
+        return Result.success(memberService.adjustPoints(id, req));
+    }
+
+    /** 修改单个会员等级 */
+    @PutMapping("/{id}/level")
+    public Result<Map<String, Object>> setLevel(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        Integer level = body.get("level") == null ? null : Integer.parseInt(body.get("level").toString());
+        return Result.success(memberService.setLevel(id, level));
+    }
+
     /** CSV 导入 */
     @PostMapping("/import")
     public Result<Map<String, Object>> importCsv(@RequestParam("file") MultipartFile file) throws Exception {

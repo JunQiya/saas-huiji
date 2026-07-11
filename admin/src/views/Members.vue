@@ -244,6 +244,56 @@
       </template>
     </el-dialog>
 
+    <!-- 积分调整弹窗 -->
+    <el-dialog v-model="pointsVisible" title="调整积分" width="400px" :close-on-click-modal="false">
+      <div class="recharge-member" v-if="detail">
+        <el-avatar :size="36" class="m-avatar">{{ detail.name?.charAt(0) }}</el-avatar>
+        <div>
+          <div class="m-name">{{ detail.name }}</div>
+          <div class="m-phone">当前积分 {{ detail.points ?? 0 }}</div>
+        </div>
+      </div>
+      <el-form ref="pointsFormRef" :model="pointsForm" :rules="pointsRules" label-width="80px" style="margin-top: 14px">
+        <el-form-item label="调整方式" prop="mode">
+          <el-radio-group v-model="pointsForm.mode">
+            <el-radio value="add">增加</el-radio>
+            <el-radio value="sub">扣减</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="积分数" prop="amount">
+          <el-input-number v-model="pointsForm.amount" :min="1" :step="10" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="原因" prop="reason">
+          <el-input v-model="pointsForm.reason" type="textarea" :rows="2" placeholder="如：活动赠送、手工调整、消费补偿" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="pointsVisible = false">取消</el-button>
+        <el-button type="primary" :loading="pointsSaving" @click="submitPoints">确认调整</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 单会员等级编辑弹窗 -->
+    <el-dialog v-model="levelEditVisible" title="修改等级" width="360px" :close-on-click-modal="false">
+      <el-form label-width="80px">
+        <el-form-item label="当前等级">
+          <el-tag :type="levelTagType(detail?.level)" effect="light" round size="small">{{ detail?.levelName || levelName(detail?.level) }}</el-tag>
+        </el-form-item>
+        <el-form-item label="目标等级">
+          <el-select v-model="levelEditValue" style="width: 100%">
+            <el-option label="普通" :value="1" />
+            <el-option label="银卡" :value="2" />
+            <el-option label="金卡" :value="3" />
+            <el-option label="钻石" :value="4" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="levelEditVisible = false">取消</el-button>
+        <el-button type="primary" :loading="levelSaving" @click="submitLevelEdit">保存</el-button>
+      </template>
+    </el-dialog>
+
     <!-- 详情抽屉 -->
     <el-drawer v-model="detailVisible" title="会员详情" size="520px" :close-on-press-escape="true">
       <div v-loading="detailLoading">
@@ -253,6 +303,7 @@
             <div class="detail-name">
               {{ detail?.name }}
               <el-tag :type="levelTagType(detail?.level)" effect="light" round size="small">{{ detail?.levelName || levelName(detail?.level) }}</el-tag>
+              <el-button link type="primary" size="small" @click="openLevelEdit">改等级</el-button>
             </div>
             <div class="m-phone">{{ detail?.phone }}</div>
           </div>
@@ -264,7 +315,10 @@
           </div>
           <div class="ds-item">
             <div class="ds-val">{{ detail?.points ?? 0 }}</div>
-            <div class="ds-label">积分</div>
+            <div class="ds-label">
+              积分
+              <el-button link type="primary" size="small" @click="openPointsAdjust">调整</el-button>
+            </div>
           </div>
           <div class="ds-item">
             <div class="ds-val">{{ detail?.consumeCount ?? 0 }}</div>
@@ -398,6 +452,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import {
   Plus, Search, RefreshLeft, User, Download, Upload,
@@ -776,6 +831,63 @@ async function saveTags() {
   loadList()
 }
 
+// ============ 积分调整 ============
+const pointsVisible = ref(false)
+const pointsSaving = ref(false)
+const pointsFormRef = ref<FormInstance>()
+const pointsForm = reactive({
+  mode: 'add' as 'add' | 'sub',
+  amount: 10,
+  reason: ''
+})
+const pointsRules: FormRules = {
+  amount: [{ required: true, message: '请输入积分数', trigger: 'blur' }],
+  reason: [{ required: true, message: '请填写调整原因', trigger: 'blur' }, { min: 2, message: '至少 2 个字', trigger: 'blur' }]
+}
+function openPointsAdjust() {
+  pointsForm.mode = 'add'
+  pointsForm.amount = 10
+  pointsForm.reason = ''
+  pointsVisible.value = true
+}
+async function submitPoints() {
+  if (!detail.value) return
+  await pointsFormRef.value?.validate()
+  pointsSaving.value = true
+  try {
+    const delta = pointsForm.mode === 'add' ? pointsForm.amount : -pointsForm.amount
+    const res = await membersApi.adjustPoints(detail.value.id, { delta, reason: pointsForm.reason.trim() })
+    ElMessage.success(`积分已${pointsForm.mode === 'add' ? '增加' : '扣减'} ${pointsForm.amount}`)
+    detail.value = { ...detail.value, points: res.points } as Member
+    pointsVisible.value = false
+    loadList()
+  } finally {
+    pointsSaving.value = false
+  }
+}
+
+// ============ 单会员等级编辑 ============
+const levelEditVisible = ref(false)
+const levelSaving = ref(false)
+const levelEditValue = ref(1)
+function openLevelEdit() {
+  levelEditValue.value = detail.value?.level || 1
+  levelEditVisible.value = true
+}
+async function submitLevelEdit() {
+  if (!detail.value) return
+  levelSaving.value = true
+  try {
+    const res = await membersApi.setLevel(detail.value.id, levelEditValue.value)
+    ElMessage.success('等级已更新')
+    detail.value = { ...detail.value, level: res.level, levelName: res.levelName } as Member
+    levelEditVisible.value = false
+    loadList()
+  } finally {
+    levelSaving.value = false
+  }
+}
+
 // 流水/券状态文案
 function txTypeText(t: string) {
   return ({ RECHARGE: '充值', CONSUME: '消费', GIFT: '赠送', REFUND: '退款' } as any)[t] || t
@@ -790,9 +902,28 @@ function couponStatusType(s: string) {
   return ({ UNUSED: 'success', USED: 'info', EXPIRED: 'danger' } as any)[s] || 'info'
 }
 
+const route = useRoute()
+
 onMounted(async () => {
   stores.value = await storesApi.list().catch(() => [])
-  loadList()
+  await loadList()
+  // 从 Wallet 跳转过来时自动打开会员详情
+  const mid = route.query.id
+  if (mid) {
+    const id = Number(mid)
+    if (!isNaN(id)) {
+      const row = list.value.find((m: any) => m.id === id)
+      if (row) {
+        openDetail(row)
+      } else {
+        // 列表里没找到，尝试直接查详情
+        try {
+          const d = await membersApi.detail(id)
+          if (d) openDetail(d as Member)
+        } catch { /* 会员可能不存在 */ }
+      }
+    }
+  }
 })
 
 onBeforeUnmount(() => {

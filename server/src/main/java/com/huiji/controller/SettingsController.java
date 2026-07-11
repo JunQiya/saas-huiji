@@ -6,6 +6,7 @@ import com.huiji.entity.Store;
 import com.huiji.entity.TenantSetting;
 import com.huiji.repository.StoreRepository;
 import com.huiji.repository.TenantSettingRepository;
+import com.huiji.security.JwtUtil;
 import com.huiji.security.LoginUser;
 import com.huiji.security.LoginUserHolder;
 import com.huiji.service.SettingsService;
@@ -32,6 +33,7 @@ public class SettingsController {
     private final SettingsService settingsService;
     private final TenantSettingRepository tenantSettingRepository;
     private final StoreRepository storeRepository;
+    private final JwtUtil jwtUtil;
 
     @GetMapping
     public Result<Map<String, Object>> get() {
@@ -53,19 +55,19 @@ public class SettingsController {
     public Result<Map<String, Object>> plan() {
         Long tenantId = LoginUserHolder.currentTenantId();
         TenantSetting ts = tenantSettingRepository.findByTenantId(tenantId).orElse(null);
-        String plan = "FREE";
-        int smsBalance = 0;
-        Map<String, Object> limits = planLimits();
+        String plan = ts == null || ts.getPlan() == null ? "FREE" : ts.getPlan();
+        int smsBalance = ts == null || ts.getSmsBalance() == null ? 0 : ts.getSmsBalance();
+        Map<String, Object> limits = planLimits(plan);
         Map<String, Object> vo = new LinkedHashMap<>();
         vo.put("plan", plan);
         vo.put("smsBalance", smsBalance);
         vo.put("startedAt", ts == null ? null : ts.getCreatedAt());
-        vo.put("expiresAt", null);
+        vo.put("expiresAt", ts == null ? null : ts.getPlanExpiresAt());
         vo.put("limits", limits);
         return Result.success(vo);
     }
 
-    /** 模拟升级: 入参 {plan, months} */
+    /** 升级套餐: 入参 {plan, months}，持久化到租户设置 */
     @PostMapping("/plan/upgrade")
     public Result<Map<String, Object>> upgrade(@RequestBody Map<String, Object> body) {
         if (body == null) {
@@ -84,15 +86,21 @@ public class SettingsController {
             return s;
         });
         LocalDateTime now = LocalDateTime.now();
-        ts.setCreatedAt(now);
+        LocalDateTime base = ts.getPlanExpiresAt() != null && ts.getPlanExpiresAt().isAfter(now)
+                ? ts.getPlanExpiresAt() : now;
+        ts.setPlan(plan);
+        ts.setPlanExpiresAt(base.plusMonths(months));
+        ts.setSmsBalance(plan.equals("FLAGSHIP") ? 5000 : plan.equals("GROWTH") ? 1000 : plan.equals("BASIC") ? 200 : 0);
+        if (ts.getCreatedAt() == null) ts.setCreatedAt(now);
         ts.setUpdatedAt(now);
         tenantSettingRepository.save(ts);
         Map<String, Object> vo = new LinkedHashMap<>();
         vo.put("plan", plan);
-        vo.put("smsBalance", plan.equals("FLAGSHIP") ? 5000 : plan.equals("GROWTH") ? 1000 : 200);
-        vo.put("startedAt", now);
-        vo.put("expiresAt", now.plusMonths(months));
+        vo.put("smsBalance", ts.getSmsBalance());
+        vo.put("startedAt", ts.getCreatedAt());
+        vo.put("expiresAt", ts.getPlanExpiresAt());
         vo.put("months", months);
+        vo.put("limits", planLimits(plan));
         return Result.success(vo);
     }
 
@@ -124,7 +132,7 @@ public class SettingsController {
         return Result.success(vo);
     }
 
-    /** 切换门店: 仅把 storeId 写回 LoginUserHolder, 进程级别生效 */
+    /** 切换门店: 生成含新 storeId 的 token 返回前端 */
     @PostMapping("/store/switch")
     public Result<Map<String, Object>> switchStore(@RequestBody Map<String, Object> body) {
         if (body == null || body.get("storeId") == null) {
@@ -142,23 +150,34 @@ public class SettingsController {
                 .userId(old.getUserId())
                 .tenantId(old.getTenantId())
                 .username(old.getUsername())
-                                .role(old.getRole())
+                .role(old.getRole())
                 .storeId(store.getId())
                 .build();
         LoginUserHolder.set(fresh);
+        String newToken = jwtUtil.generate(old.getUserId(), old.getTenantId(), old.getUsername(), old.getRole(), store.getId());
         Map<String, Object> vo = new LinkedHashMap<>();
         vo.put("storeId", store.getId());
         vo.put("name", store.getName());
+        vo.put("token", newToken);
         return Result.success(vo);
     }
 
-    /** 当前计费版下各维度上限(FREE 基础配额) */
-    private Map<String, Object> planLimits() {
+    /** 各套餐的配额上限 */
+    private Map<String, Object> planLimits(String plan) {
         Map<String, Object> m = new LinkedHashMap<>();
-        m.put("members", 500);
-        m.put("stores", 3);
-        m.put("products", 30);
-        m.put("employees", 5);
+        switch (plan == null ? "FREE" : plan) {
+            case "FLAGSHIP":
+                m.put("members", "不限"); m.put("stores", "不限"); m.put("products", 1000); m.put("employees", "不限");
+                break;
+            case "GROWTH":
+                m.put("members", 50000); m.put("stores", 30); m.put("products", 500); m.put("employees", 50);
+                break;
+            case "BASIC":
+                m.put("members", 5000); m.put("stores", 10); m.put("products", 100); m.put("employees", 20);
+                break;
+            default:
+                m.put("members", 500); m.put("stores", 3); m.put("products", 30); m.put("employees", 5);
+        }
         return m;
     }
 

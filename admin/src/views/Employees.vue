@@ -123,6 +123,28 @@
         <div v-if="!perfList.length && !perfLoading" class="muted center">暂无业绩数据</div>
       </div>
     </el-dialog>
+
+    <!-- 隐藏文件输入（必须在 template 内） -->
+    <input ref="fileInputRef" type="file" accept=".csv" style="display: none" @change="onImportFile" />
+
+    <!-- 导入预览弹窗 -->
+    <el-dialog v-model="importVisible" title="导入员工" width="560px">
+      <div v-if="importPreview.length">
+        <div class="import-tip">共解析 {{ importPreview.length }} 条，确认后批量创建：</div>
+        <el-table :data="importPreview.slice(0, 50)" size="small" max-height="300">
+          <el-table-column label="姓名" prop="name" width="100" />
+          <el-table-column label="账号" prop="username" width="120" />
+          <el-table-column label="手机号" prop="phone" width="130" />
+          <el-table-column label="角色" prop="role" width="100" />
+        </el-table>
+        <div v-if="importPreview.length > 50" class="import-tip" style="margin-top: 8px">仅显示前 50 条，共 {{ importPreview.length }} 条</div>
+      </div>
+      <div v-else class="muted center">无有效数据</div>
+      <template #footer>
+        <el-button @click="importVisible = false">取消</el-button>
+        <el-button type="primary" :loading="importing" :disabled="!importPreview.length" @click="onImportSubmit">开始导入</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -131,8 +153,9 @@
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox, ElMessageBoxOptions, type FormInstance, type FormRules } from 'element-plus'
 import { Plus, RefreshRight , Upload, Download } from '@element-plus/icons-vue'
-import { employeesApi, storesApi, membersApi } from '@/api'
+import { employeesApi, storesApi } from '@/api'
 import { formatMoney } from '@/utils/format'
+import { exportCsv } from '@/utils/csv'
 import type { Employee, Store, Performance, Role } from '@/types'
 
 const empSlogan = [
@@ -142,27 +165,81 @@ const empSlogan = [
 ][Math.floor(Math.random() * 3)]
 
 const fileInputRef = ref<HTMLInputElement>()
+const importVisible = ref(false)
+const importPreview = ref<any[]>([])
+const importing = ref(false)
+
 function openImport() { fileInputRef.value?.click() }
-async function onExport() {
-  ElMessage.info('导出中…')
-  try {
-    const blob: any = await membersApi.export({ storeId: query.storeId, role: query.role })
-    const url = URL.createObjectURL(new Blob([blob]))
-    const a = document.createElement('a')
-    a.href = url; a.download = `员工_${Date.now()}.csv`; a.click()
-    URL.revokeObjectURL(url)
-  } catch (e) { ElMessage.error('导出失败') }
+
+function onExport() {
+  if (!list.value.length) { ElMessage.warning('暂无可导出的员工'); return }
+  exportCsv(`员工列表-${new Date().toLocaleDateString('zh-CN')}`, list.value, [
+    { key: 'name', header: '姓名' },
+    { key: 'username', header: '登录账号' },
+    { key: 'phone', header: '手机号' },
+    { key: 'role', header: '角色', format: r => roleText(r.role) },
+    { key: 'storeIds', header: '所属门店', format: r => (r.storeIds || []).map((id: number) => storeName(id)).join('; ') },
+    { key: 'status', header: '状态', format: r => r.status === 'DISABLED' ? '已禁用' : '正常' }
+  ])
+  ElMessage.success(`已导出 ${list.value.length} 条员工`)
 }
-async function onImportFile(e: Event) {
+
+function onImportFile(e: Event) {
   const f = (e.target as HTMLInputElement).files?.[0]
   if (!f) return
-  const fd = new FormData(); fd.append('file', f)
-  ElMessage.info('导入中…')
-  try {
-    const r: any = await membersApi.import(fd)
-    ElMessage.success(`成功 ${r.success} 条, 失败 ${r.failed} 条`)
-  } catch (e) { ElMessage.error('导入失败') }
-  (e.target as HTMLInputElement).value = ''
+  const reader = new FileReader()
+  reader.onload = () => {
+    const text = String(reader.result || '')
+    const lines = text.split('\n').filter(l => l.trim())
+    if (lines.length < 2) { ElMessage.warning('CSV 文件无有效数据'); return }
+    const parsed: any[] = []
+    for (let i = 1; i < lines.length; i++) {
+      const cells = parseCsvLine(lines[i])
+      if (cells.length < 2) continue
+      const roleMap: Record<string, string> = { '租户管理员': 'TENANT_ADMIN', '店长': 'STORE_MANAGER', '员工': 'STAFF', '收银': 'CASHIER' }
+      parsed.push({
+        name: cells[0]?.trim() || '',
+        username: cells[1]?.trim() || '',
+        phone: cells[2]?.trim() || '',
+        role: roleMap[cells[3]?.trim()] || cells[3]?.trim() || 'STAFF',
+        password: '123456',
+        storeIds: []
+      })
+    }
+    importPreview.value = parsed
+    importVisible.value = true
+  }
+  reader.readAsText(f, 'UTF-8')
+  ;(e.target as HTMLInputElement).value = ''
+}
+
+function parseCsvLine(line: string): string[] {
+  const result: string[] = []
+  let cur = ''
+  let inQuote = false
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+    if (ch === '"') { inQuote = !inQuote; continue }
+    if (ch === ',' && !inQuote) { result.push(cur); cur = ''; continue }
+    cur += ch
+  }
+  result.push(cur)
+  return result
+}
+
+async function onImportSubmit() {
+  importing.value = true
+  let ok = 0, fail = 0
+  for (const item of importPreview.value) {
+    try {
+      await employeesApi.create(item)
+      ok++
+    } catch { fail++ }
+  }
+  importing.value = false
+  importVisible.value = false
+  ElMessage.success(`导入完成：成功 ${ok} 条，失败 ${fail} 条`)
+  loadList()
 }
 
 
@@ -288,9 +365,6 @@ onMounted(async () => {
 })
 </script>
 
-<!-- 隐藏文件输入 -->
-<input ref="fileInputRef" type="file" accept=".csv,.xlsx" style="display: none" @change="onImportFile" />
-
 <style scoped>
 .table-wrap {
   padding: 16px 18px;
@@ -334,5 +408,12 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+.import-tip {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-bottom: 10px;
+  font-family: var(--font-serif);
+  letter-spacing: 0.04em;
 }
 </style>

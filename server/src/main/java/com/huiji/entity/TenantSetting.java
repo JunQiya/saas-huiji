@@ -7,6 +7,8 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 /**
  * 租户设置: 等级规则、储值规则等(JSON 字符串存储)。
  */
@@ -24,6 +26,18 @@ public class TenantSetting extends BaseEntity {
 
     @Column(name = "sms_sign")
     private String smsSign;
+
+    /** 当前套餐 FREE/BASIC/GROWTH/FLAGSHIP */
+    @Column(name = "plan_code")
+    private String plan = "FREE";
+
+    /** 套餐到期时间 */
+    @Column(name = "plan_expires_at")
+    private LocalDateTime planExpiresAt;
+
+    /** 短信余额 */
+    @Column(name = "sms_balance")
+    private Integer smsBalance = 0;
 
     /**
      * 等级规则 JSON, 形如:

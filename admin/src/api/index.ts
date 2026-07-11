@@ -67,6 +67,10 @@ export const membersApi = {
     request.post<any, null>('/members/batch/tags', data),
   batchLevel: (data: { memberIds: number[]; level: number }) =>
     request.post<any, null>('/members/batch/level', data),
+  adjustPoints: (id: number, data: { delta: number; reason: string }) =>
+    request.post<any, { points: number }>(`/members/${id}/points`, data),
+  setLevel: (id: number, level: number) =>
+    request.put<any, { level: number; levelName: string }>(`/members/${id}/level`, { level }),
   import: (form: FormData) => request.post<any, { success: number; failed: number; errors: string[] }>('/members/import', form),
   export: (params: any) => request.get<any, any>('/members/export', { params, responseType: 'blob' }),
   profile: (id: number) => request.get<any, MemberProfile>(`/members/${id}/profile`)

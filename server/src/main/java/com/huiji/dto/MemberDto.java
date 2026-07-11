@@ -56,4 +56,11 @@ public class MemberDto {
         private List<Long> memberIds;
         private Integer level;
     }
+
+    @Data
+    public static class PointsAdjustRequest {
+        /** 积分变化量，正数为增加，负数为扣减 */
+        private Long delta;
+        private String reason;
+    }
 }

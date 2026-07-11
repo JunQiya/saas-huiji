@@ -31,6 +31,10 @@ export const useUserStore = defineStore('user', {
       localStorage.setItem('user', JSON.stringify(user))
       return user
     },
+    setToken(token: string) {
+      this.token = token
+      localStorage.setItem('token', token)
+    },
     logout() {
       // 尽量通知后端，失败不阻塞
       authApi.logout().catch(() => {})
