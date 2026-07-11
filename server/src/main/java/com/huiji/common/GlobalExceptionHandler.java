@@ -10,6 +10,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
@@ -88,6 +89,14 @@ public class GlobalExceptionHandler {
         resp.setStatus(HttpStatus.BAD_REQUEST.value());
         log.warn("缺少请求参数: {}", e.getParameterName());
         return Result.fail(ErrorCode.VALIDATION, "缺少必需参数: " + e.getParameterName());
+    }
+
+    /** 405: 请求方法不支持(如对 POST 接口发 GET) */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public Result<Void> handleMethodNotSupported(HttpRequestMethodNotSupportedException e, HttpServletResponse resp) {
+        resp.setStatus(HttpStatus.METHOD_NOT_ALLOWED.value());
+        log.warn("请求方法不支持: {} {}", e.getMethod(), e.getMessage());
+        return Result.fail(ErrorCode.VALIDATION, "请求方式错误: " + e.getMethod() + " 不支持, 请检查接口定义");
     }
 
     /** 兜底 500 */
