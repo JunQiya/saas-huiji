@@ -42,6 +42,24 @@
           <el-input v-model="memberKeyword" placeholder="手机号 / 姓名" clearable :prefix-icon="User" @keyup.enter="searchMember" />
           <el-button type="primary" plain @click="searchMember">查询</el-button>
         </div>
+        <!-- 最近到店会员快捷 -->
+        <div v-if="!member && recentMembers.length" class="recent-members">
+          <div class="rm-label">
+            <span>最近到店</span>
+            <span class="rm-clear" @click="clearRecent">清空</span>
+          </div>
+          <div class="rm-chips">
+            <div
+              v-for="r in recentMembers.slice(0, 6)"
+              :key="r.id"
+              class="rm-chip"
+              @click="selectRecent(r)"
+            >
+              <span class="rm-name">{{ r.name }}</span>
+              <span class="rm-phone">{{ formatPhoneShort(r.phone) }}</span>
+            </div>
+          </div>
+        </div>
         <div v-if="member" class="member-card">
           <div class="m-row">
             <span class="m-name">{{ member.name }}</span>
@@ -229,6 +247,49 @@ async function searchMember() {
   try {
     memberCoupons.value = await membersApi.coupons(member.value.id) || []
   } catch { memberCoupons.value = [] }
+  saveRecent(member.value)
+}
+
+// 最近到店会员（localStorage，最多 10 条，按时间倒序）
+const recentMembers = ref<any[]>([])
+function loadRecent() {
+  try {
+    const raw = localStorage.getItem('pos-recent-members')
+    if (raw) recentMembers.value = JSON.parse(raw)
+  } catch { recentMembers.value = [] }
+}
+function saveRecent(m: any) {
+  if (!m?.id) return
+  const list = recentMembers.value.filter(x => x.id !== m.id)
+  list.unshift({ id: m.id, name: m.name, phone: m.phone, level: m.levelName || m.level })
+  recentMembers.value = list.slice(0, 10)
+  try { localStorage.setItem('pos-recent-members', JSON.stringify(recentMembers.value)) } catch {}
+}
+function clearRecent() {
+  recentMembers.value = []
+  try { localStorage.removeItem('pos-recent-members') } catch {}
+}
+function selectRecent(r: any) {
+  membersApi.list({ keyword: r.phone || r.name, page: 1, size: 1 }).then((data: any) => {
+    const records = data?.records || data?.list || data?.content || []
+    if (records.length) {
+      member.value = records[0]
+      memberKeyword.value = records[0].phone || records[0].name
+      return membersApi.coupons(records[0].id)
+    } else {
+      // fallback：用缓存
+      member.value = r
+    }
+  }).then((cs: any) => {
+    memberCoupons.value = cs || []
+  }).catch(() => {
+    member.value = r
+  })
+}
+function formatPhoneShort(p: string) {
+  if (!p) return ''
+  if (p.length === 11) return p.slice(0, 3) + '****' + p.slice(7)
+  return p
 }
 
 async function checkout() {
@@ -280,6 +341,26 @@ onMounted(loadAll)
 .right-pane { display: flex; flex-direction: column; }
 .member-block { display: flex; align-items: center; gap: 8px; }
 .member-block .m-label { color: var(--muted); font-size: 12px; width: 36px; }
+.recent-members { margin-top: 10px; padding: 10px 12px; background: var(--surface-2); border: 1px dashed var(--line-2); border-radius: var(--r); }
+.rm-label { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.rm-label > span:first-child { font-family: var(--font-serif); font-size: 12px; color: var(--muted); letter-spacing: 0.10em; }
+.rm-clear { font-family: var(--font-serif); font-size: 11px; color: var(--muted-2); cursor: pointer; letter-spacing: 0.04em; }
+.rm-clear:hover { color: var(--brand-ink); }
+.rm-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.rm-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all var(--dur) var(--ease-out);
+  max-width: 100%;
+}
+.rm-chip:hover { border-color: var(--brand-soft); background: var(--brand-softer); }
+.rm-chip:active { transform: scale(0.98); }
+.rm-name { font-family: var(--font-serif); font-size: 12px; color: var(--ink); letter-spacing: 0.04em; }
+.rm-phone { font-family: var(--font-num); font-size: 11px; color: var(--muted); letter-spacing: 0.04em; }
 .member-card { margin-top: 8px; padding: 10px 12px; background: #faf9f6; border-radius: 10px; display: flex; flex-direction: column; gap: 4px; }
 .m-row { display: flex; align-items: center; justify-content: space-between; }
 .m-name { font-weight: 600; color: var(--ink); }
