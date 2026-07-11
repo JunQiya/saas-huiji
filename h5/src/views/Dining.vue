@@ -52,7 +52,7 @@
               <div class="pc-desc">{{ p.description || (p.category === 'SERVICE' ? '到店体验' : '店内好物') }}</div>
               <div class="pc-bottom">
                 <div class="pc-price">
-                  <span class="num val">{{ Number(p.price || 0).toFixed(2) }}</span>
+                  <span class="num val">{{ (Number(p.price || 0) / 100).toFixed(2) }}</span>
                   <span class="unit">元</span>
                 </div>
                 <div class="pc-stepper">
@@ -78,7 +78,7 @@
         <span class="cb-badge val">{{ totalCount }}</span>
       </div>
       <div class="cb-info">
-        <div class="cb-total val">¥{{ totalPrice.toFixed(2) }}</div>
+        <div class="cb-total val">¥{{ (totalPrice / 100).toFixed(2) }}</div>
         <div class="cb-count">共 {{ totalCount }} 件</div>
       </div>
       <button class="cb-btn" @click="openCheckout">去结算</button>
@@ -135,7 +135,7 @@
         <div class="ck-summary">
           <div class="ck-s-row"><span>桌台</span><span>{{ table?.name || '-' }}</span></div>
           <div class="ck-s-row"><span>菜品</span><span>{{ totalCount }} 件</span></div>
-          <div class="ck-s-row"><span>合计</span><span class="val strong">¥{{ totalPrice.toFixed(2) }}</span></div>
+          <div class="ck-s-row"><span>合计</span><span class="val strong">¥{{ (totalPrice / 100).toFixed(2) }}</span></div>
         </div>
         <van-field
           v-model="remark"
@@ -253,7 +253,7 @@ async function submitOrder() {
     clearCart()
     checkoutVisible.value = false
     // 跳转订单详情
-    const orderId = res?.id || res?.orderId || (typeof res === 'number' ? res : null)
+    const orderId = res?.order?.id || res?.id || res?.orderId || (typeof res === 'number' ? res : null)
     if (orderId) {
       setTimeout(() => router.replace(`/order/${orderId}`), 500)
     }

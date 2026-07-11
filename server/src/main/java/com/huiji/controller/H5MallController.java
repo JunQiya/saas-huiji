@@ -52,19 +52,22 @@ public class H5MallController {
 
     /** 商城分类(公开) */
     @GetMapping("/categories")
-    public Result<List<MallCategory>> categories(@RequestParam Long tenantId) {
-        return Result.success(mallService.categories(tenantId));
+    public Result<List<MallCategory>> categories(@RequestParam(required = false) Long tenantId,
+                                                   HttpServletRequest req) {
+        return Result.success(mallService.categories(resolveTenantId(tenantId, req)));
     }
 
     /** 商城商品列表(公开) */
     @GetMapping("/products")
-    public Result<Map<String, Object>> products(@RequestParam Long tenantId,
+    public Result<Map<String, Object>> products(@RequestParam(required = false) Long tenantId,
                                                   @RequestParam(required = false) Long categoryId,
                                                   @RequestParam(required = false) String keyword,
                                                   @RequestParam(defaultValue = "1") int page,
-                                                  @RequestParam(defaultValue = "20") int size) {
+                                                  @RequestParam(defaultValue = "20") int size,
+                                                  HttpServletRequest req) {
+        Long tid = resolveTenantId(tenantId, req);
         PageRequest pageable = PageRequest.of(Math.max(0, page - 1), size <= 0 ? 20 : size);
-        Page<Product> p = productRepository.searchMall(tenantId, categoryId, keyword, pageable);
+        Page<Product> p = productRepository.searchMall(tid, categoryId, keyword, pageable);
         List<Map<String, Object>> list = p.getContent().stream().map(this::toProductVO).toList();
         Map<String, Object> vo = new LinkedHashMap<>();
         vo.put("list", list);
@@ -77,8 +80,10 @@ public class H5MallController {
     /** 商品详情(公开) */
     @GetMapping("/products/{id}")
     public Result<Map<String, Object>> productDetail(@PathVariable Long id,
-                                                      @RequestParam Long tenantId) {
-        Product p = productRepository.findByIdAndTenantIdAndDeletedFalse(id, tenantId)
+                                                      @RequestParam(required = false) Long tenantId,
+                                                      HttpServletRequest req) {
+        Long tid = resolveTenantId(tenantId, req);
+        Product p = productRepository.findByIdAndTenantIdAndDeletedFalse(id, tid)
                 .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "商品不存在"));
         return Result.success(toProductVO(p));
     }
@@ -166,6 +171,22 @@ public class H5MallController {
     }
 
     // ============ 内部方法 ============
+
+    /** 从 query 参数或 member token 推断 tenantId */
+    private Long resolveTenantId(Long tenantId, HttpServletRequest req) {
+        if (tenantId != null) return tenantId;
+        String header = req.getHeader("Authorization");
+        if (header != null && header.startsWith("Bearer ")) {
+            try {
+                Claims claims = memberTokenUtil.parse(header.substring(7));
+                if ("MEMBER".equals(claims.get("type", String.class))) {
+                    Long tid = claims.get("tenantId", Long.class);
+                    if (tid != null) return tid;
+                }
+            } catch (Exception ignored) { }
+        }
+        return 1L;
+    }
 
     private void bindAsMember(long memberId, long tenantId) {
         LoginUser lu = LoginUser.builder()

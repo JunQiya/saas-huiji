@@ -2,18 +2,22 @@
   <div class="page">
     <div class="page-header">
       <div>
-        <h2 class="page-title">桌台管理</h2>
+        <h2 class="page-title">门店点餐</h2>
         <div class="page-sub">把每一张桌台都安排妥当，是店里最朴素的秩序</div>
       </div>
       <div class="header-actions">
-        <el-select v-model="storeId" placeholder="选择门店" style="width: 180px" @change="loadList">
+        <el-select v-model="storeId" placeholder="选择门店" style="width: 180px" @change="onStoreChange">
           <el-option v-for="s in stores" :key="s.id" :label="s.name" :value="s.id" />
         </el-select>
-        <el-button type="primary" :icon="Plus" :disabled="!storeId" @click="openCreate" class="btn-scale">新增桌台</el-button>
       </div>
     </div>
 
-    <div class="filter-bar">
+    <el-tabs v-model="activeTab" class="dining-tabs">
+      <el-tab-pane label="桌台管理" name="tables">
+        <div class="header-actions" style="margin-bottom: 12px">
+          <el-button type="primary" :icon="Plus" :disabled="!storeId" @click="openCreate" class="btn-scale">新增桌台</el-button>
+        </div>
+        <div class="filter-bar">
       <el-input v-model="keyword" placeholder="搜索桌名/区域" clearable style="width: 220px" />
       <el-radio-group v-model="statusFilter">
         <el-radio-button value="">全部</el-radio-button>
@@ -52,6 +56,32 @@
         <el-empty :description="storeId ? '暂无桌台' : '请先选择门店'" />
       </div>
     </div>
+      </el-tab-pane>
+
+      <el-tab-pane label="菜单分类" name="categories">
+        <div class="header-actions" style="margin-bottom: 12px">
+          <el-button type="primary" :icon="Plus" :disabled="!storeId" @click="openCategoryCreate" class="btn-scale">新增分类</el-button>
+        </div>
+        <div class="x-card">
+          <el-table :data="categories" stripe size="small">
+            <el-table-column label="排序" prop="sortOrder" width="80" />
+            <el-table-column label="分类名称" prop="name" min-width="160" />
+            <el-table-column label="状态" width="100">
+              <template #default="{ row }">
+                <el-tag :type="row.status === 'ENABLED' ? 'success' : 'info'" size="small">{{ row.status === 'ENABLED' ? '启用' : '禁用' }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="200">
+              <template #default="{ row }">
+                <el-button link type="primary" @click="openCategoryEdit(row)">编辑</el-button>
+                <el-button link type="primary" @click="openBindProducts(row)">绑定商品</el-button>
+                <el-button link type="danger" @click="removeCategory(row)">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </el-tab-pane>
+    </el-tabs>
 
     <!-- 新增/编辑桌台 -->
     <el-dialog v-model="formVisible" :title="editing ? '编辑桌台' : '新增桌台'" width="460px" :close-on-click-modal="false">
@@ -90,6 +120,44 @@
         <el-button @click="qrVisible = false">关闭</el-button>
       </template>
     </el-dialog>
+
+    <!-- 新增/编辑菜单分类 -->
+    <el-dialog v-model="catFormVisible" :title="catEditing ? '编辑分类' : '新增分类'" width="420px" :close-on-click-modal="false">
+      <el-form :model="catForm" label-width="80px">
+        <el-form-item label="分类名称" required>
+          <el-input v-model="catForm.name" placeholder="如 招牌洗护、头皮护理" />
+        </el-form-item>
+        <el-form-item label="排序">
+          <el-input-number v-model="catForm.sortOrder" :min="0" :step="1" style="width: 180px" />
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-radio-group v-model="catForm.status">
+            <el-radio-button value="ENABLED">启用</el-radio-button>
+            <el-radio-button value="DISABLED">禁用</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="catFormVisible = false">取消</el-button>
+        <el-button type="primary" :loading="catSaving" @click="saveCategory" class="btn-scale">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 绑定商品弹窗 -->
+    <el-dialog v-model="bindVisible" :title="`绑定商品到「${bindCategory?.name || ''}」`" width="560px">
+      <div v-if="!products.length" class="empty">暂无可绑定的商品</div>
+      <el-checkbox-group v-model="bindSelected" v-else>
+        <div class="bind-list">
+          <div v-for="p in products" :key="p.id" class="bind-item">
+            <el-checkbox :value="p.id">{{ p.name }}（¥{{ (p.price / 100).toFixed(2) }}）</el-checkbox>
+          </div>
+        </div>
+      </el-checkbox-group>
+      <template #footer>
+        <el-button @click="bindVisible = false">取消</el-button>
+        <el-button type="primary" :loading="bindSaving" @click="submitBind" class="btn-scale">保存绑定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -97,12 +165,13 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Plus, Location, User, Rank, Loading } from '@element-plus/icons-vue'
-import { diningApi, storesApi } from '@/api'
+import { diningApi, storesApi, productsApi } from '@/api'
 
 const loading = ref(false)
 const list = ref<any[]>([])
 const stores = ref<any[]>([])
 const storeId = ref<number | undefined>(undefined)
+const activeTab = ref('tables')
 const keyword = ref('')
 const statusFilter = ref('')
 
@@ -204,11 +273,103 @@ async function onQrcode(row: any) {
   }
 }
 
+// ============ 菜单分类 ============
+const categories = ref<any[]>([])
+async function loadCategories() {
+  if (!storeId.value) { categories.value = []; return }
+  try {
+    categories.value = (await diningApi.categories(storeId.value)) || []
+  } catch {
+    categories.value = []
+  }
+}
+
+const catFormVisible = ref(false)
+const catEditing = ref(false)
+const catSaving = ref(false)
+const catForm = reactive({ id: 0, storeId: 0, name: '', sortOrder: 0, status: 'ENABLED' })
+
+function openCategoryCreate() {
+  catEditing.value = false
+  Object.assign(catForm, { id: 0, storeId: storeId.value, name: '', sortOrder: 0, status: 'ENABLED' })
+  catFormVisible.value = true
+}
+function openCategoryEdit(row: any) {
+  catEditing.value = true
+  Object.assign(catForm, {
+    id: row.id,
+    storeId: row.storeId || storeId.value,
+    name: row.name || '',
+    sortOrder: row.sortOrder ?? 0,
+    status: row.status || 'ENABLED'
+  })
+  catFormVisible.value = true
+}
+async function saveCategory() {
+  if (!catForm.name?.trim()) { ElMessage.warning('请输入分类名称'); return }
+  catSaving.value = true
+  try {
+    await diningApi.saveCategory({ ...catForm })
+    ElMessage.success(catEditing.value ? '已更新' : '已新增')
+    catFormVisible.value = false
+    loadCategories()
+  } finally {
+    catSaving.value = false
+  }
+}
+async function removeCategory(row: any) {
+  await ElMessageBox.confirm(`确认删除分类「${row.name}」？已绑定商品将解除关联。`, '提示', { type: 'warning' })
+  await diningApi.removeCategory(row.id)
+  ElMessage.success('已删除')
+  loadCategories()
+}
+
+// 绑定商品
+const bindVisible = ref(false)
+const bindCategory = ref<any>(null)
+const products = ref<any[]>([])
+const bindSelected = ref<number[]>([])
+const bindSaving = ref(false)
+
+async function openBindProducts(row: any) {
+  bindCategory.value = row
+  bindSelected.value = []
+  bindVisible.value = true
+  try {
+    const data: any = await productsApi.list({ page: 1, size: 200, status: 'ACTIVE' })
+    products.value = data?.records || data?.list || data?.content || []
+    // 预选已绑定该分类的商品
+    bindSelected.value = products.value
+      .filter((p: any) => p.menuCategoryId === row.id)
+      .map((p: any) => p.id)
+  } catch {
+    products.value = []
+  }
+}
+async function submitBind() {
+  if (!bindCategory.value) return
+  bindSaving.value = true
+  try {
+    await diningApi.bindProducts(bindCategory.value.id, bindSelected.value)
+    ElMessage.success('绑定已更新')
+    bindVisible.value = false
+  } finally {
+    bindSaving.value = false
+  }
+}
+
+// 门店切换：同时加载桌台和分类
+function onStoreChange() {
+  loadList()
+  loadCategories()
+}
+
 onMounted(async () => {
   await loadStores()
   if (stores.value.length && !storeId.value) {
     storeId.value = stores.value[0].id
     loadList()
+    loadCategories()
   }
 })
 </script>

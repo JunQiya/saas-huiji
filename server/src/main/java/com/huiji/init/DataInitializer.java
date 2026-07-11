@@ -3,8 +3,14 @@ package com.huiji.init;
 import com.huiji.entity.Campaign;
 import com.huiji.entity.Coupon;
 import com.huiji.entity.CouponRecord;
+import com.huiji.entity.DiningTable;
+import com.huiji.entity.Game;
+import com.huiji.entity.GamePrize;
+import com.huiji.entity.MallCategory;
 import com.huiji.entity.Member;
 import com.huiji.entity.MemberTag;
+import com.huiji.entity.MenuCategory;
+import com.huiji.entity.Product;
 import com.huiji.entity.Store;
 import com.huiji.entity.Tenant;
 import com.huiji.entity.User;
@@ -12,8 +18,14 @@ import com.huiji.entity.WalletTransaction;
 import com.huiji.repository.CampaignRepository;
 import com.huiji.repository.CouponRecordRepository;
 import com.huiji.repository.CouponRepository;
+import com.huiji.repository.DiningTableRepository;
+import com.huiji.repository.GamePrizeRepository;
+import com.huiji.repository.GameRepository;
+import com.huiji.repository.MallCategoryRepository;
 import com.huiji.repository.MemberRepository;
 import com.huiji.repository.MemberTagRepository;
+import com.huiji.repository.MenuCategoryRepository;
+import com.huiji.repository.ProductRepository;
 import com.huiji.repository.StoreRepository;
 import com.huiji.repository.TenantRepository;
 import com.huiji.repository.UserRepository;
@@ -53,6 +65,12 @@ public class DataInitializer {
     private final CouponRepository couponRepository;
     private final CouponRecordRepository couponRecordRepository;
     private final CampaignRepository campaignRepository;
+    private final DiningTableRepository diningTableRepository;
+    private final MenuCategoryRepository menuCategoryRepository;
+    private final MallCategoryRepository mallCategoryRepository;
+    private final GameRepository gameRepository;
+    private final GamePrizeRepository gamePrizeRepository;
+    private final ProductRepository productRepository;
     private final SettingsService settingsService;
     private final PasswordEncoder passwordEncoder;
 
@@ -218,6 +236,155 @@ public class DataInitializer {
                 "好久不见! 回店即享 8.5 折优惠, 期待您的再次光临。", now.minusDays(10), now.plusDays(30), true, 8, 8, 2);
         campaign(tid, "复购激励", "REPURCHASE", "消费后 7 天", "consumeCount>=1", "IN_APP",
                 "感谢您的光临, 再次消费可领专属优惠券。", now.minusDays(5), now.plusDays(90), false, 0, 0, 0);
+
+        // 8. 桌台演示数据
+        try {
+            String[][] tableSeed = {
+                    {"A1", "大厅", "4"}, {"A2", "大厅", "4"},
+                    {"A3", "大厅", "4"}, {"A4", "大厅", "4"},
+                    {"B1", "包间", "8"}, {"B2", "包间", "8"},
+                    {"C1", "露台", "6"}, {"C2", "露台", "6"},
+            };
+            for (int i = 0; i < tableSeed.length; i++) {
+                DiningTable t = new DiningTable();
+                t.setTenantId(tid);
+                t.setStoreId(s1.getId());
+                t.setName(tableSeed[i][0]);
+                t.setArea(tableSeed[i][1]);
+                t.setSeats(Integer.parseInt(tableSeed[i][2]));
+                t.setStatus("IDLE");
+                t.setSortOrder(i + 1);
+                diningTableRepository.save(t);
+            }
+        } catch (Exception e) {
+            log.warn("桌台演示数据初始化失败: {}", e.getMessage());
+        }
+
+        // 9. 菜单分类演示数据
+        try {
+            String[] menuCatNames = {"招牌洗护", "头皮护理", "造型设计", "精选好物"};
+            for (int i = 0; i < menuCatNames.length; i++) {
+                MenuCategory mc = new MenuCategory();
+                mc.setTenantId(tid);
+                mc.setStoreId(s1.getId());
+                mc.setName(menuCatNames[i]);
+                mc.setSortOrder(i + 1);
+                mc.setStatus("ENABLED");
+                menuCategoryRepository.save(mc);
+            }
+        } catch (Exception e) {
+            log.warn("菜单分类演示数据初始化失败: {}", e.getMessage());
+        }
+
+        // 10. 商城分类演示数据
+        try {
+            String[] mallCatNames = {"精选好物", "护理套装", "洗护用品"};
+            for (int i = 0; i < mallCatNames.length; i++) {
+                MallCategory mc = new MallCategory();
+                mc.setTenantId(tid);
+                mc.setName(mallCatNames[i]);
+                mc.setSortOrder(i + 1);
+                mc.setStatus("ENABLED");
+                mallCategoryRepository.save(mc);
+            }
+        } catch (Exception e) {
+            log.warn("商城分类演示数据初始化失败: {}", e.getMessage());
+        }
+
+        // 11. 将前 4 个商品设为商城可见, 关联到商城分类
+        try {
+            List<Product> products = productRepository.listActive(tid, null);
+            List<MallCategory> mallCats = mallCategoryRepository.findByTenantIdOrderBySortOrderAsc(tid);
+            if (!mallCats.isEmpty()) {
+                int bound = Math.min(4, products.size());
+                for (int i = 0; i < bound; i++) {
+                    Product p = products.get(i);
+                    p.setMallVisible(true);
+                    // 4 个商品轮流分配到 3 个商城分类
+                    p.setMallCategoryId(mallCats.get(i % mallCats.size()).getId());
+                    productRepository.save(p);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("商品更新为商城可见失败: {}", e.getMessage());
+        }
+
+        // 12. 游戏演示数据: 大转盘 + 砸金蛋
+        try {
+            LocalDateTime gameStart = LocalDateTime.now();
+            LocalDateTime gameEnd = gameStart.plusDays(30);
+
+            // 大转盘游戏
+            Game wheel = new Game();
+            wheel.setTenantId(tid);
+            wheel.setStoreId(s1.getId());
+            wheel.setName("周年庆幸运转盘");
+            wheel.setType("WHEEL");
+            wheel.setSubtitle("转一转，好礼转出来");
+            wheel.setStartTime(gameStart);
+            wheel.setEndTime(gameEnd);
+            wheel.setDailyLimit(1);
+            wheel.setTotalLimit(0);
+            wheel.setPointsCost(0);
+            wheel.setStatus("ENABLED");
+            wheel.setRules("每人每天可抽奖1次，奖品包括优惠券和积分");
+            gameRepository.save(wheel);
+
+            // 大转盘 4 个奖品
+            GamePrize gp1 = new GamePrize();
+            gp1.setGameId(wheel.getId());
+            gp1.setName("5元优惠券");
+            gp1.setType("COUPON");
+            gp1.setRefId(1L);
+            gp1.setRefName("新人券");
+            gp1.setProbability(100);
+            gp1.setSortOrder(1);
+            gamePrizeRepository.save(gp1);
+
+            GamePrize gp2 = new GamePrize();
+            gp2.setGameId(wheel.getId());
+            gp2.setName("50积分");
+            gp2.setType("POINTS");
+            gp2.setAmount(50);
+            gp2.setProbability(150);
+            gp2.setSortOrder(2);
+            gamePrizeRepository.save(gp2);
+
+            GamePrize gp3 = new GamePrize();
+            gp3.setGameId(wheel.getId());
+            gp3.setName("100积分");
+            gp3.setType("POINTS");
+            gp3.setAmount(100);
+            gp3.setProbability(50);
+            gp3.setSortOrder(3);
+            gamePrizeRepository.save(gp3);
+
+            GamePrize gp4 = new GamePrize();
+            gp4.setGameId(wheel.getId());
+            gp4.setName("谢谢参与");
+            gp4.setType("EMPTY");
+            gp4.setProbability(700);
+            gp4.setSortOrder(4);
+            gamePrizeRepository.save(gp4);
+
+            // 砸金蛋游戏
+            Game egg = new Game();
+            egg.setTenantId(tid);
+            egg.setStoreId(s1.getId());
+            egg.setName("金蛋好运");
+            egg.setType("EGG");
+            egg.setSubtitle("砸出你的好运来");
+            egg.setStartTime(gameStart);
+            egg.setEndTime(gameEnd);
+            egg.setDailyLimit(1);
+            egg.setTotalLimit(0);
+            egg.setPointsCost(0);
+            egg.setStatus("ENABLED");
+            egg.setRules("每人每天可抽奖1次，奖品包括优惠券和积分");
+            gameRepository.save(egg);
+        } catch (Exception e) {
+            log.warn("游戏演示数据初始化失败: {}", e.getMessage());
+        }
 
         log.info("演示数据初始化完成: 租户={}, 会员={}, 流水={}",
                 tid, members.size(), walletRepository.count());

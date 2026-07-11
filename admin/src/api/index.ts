@@ -251,7 +251,7 @@ export const diningApi = {
   kitchenOrders: (storeId: number, status?: string) =>
     request.get<any, any[]>('/dining/kitchen-orders', { params: { storeId, status } }),
   updateKitchenStatus: (id: number, status: string) =>
-    request.post<any, any>('/dining/kitchen-orders/{id}/status', { status })
+    request.post<any, any>(`/dining/kitchen-orders/${id}/status`, { status })
 }
 
 // ============ 赢奖小游戏 ============

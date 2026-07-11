@@ -42,9 +42,11 @@ public class H5GameController {
 
     /** 可玩的游戏列表(状态 ENABLED 且在有效期内) */
     @GetMapping
-    public Result<List<Game>> list(@RequestParam Long tenantId,
-                                   @RequestParam(required = false) String type) {
-        List<Game> all = gameService.list(tenantId, "ENABLED");
+    public Result<List<Game>> list(@RequestParam(required = false) Long tenantId,
+                                   @RequestParam(required = false) String type,
+                                   HttpServletRequest req) {
+        Long tid = resolveTenantId(tenantId, req);
+        List<Game> all = gameService.list(tid, "ENABLED");
         LocalDateTime now = LocalDateTime.now();
         List<Game> result = all.stream()
                 .filter(g -> now.isAfter(g.getStartTime()) && now.isBefore(g.getEndTime()))
@@ -56,9 +58,11 @@ public class H5GameController {
     /** 游戏详情(含奖品列表) */
     @GetMapping("/{id}")
     public Result<Map<String, Object>> get(@PathVariable Long id,
-                                           @RequestParam Long tenantId) {
-        Game g = gameService.get(tenantId, id);
-        List<GamePrize> prizes = gameService.prizes(tenantId, id);
+                                           @RequestParam(required = false) Long tenantId,
+                                           HttpServletRequest req) {
+        Long tid = resolveTenantId(tenantId, req);
+        Game g = gameService.get(tid, id);
+        List<GamePrize> prizes = gameService.prizes(tid, id);
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("game", g);
         data.put("prizes", prizes);
@@ -89,6 +93,22 @@ public class H5GameController {
     }
 
     // ---- 内部方法 ----
+
+    /** 从 query 参数或 member token 推断 tenantId */
+    private Long resolveTenantId(Long tenantId, HttpServletRequest req) {
+        if (tenantId != null) return tenantId;
+        String header = req.getHeader("Authorization");
+        if (header != null && header.startsWith("Bearer ")) {
+            try {
+                Claims claims = memberTokenUtil.parse(header.substring(7));
+                if ("MEMBER".equals(claims.get("type", String.class))) {
+                    Long tid = claims.get("tenantId", Long.class);
+                    if (tid != null) return tid;
+                }
+            } catch (Exception ignored) { }
+        }
+        return 1L;
+    }
 
     private void bindAsMember(long memberId, long tenantId) {
         LoginUser lu = LoginUser.builder()

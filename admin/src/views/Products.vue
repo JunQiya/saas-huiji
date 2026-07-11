@@ -132,6 +132,15 @@
             <el-radio-button value="DISABLED">下架</el-radio-button>
           </el-radio-group>
         </el-form-item>
+        <el-form-item label="商城展示">
+          <el-switch v-model="form.mallVisible" />
+          <span class="form-hint">开启后商品将在线上商城展示</span>
+        </el-form-item>
+        <el-form-item v-if="form.mallVisible" label="商城分类">
+          <el-select v-model="form.mallCategoryId" clearable placeholder="选择商城分类" style="width: 100%">
+            <el-option v-for="c in mallCategories" :key="c.id" :label="c.name" :value="c.id" />
+          </el-select>
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="editVisible = false">取消</el-button>
@@ -165,7 +174,7 @@
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Refresh, Search, Edit, Delete, Bottom, Top, More, Box, MagicStick, Goods, DocumentRemove } from '@element-plus/icons-vue'
-import { productsApi } from '@/api'
+import { productsApi, mallApi } from '@/api'
 import { fenToYuan, yuanToFen } from '@/utils/format'
 
 const productSlogan = [
@@ -191,8 +200,12 @@ const form = reactive<any>({
   stock: 0,
   cover: '',
   description: '',
-  status: 'ACTIVE'
+  status: 'ACTIVE',
+  mallVisible: false,
+  mallCategoryId: null
 })
+
+const mallCategories = ref<any[]>([])
 
 const stockVisible = ref(false)
 const stockForm = reactive<any>({ id: null, name: '', stock: 0, mode: 'INC', value: 0 })
@@ -216,7 +229,8 @@ async function load() {
 function openEdit(row?: any) {
   Object.assign(form, {
     id: null, name: '', category: 'SERVICE', priceYuan: 0, costPriceYuan: 0,
-    stock: 0, cover: '', description: '', status: 'ACTIVE'
+    stock: 0, cover: '', description: '', status: 'ACTIVE',
+    mallVisible: false, mallCategoryId: null
   })
   if (row) {
     form.id = row.id
@@ -228,6 +242,8 @@ function openEdit(row?: any) {
     form.cover = row.cover || ''
     form.description = row.description || ''
     form.status = row.status || 'ACTIVE'
+    form.mallVisible = !!row.mallVisible
+    form.mallCategoryId = row.mallCategoryId || null
   }
   editVisible.value = true
 }
@@ -242,7 +258,9 @@ async function save() {
     stock: form.category === 'GOODS' ? (Number(form.stock) || 0) : null,
     cover: form.cover,
     description: form.description,
-    status: form.status
+    status: form.status,
+    mallVisible: form.mallVisible,
+    mallCategoryId: form.mallVisible ? form.mallCategoryId : null
   }
   saving.value = true
   try {
@@ -306,7 +324,10 @@ function coverColor(cat: string) {
     : 'linear-gradient(135deg, #dde4ec 0%, #b8c4d2 100%)'
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  mallApi.categories().then((d: any) => { mallCategories.value = d || [] }).catch(() => {})
+})
 </script>
 
 <style scoped>
@@ -332,4 +353,5 @@ onMounted(load)
 .row-3 { display: flex; gap: 4px; margin-top: 4px; }
 .stock-target { color: var(--ink-2); margin-bottom: 8px; }
 .muted-hint { color: var(--muted); font-size: 12px; margin-left: 8px; }
+.form-hint { margin-left: 8px; color: var(--muted); font-size: 12px; }
 </style>

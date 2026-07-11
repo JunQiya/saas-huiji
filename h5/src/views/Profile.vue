@@ -128,11 +128,13 @@ const mineMenus: { label: string; icon: string; tone: string; path: string; badg
   { label: '我的券', icon: 'coupon-o', tone: 'brand', path: '/my-coupons' },
   { label: '消费记录', icon: 'balance-list-o', tone: 'mist', path: '/transactions' },
   { label: '我的订单', icon: 'orders-o', tone: 'rose', path: '/my-orders' },
+  { label: '商城订单', icon: 'gift-o', tone: 'brand', path: '/mall/orders' },
   { label: '附近门店', icon: 'shop-o', tone: 'clay', path: '/stores' }
 ]
 
 const serviceMenus: { label: string; icon: string; tone: string; path: string; badge?: string }[] = [
   { label: '积分商城', icon: 'star-o', tone: 'brand', path: '/mall' },
+  { label: '赢奖游戏', icon: 'point-gift-o', tone: 'twilight', path: '/games' },
   { label: '邀请有礼', icon: 'share-o', tone: 'rose', path: '/referral', badge: '双向 30' },
   { label: '关于星河', icon: 'info-o', tone: 'mist', path: '/about' },
   { label: '帮助中心', icon: 'question-o', tone: 'clay', path: '/help' }
