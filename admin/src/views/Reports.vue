@@ -160,9 +160,15 @@ const stats = reactive<any>({ todayRuns: 0, todayFiles: 0, tasksTotal: 0, tasksE
 function loadAll() { loadList(); loadStats(); drawCharts() }
 
 function drawCharts() {
+  // 复用或重建 echarts 实例，避免内存泄漏和图表叠加
+  const getChart = (el: HTMLElement) => {
+    const exist = echarts.getInstanceByDom(el)
+    if (exist) exist.dispose()
+    return echarts.init(el)
+  }
   // 趋势（柱状图）
   if (trendEl.value) {
-    const c = echarts.init(trendEl.value)
+    const c = getChart(trendEl.value)
     statsApi.trend({ range: '7d', metric: 'revenue' }).then((d: any) => {
       c.setOption({
         grid: { left: 50, right: 12, top: 16, bottom: 24 },
@@ -181,7 +187,7 @@ function drawCharts() {
   }
   // 热销 TOP 5
   if (topEl.value) {
-    const c = echarts.init(topEl.value)
+    const c = getChart(topEl.value)
     statsApi.topServices().then((d: any) => {
       const list = (d || []).slice(0, 5)
       c.setOption({
@@ -199,10 +205,17 @@ function drawCharts() {
       c.setOption({ title: { text: '暂无数据', left: 'center', top: 'middle', textStyle: { color: '#b3ad9f', fontSize: 12, fontFamily: 'serif' } }, grid: { show: false }, xAxis: { show: false }, yAxis: { show: false }, series: [] })
     })
   }
-  // 会员分布
+  // 会员 RFM 分布
   if (rfmEl.value) {
-    const c = echarts.init(rfmEl.value)
-    statsApi.memberGrowth().then((d: any) => {
+    const c = getChart(rfmEl.value)
+    statsApi.rfm().then((d: any) => {
+      // 用 RfmStats 的 high/mid/low/dormant 字段构造饼图数据
+      const data = (d && (d.high !== undefined || d.mid !== undefined || d.low !== undefined || d.dormant !== undefined)) ? [
+        { name: '高价值', value: d.high || 0 },
+        { name: '活跃', value: d.mid || 0 },
+        { name: '沉睡', value: d.low || 0 },
+        { name: '流失', value: d.dormant || 0 }
+      ] : [{ name: '高价值', value: 4 }, { name: '活跃', value: 3 }, { name: '沉睡', value: 2 }, { name: '流失', value: 1 }]
       c.setOption({
         tooltip: { trigger: 'item', backgroundColor: 'rgba(31,29,24,0.92)', borderWidth: 0, textStyle: { color: '#fff' } },
         legend: { bottom: 0, textStyle: { color: '#6a655c', fontSize: 10, fontFamily: 'serif' } },
@@ -212,8 +225,7 @@ function drawCharts() {
           itemStyle: { borderColor: '#fff', borderWidth: 2, borderRadius: 4 },
           label: { show: true, formatter: '{b}\n{d}%', fontFamily: 'serif', color: '#43403a', fontSize: 10 },
           labelLine: { length: 6, length2: 6, lineStyle: { color: 'rgba(70,64,56,0.30)' } },
-          data: (d && d.length) ? d.map((x: any) => ({ name: x.date?.slice(5) || '阶段', value: x.value || 0 })) :
-            [{ name: '高价值', value: 4 }, { name: '活跃', value: 3 }, { name: '沉睡', value: 2 }, { name: '流失', value: 1 }],
+          data: data,
           color: ['#5a7a9c', '#8b7ea3', '#b89692', '#b8845c']
         }]
       })

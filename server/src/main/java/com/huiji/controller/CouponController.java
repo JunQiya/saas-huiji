@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -61,8 +62,21 @@ public class CouponController {
     }
 
     @GetMapping("/{id}/records")
-    public Result<List<Map<String, Object>>> records(@PathVariable Long id) {
-        return Result.success(couponService.records(id));
+    public Result<Map<String, Object>> records(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        List<Map<String, Object>> all = couponService.records(id);
+        int total = all.size();
+        int from = Math.min(Math.max(page - 1, 0) * size, total);
+        int to = Math.min(from + size, total);
+        List<Map<String, Object>> list = all.subList(from, to);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("list", list);
+        data.put("total", total);
+        data.put("page", page);
+        data.put("size", size);
+        return Result.success(data);
     }
 
     @PostMapping("/verify")

@@ -240,7 +240,7 @@ async function loadList() {
   loading.value = true
   try {
     const params: any = {}
-    if (query.status !== undefined) params.enabled = query.status
+    if (query.status !== undefined) params.status = query.status === 1 ? 'ENABLED' : 'DISABLED'
     list.value = (await campaignsApi.list(params)) || []
     for (const c of list.value) {
       campaignsApi.stats(c.id).then((s) => { c.stats = s }).catch(() => {})

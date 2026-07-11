@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /** 营销活动相关 DTO */
 public class CampaignDto {
@@ -22,6 +23,15 @@ public class CampaignDto {
         private LocalDateTime startAt;
         private LocalDateTime endAt;
         private Boolean enabled;
+        private List<SopStep> sopSteps;
+    }
+
+    /** SOP 步骤 */
+    @Data
+    public static class SopStep {
+        private String type;
+        private String text;
+        private Integer delayMinutes;
     }
 
     @Data

@@ -42,6 +42,11 @@ public class Campaign extends BaseEntity {
     @Column
     private String content;
 
+    /** SOP 步骤(JSON 字符串) */
+    @Lob
+    @Column(name = "sop_steps")
+    private String sopSteps;
+
     @Column(name = "start_at")
     private LocalDateTime startAt;
 

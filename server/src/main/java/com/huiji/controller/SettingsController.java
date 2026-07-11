@@ -48,6 +48,20 @@ public class SettingsController {
         return Result.success(toMap(settingsService.getSettings(tenantId)));
     }
 
+    /** 获取功能开关 */
+    @GetMapping("/features")
+    public Result<SettingsDto.FeatureFlags> features() {
+        Long tenantId = LoginUserHolder.currentTenantId();
+        return Result.success(settingsService.getFeatureFlags(tenantId));
+    }
+
+    /** 更新功能开关 */
+    @PutMapping("/features")
+    public Result<SettingsDto.FeatureFlags> updateFeatures(@RequestBody SettingsDto.FeatureFlags flags) {
+        Long tenantId = LoginUserHolder.currentTenantId();
+        return Result.success(settingsService.updateFeatureFlags(tenantId, flags));
+    }
+
     // ============ 新增: 计费版与多店切换 ============
 
     /** 计费版信息: plan / expiresAt / startedAt / smsBalance / 各维度上限 */

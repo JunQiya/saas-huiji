@@ -148,15 +148,26 @@ function buildDay(y: number, m: number, d: number, other: boolean) {
         events.push({ kind: 'birthday', title: mem.name, desc: `会员生日 · ${mem.phone || ''}`, link: `/members`, id: mem.id })
       }
     }
-    // 券到期
+    // 券到期: RANGE 类型用 validEnd; DAYS 类型按 createdAt + validDays 推算到期日
     for (const c of coupons.value) {
-      if (c.expireDate && c.expireDate.endsWith(key)) {
+      let expireDate = ''
+      if (c.validType === 'RANGE' && c.validEnd) {
+        // validEnd 可能是 "2026-12-31" 或带时间的 ISO 串, 统一取前 10 位
+        expireDate = String(c.validEnd).slice(0, 10)
+      } else if (c.validType === 'DAYS' && c.validDays && c.createdAt) {
+        const created = new Date(String(c.createdAt))
+        if (!isNaN(created.getTime())) {
+          const expire = new Date(created.getTime() + c.validDays * 86400000)
+          expireDate = expire.toISOString().slice(0, 10)
+        }
+      }
+      if (expireDate && expireDate === `${y}-${key}`) {
         events.push({ kind: 'coupon', title: c.name, desc: '券到期', link: `/coupons`, id: c.id })
       }
     }
     // 活动
     for (const c of campaigns.value) {
-      if (c.startDate && c.startDate.startsWith(`${y}-${key}`)) {
+      if (c.startAt && c.startAt.startsWith(`${y}-${key}`)) {
         events.push({ kind: 'campaign', title: c.name, desc: c.description || '活动开始', link: `/campaigns`, id: c.id })
       }
     }

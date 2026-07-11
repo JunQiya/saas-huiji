@@ -140,7 +140,9 @@ export const auditApi = {
 // ============ Settings ============
 export const settingsApi = {
   get: () => request.get<any, TenantSettings>('/settings'),
-  update: (data: TenantSettings) => request.put<any, null>('/settings', data)
+  update: (data: TenantSettings) => request.put<any, null>('/settings', data),
+  getFeatures: () => request.get<any, any>('/settings/features'),
+  updateFeatures: (data: any) => request.put<any, any>('/settings/features', data)
 }
 
 

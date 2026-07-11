@@ -92,6 +92,29 @@
         </div>
       </el-tab-pane>
 
+      <!-- 功能设置 -->
+      <el-tab-pane label="功能设置" name="features">
+        <div v-loading="featuresLoading" class="settings-grid">
+          <div class="x-card section-card">
+            <div class="section-title">功能模块开关</div>
+            <div class="rule-tip">关闭后对应模块在前台和后台均不可用，已存在数据不受影响</div>
+            <div class="feature-list">
+              <div v-for="f in featureList" :key="f.key" class="feature-item">
+                <div class="fi-info">
+                  <div class="fi-name">{{ f.label }}</div>
+                  <div class="fi-desc">{{ f.desc }}</div>
+                </div>
+                <el-switch v-model="featureFlags[f.key]" :loading="featuresSaving" />
+              </div>
+            </div>
+          </div>
+          <div class="footer-actions">
+            <el-button @click="loadFeatures">重置</el-button>
+            <el-button type="primary" :loading="featuresSaving" @click="saveFeatures" class="btn-scale">保存</el-button>
+          </div>
+        </div>
+      </el-tab-pane>
+
       <!-- 计费 -->
       <el-tab-pane label="计费" name="plan">
         <div v-loading="loading" class="settings-grid">
@@ -328,6 +351,52 @@ async function confirmUpgrade() {
   }
 }
 
+// ============ 功能设置 ============
+const featuresLoading = ref(false)
+const featuresSaving = ref(false)
+const featureFlags = reactive<any>({
+  pointsEnabled: true,
+  rechargeEnabled: true,
+  couponsEnabled: true,
+  campaignsEnabled: true,
+  referralEnabled: true,
+  birthdayMarketingEnabled: true,
+  smsEnabled: false,
+  selfRegisterEnabled: true,
+  autoUpgradeEnabled: true,
+  receiptPrintEnabled: true
+})
+const featureList = [
+  { key: 'pointsEnabled', label: '积分系统', desc: '会员消费累计积分，支持手动调整' },
+  { key: 'rechargeEnabled', label: '储值功能', desc: '会员储值充值、余额支付' },
+  { key: 'couponsEnabled', label: '优惠券', desc: '创建、发放、核销优惠券' },
+  { key: 'campaignsEnabled', label: '营销活动', desc: '自动化营销活动与 SOP 触达' },
+  { key: 'referralEnabled', label: '推荐裂变', desc: '老带新推荐关系与奖励' },
+  { key: 'birthdayMarketingEnabled', label: '生日营销', desc: '会员生日自动关怀与赠礼' },
+  { key: 'smsEnabled', label: '短信通知', desc: '消耗短信余额发送通知' },
+  { key: 'selfRegisterEnabled', label: '会员自助注册', desc: '允许会员通过 H5 自主注册' },
+  { key: 'autoUpgradeEnabled', label: '自动升级等级', desc: '消费达标后自动提升会员等级' },
+  { key: 'receiptPrintEnabled', label: '小票打印', desc: '收银台结算后支持打印小票' }
+]
+async function loadFeatures() {
+  featuresLoading.value = true
+  try {
+    const data = await settingsApi.getFeatures()
+    Object.assign(featureFlags, data || {})
+  } finally {
+    featuresLoading.value = false
+  }
+}
+async function saveFeatures() {
+  featuresSaving.value = true
+  try {
+    await settingsApi.updateFeatures({ ...featureFlags })
+    ElMessage.success('功能设置已保存')
+  } finally {
+    featuresSaving.value = false
+  }
+}
+
 async function onSwitch(row: any) {
   const res: any = await settingsPlanApi.switchStore(row.id)
   if (res?.token) {
@@ -338,7 +407,7 @@ async function onSwitch(row: any) {
   setTimeout(() => window.location.reload(), 600)
 }
 
-onMounted(() => { loadBasic(); loadPlan(); loadStores() })
+onMounted(() => { loadBasic(); loadPlan(); loadStores(); loadFeatures() })
 </script>
 
 <style scoped>
@@ -375,4 +444,14 @@ onMounted(() => { loadBasic(); loadPlan(); loadStores() })
 .store-current { padding: 10px 0; }
 .sc-name { font-size: 20px; font-weight: 600; color: var(--ink); }
 .sc-meta { color: var(--muted); font-size: 13px; margin-top: 4px; display: flex; gap: 6px; }
+
+.feature-list { display: flex; flex-direction: column; gap: 2px; margin-top: 10px; }
+.feature-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0; border-bottom: 1px dashed var(--line);
+}
+.feature-item:last-child { border-bottom: none; }
+.fi-info { flex: 1; }
+.fi-name { font-size: 14px; font-weight: 500; color: var(--ink); }
+.fi-desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
 </style>

@@ -41,6 +41,13 @@ public class SettingsService {
                     "{\"recharge\":200000,\"gift\":30000}," +
                     "{\"recharge\":500000,\"gift\":100000}]";
 
+    /** 默认功能开关（全部开启，短信默认关闭） */
+    private static final String DEFAULT_FEATURE_FLAGS =
+            "{\"pointsEnabled\":true,\"rechargeEnabled\":true,\"couponsEnabled\":true," +
+                    "\"campaignsEnabled\":true,\"referralEnabled\":true,\"birthdayMarketingEnabled\":true," +
+                    "\"smsEnabled\":false,\"selfRegisterEnabled\":true,\"autoUpgradeEnabled\":true," +
+                    "\"receiptPrintEnabled\":true}";
+
     public TenantSetting getOrInit(Long tenantId, String tenantName) {
         return settingRepository.findByTenantId(tenantId).orElseGet(() -> {
             TenantSetting s = new TenantSetting();
@@ -50,6 +57,7 @@ public class SettingsService {
             s.setSmsSign("星河会记");
             s.setLevelRules(DEFAULT_LEVEL_RULES);
             s.setRechargeRules(DEFAULT_RECHARGE_RULES);
+            s.setFeatureFlags(DEFAULT_FEATURE_FLAGS);
             return settingRepository.save(s);
         });
     }
@@ -130,6 +138,38 @@ public class SettingsService {
             }
         }
         return gift;
+    }
+
+    /** 获取功能开关 */
+    public SettingsDto.FeatureFlags getFeatureFlags(Long tenantId) {
+        TenantSetting s = getOrInit(tenantId, null);
+        String json = s.getFeatureFlags();
+        if (json == null || json.isBlank()) {
+            return parseFlags(DEFAULT_FEATURE_FLAGS);
+        }
+        return parseFlags(json);
+    }
+
+    /** 更新功能开关 */
+    @Transactional
+    public SettingsDto.FeatureFlags updateFeatureFlags(Long tenantId, SettingsDto.FeatureFlags flags) {
+        TenantSetting s = getOrInit(tenantId, null);
+        s.setFeatureFlags(toJson(flags));
+        settingRepository.save(s);
+        return flags;
+    }
+
+    private SettingsDto.FeatureFlags parseFlags(String json) {
+        if (json == null || json.isBlank()) {
+            SettingsDto.FeatureFlags f = new SettingsDto.FeatureFlags();
+            return f;
+        }
+        try {
+            return objectMapper.readValue(json, SettingsDto.FeatureFlags.class);
+        } catch (Exception e) {
+            log.warn("解析功能开关 JSON 失败: {}", e.getMessage());
+            return new SettingsDto.FeatureFlags();
+        }
     }
 
     private <T> List<T> parseRules(String json, Class<T> clazz) {

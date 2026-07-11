@@ -39,6 +39,11 @@ public class TenantSetting extends BaseEntity {
     @Column(name = "sms_balance")
     private Integer smsBalance = 0;
 
+    /** 功能开关 JSON，存储各功能模块的启用状态 */
+    @Lob
+    @Column(name = "feature_flags")
+    private String featureFlags;
+
     /**
      * 等级规则 JSON, 形如:
      * [{"level":1,"name":"普通会员","threshold":0},{"level":2,"name":"银卡","threshold":50000},...]

@@ -1,5 +1,7 @@
 package com.huiji.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.huiji.common.BizException;
 import com.huiji.common.ErrorCode;
 import com.huiji.dto.CampaignDto;
@@ -8,14 +10,17 @@ import com.huiji.entity.Member;
 import com.huiji.repository.CampaignRepository;
 import com.huiji.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 /** 营销活动服务: CRUD、启停、预览命中、统计。 */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CampaignService {
@@ -23,6 +28,7 @@ public class CampaignService {
     private final CampaignRepository campaignRepository;
     private final MemberRepository memberRepository;
     private final AuditHelper auditHelper;
+    private final ObjectMapper objectMapper;
 
     public List<Map<String, Object>> list(String status) {
         Long tenantId = com.huiji.security.LoginUserHolder.currentTenantId();
@@ -195,6 +201,14 @@ public class CampaignService {
         if (req.getStartAt() != null) c.setStartAt(req.getStartAt());
         if (req.getEndAt() != null) c.setEndAt(req.getEndAt());
         if (req.getEnabled() != null) c.setEnabled(req.getEnabled());
+        if (req.getSopSteps() != null) {
+            try {
+                c.setSopSteps(objectMapper.writeValueAsString(req.getSopSteps()));
+            } catch (Exception e) {
+                log.warn("序列化 SOP 步骤失败: {}", e.getMessage());
+                c.setSopSteps("[]");
+            }
+        }
     }
 
     public Map<String, Object> toVO(Campaign c) {
@@ -212,7 +226,19 @@ public class CampaignService {
         vo.put("statTriggered", c.getStatTriggered());
         vo.put("statReached", c.getStatReached());
         vo.put("statConverted", c.getStatConverted());
+        vo.put("sopSteps", parseSopSteps(c.getSopSteps()));
         vo.put("createdAt", c.getCreatedAt());
         return vo;
+    }
+
+    /** 反序列化 SOP 步骤 */
+    private List<CampaignDto.SopStep> parseSopSteps(String json) {
+        if (json == null || json.isBlank()) return new ArrayList<>();
+        try {
+            return objectMapper.readValue(json, new TypeReference<List<CampaignDto.SopStep>>() {});
+        } catch (Exception e) {
+            log.warn("解析 SOP 步骤失败: {}", e.getMessage());
+            return new ArrayList<>();
+        }
     }
 }
