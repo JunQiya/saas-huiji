@@ -40,6 +40,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.EntityManager;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -73,9 +75,30 @@ public class DataInitializer {
     private final ProductRepository productRepository;
     private final SettingsService settingsService;
     private final PasswordEncoder passwordEncoder;
+    private final EntityManager entityManager;
 
     @Value("${huiji.init-data:false}")
     private boolean initData;
+
+    @Bean
+    public ApplicationRunner versionFixRunner() {
+        return args -> {
+            // 修复 @Version 字段添加后已有数据的 version=null 问题
+            String[] tables = {"tenant", "tenant_setting", "user", "member", "member_tag", "store",
+                    "product", "coupon", "coupon_record", "campaign", "order", "order_item",
+                    "wallet_transaction", "dining_table", "menu_category", "kitchen_order",
+                    "mall_category", "cart", "order_extend", "game", "game_prize", "game_play",
+                    "wx_account", "agent", "referral", "message", "audit_log", "report_task"};
+            for (String table : tables) {
+                try {
+                    entityManager.createNativeQuery(
+                            "UPDATE `" + table + "` SET `version` = 0 WHERE `version` IS NULL")
+                            .executeUpdate();
+                } catch (Exception ignored) { }
+            }
+            log.info("version 字段修复完成");
+        };
+    }
 
     @Bean
     public ApplicationRunner dataSeedRunner() {

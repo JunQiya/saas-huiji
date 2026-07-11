@@ -12,6 +12,7 @@ import com.huiji.security.LoginUserHolder;
 import com.huiji.service.SettingsService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -83,6 +84,7 @@ public class SettingsController {
 
     /** 升级套餐: 入参 {plan, months}，持久化到租户设置 */
     @PostMapping("/plan/upgrade")
+    @Transactional
     public Result<Map<String, Object>> upgrade(@RequestBody Map<String, Object> body) {
         if (body == null) {
             return plan();

@@ -42,7 +42,7 @@ public abstract class BaseEntity {
     /** JPA 乐观锁版本号, 防止并发丢失更新 */
     @Version
     @Column(name = "version")
-    private Long version;
+    private Long version = 0L;
 
     @PrePersist
     public void prePersist() {
