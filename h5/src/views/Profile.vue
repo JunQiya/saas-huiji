@@ -223,14 +223,14 @@ async function loadRecentTx() {
     const r: any = await h5Api.transactions({ page: 1, size: 3 })
     const list = (r?.list || r?.data?.list || []) as any[]
     recentTx.value = list
-  } catch {/* ignore */}
+  } catch (e: any) { console.warn('loadRecentTx failed', e) }
 }
 
 async function loadProfile() {
   try {
     const p = await h5Api.profile()
     memberStore.setMember(p)
-  } catch {/* */}
+  } catch (e: any) { console.warn('loadProfile failed', e) }
 }
 
 function txTone(type: string) {

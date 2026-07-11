@@ -50,6 +50,7 @@
 
 <script setup lang="ts">
 import { onActivated, onMounted, ref } from 'vue'
+import { showToast } from 'vant'
 import { h5Api, type Store } from '@/api/h5'
 import NavBar from '@/components/NavBar.vue'
 import EmptyState from '@/components/EmptyState.vue'
@@ -62,7 +63,9 @@ async function load() {
   try {
     list.value = await h5Api.stores()
     calcDistances()
-  } catch {/* */}
+  } catch (e: any) {
+    showToast(e?.message || '加载门店失败')
+  }
   finally { loading.value = false }
 }
 

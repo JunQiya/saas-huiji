@@ -127,7 +127,9 @@ async function onQtyChange(item: CartItem, v: any) {
   try {
     await mallApi.updateCart(item.id, { quantity: qty })
     item.quantity = qty
-  } catch {/* */}
+  } catch (e: any) {
+    showToast(e?.message || '更新数量失败')
+  }
 }
 
 async function onToggleSelected(item: CartItem, v: any) {
@@ -135,7 +137,9 @@ async function onToggleSelected(item: CartItem, v: any) {
   try {
     await mallApi.updateCart(item.id, { selected })
     item.selected = selected
-  } catch {/* */}
+  } catch (e: any) {
+    showToast(e?.message || '操作失败')
+  }
 }
 
 async function onToggleAll(v: any) {
@@ -147,7 +151,10 @@ async function onToggleAll(v: any) {
         .map(i => mallApi.updateCart(i.id, { selected }))
     )
     list.value.forEach(i => { i.selected = selected })
-  } catch { load() }
+  } catch (e: any) {
+    showToast(e?.message || '操作失败')
+    load()
+  }
 }
 
 async function onRemove(item: CartItem, silent = false) {
@@ -160,7 +167,9 @@ async function onRemove(item: CartItem, silent = false) {
     await mallApi.removeFromCart(item.productId)
     list.value = list.value.filter(i => i.id !== item.id)
     if (!silent) showToast('已移除')
-  } catch {/* */}
+  } catch (e: any) {
+    showToast(e?.message || '移除失败')
+  }
 }
 
 async function onClear() {
@@ -172,7 +181,9 @@ async function onClear() {
     await mallApi.clearCart()
     list.value = []
     showToast('已清空')
-  } catch {/* */}
+  } catch (e: any) {
+    showToast(e?.message || '清空失败')
+  }
 }
 
 function onCheckout() {

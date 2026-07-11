@@ -67,7 +67,7 @@ const list = ref<AvailableCoupon[]>([])
 
 async function load() {
   loading.value = true
-  try { list.value = await h5Api.availableCoupons() } catch {/* */}
+  try { list.value = await h5Api.availableCoupons() } catch (e: any) { showToast(e?.message || '加载失败') }
   finally { loading.value = false }
 }
 

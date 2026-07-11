@@ -211,6 +211,7 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Plus, Delete, Setting } from '@element-plus/icons-vue'
 import { settingsApi, settingsPlanApi, storesApi } from '@/api'
@@ -229,6 +230,7 @@ const loading = ref(false)
 const saving = ref(false)
 const upgrading = ref(false)
 const userStore = useUserStore()
+const router = useRouter()
 
 const form = reactive({
   tenantName: '',
@@ -403,8 +405,10 @@ async function onSwitch(row: any) {
     userStore.setToken(res.token)
   }
   ElMessage.success(`已切换到: ${row.name}`)
-  // 刷新当前页面以让新 storeId 全局生效
-  setTimeout(() => window.location.reload(), 600)
+  // 平滑刷新：重载本 tab 的数据 + 兜底刷一次路由（避免整页 reload 的闪烁）
+  await Promise.all([loadBasic(), loadPlan(), loadStores(), loadFeatures()])
+  // 通知其它视图：storeId 变化，可重新拉数
+  router.replace({ query: { ...router.currentRoute.value.query, _storeTs: String(Date.now()) } })
 }
 
 onMounted(() => { loadBasic(); loadPlan(); loadStores(); loadFeatures() })

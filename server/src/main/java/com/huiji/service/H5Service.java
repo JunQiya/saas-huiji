@@ -43,12 +43,22 @@ public class H5Service {
     private final MemberService memberService;
     private final SettingsService settingsService;
     private final MemberTokenUtil memberTokenUtil;
+    private final SmsCodeService smsCodeService;
 
     /** 登录: 校验验证码, 返回 memberToken 与会员资料 */
     @Transactional
     public Map<String, Object> login(H5Dto.LoginRequest req) {
-        if (smsCode == null || smsCode.isBlank() || !smsCode.equals(req.getCode())) {
-            throw new BizException(ErrorCode.BIZ_ERROR, "验证码错误");
+        String input = req.getCode();
+        boolean ok = false;
+        // 优先走真实验证码通道
+        if (smsCodeService.verifyAndConsume(req.getPhone(), input)) {
+            ok = true;
+        } else if (smsCode != null && !smsCode.isBlank() && smsCode.equals(input)) {
+            // 兜底: 配置文件中的固定码 (仅 dev 演示)
+            ok = true;
+        }
+        if (!ok) {
+            throw new BizException(ErrorCode.BIZ_ERROR, "验证码错误或已过期");
         }
         // 按手机号查找会员(演示单租户, 取首个匹配)
         Member m = memberRepository.findFirstByPhoneAndDeletedFalseOrderByIdAsc(req.getPhone())

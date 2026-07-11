@@ -113,7 +113,7 @@ async function drawQr() {
       margin: 1,
       color: { dark: '#2a3a4a', light: '#ffffff' }
     })
-  } catch {/* */}
+  } catch (e: any) { console.warn('QR draw failed', e) }
 }
 
 watch(() => info.value.code, () => nextTick(drawQr))
@@ -126,7 +126,7 @@ async function loadAll() {
     stats.value = r?.stats || stats.value
     const lr: any = await referralApi.list()
     list.value = lr || []
-  } catch {/* */}
+  } catch (e: any) { console.warn('loadAll failed', e) }
   finally { loading.value = false }
 }
 

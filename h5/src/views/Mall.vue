@@ -187,7 +187,9 @@ async function onAddCart(p: MallProduct) {
     await mallApi.addToCart({ productId: p.id, quantity: 1 })
     showToast({ message: '已加入购物车', position: 'top' })
     loadCartCount()
-  } catch {/* */}
+  } catch (e: any) {
+    showToast(e?.message || '加入购物车失败')
+  }
 }
 
 // 购物车件数

@@ -50,7 +50,7 @@
     <div class="login-card x-fade">
       <div class="card-head">
         <div class="head-title">欢迎回来</div>
-        <div class="head-sub">手机号验证码登录，演示验证码 {{ demoCode }}</div>
+        <div class="head-sub">手机号验证码登录，5 分钟内有效</div>
       </div>
 
       <div class="form">
@@ -127,8 +127,6 @@ const code = ref('')
 const loading = ref(false)
 const codeCountdown = ref(0)
 let timer: any
-// 演示验证码：生产环境可通过 .env 设置 VITE_SMS_CODE 为空来禁用
-const demoCode = import.meta.env.VITE_SMS_CODE || '8888'
 
 const phoneValid = computed(() => /^1\d{10}$/.test(phone.value))
 
@@ -141,18 +139,35 @@ const slogans = [
 ]
 const slogan = slogans[Math.floor(Math.random() * slogans.length)]
 
-function onSendCode() {
+const sendingCode = ref(false)
+
+async function onSendCode() {
   if (!phoneValid.value) {
     showToast('请输入正确的手机号')
     return
   }
-  code.value = demoCode
-  showToast({ type: 'success', message: `验证码已发送（演示用 ${demoCode}）` })
-  codeCountdown.value = 60
-  timer = setInterval(() => {
-    codeCountdown.value--
-    if (codeCountdown.value <= 0) clearInterval(timer)
-  }, 1000)
+  if (sendingCode.value || codeCountdown.value > 0) return
+  sendingCode.value = true
+  try {
+    const res = await h5Api.sendSmsCode(phone.value)
+    // dev 模式接口会回显验证码（生产对接短信网关后此字段为 null）
+    if (res?.devCode) {
+      code.value = res.devCode
+      showToast({ type: 'success', message: `验证码已发送（演示：${res.devCode}）` })
+    } else {
+      showToast({ type: 'success', message: '验证码已发送' })
+    }
+    codeCountdown.value = 60
+    if (timer) clearInterval(timer)
+    timer = setInterval(() => {
+      codeCountdown.value--
+      if (codeCountdown.value <= 0) clearInterval(timer)
+    }, 1000)
+  } catch (e: any) {
+    showToast(e?.message || '发送失败，请稍后再试')
+  } finally {
+    sendingCode.value = false
+  }
 }
 
 async function onLogin() {

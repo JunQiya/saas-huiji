@@ -318,7 +318,9 @@ async function onPayOrder(o: MallOrder) {
       detailVisible.value = false
       reset(); load()
     }
-  } catch {/* */}
+  } catch (e: any) {
+    showToast(e?.message || '支付失败')
+  }
 }
 
 async function onCancelOrder(o: MallOrder) {
@@ -330,7 +332,9 @@ async function onCancelOrder(o: MallOrder) {
     showSuccessToast('已取消')
     detailVisible.value = false
     reset(); load()
-  } catch {/* */}
+  } catch (e: any) {
+    showToast(e?.message || '取消失败')
+  }
 }
 
 async function onConfirmReceipt(o: MallOrder) {
@@ -342,7 +346,9 @@ async function onConfirmReceipt(o: MallOrder) {
     showSuccessToast('已确认收货')
     detailVisible.value = false
     reset(); load()
-  } catch {/* */}
+  } catch (e: any) {
+    showToast(e?.message || '操作失败')
+  }
 }
 
 function onCopyTracking(o: MallOrder) {

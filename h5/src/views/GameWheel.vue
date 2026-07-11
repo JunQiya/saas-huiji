@@ -166,13 +166,13 @@ async function loadDetail() {
     game.value = d?.game ?? d
     prizes.value = d?.prizes || []
     remaining.value = d?.game?.dailyLimit ?? 0
-  } catch {/* */}
+  } catch (e: any) { console.warn('loadDetail failed', e) }
   finally { loading.value = false }
 }
 
 // 加载我的记录
 async function loadRecords() {
-  try { records.value = (await gameApi.myPlays(gameId)) || [] } catch {/* */}
+  try { records.value = (await gameApi.myPlays(gameId)) || [] } catch (e: any) { console.warn('loadRecords failed', e) }
 }
 
 // 开始抽奖
@@ -212,7 +212,8 @@ async function onStart() {
       remaining.value = Math.max(0, remaining.value - 1)
       loadRecords()
     }, 4200)
-  } catch (e) {
+  } catch (e: any) {
+    showToast(e?.message || '游戏失败，请稍后再试')
     playing.value = false
   }
 }

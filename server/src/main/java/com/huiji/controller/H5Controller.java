@@ -14,6 +14,7 @@ import com.huiji.service.H5Service;
 import com.huiji.service.MallService;
 import com.huiji.service.OrderService;
 import com.huiji.service.ProductService;
+import com.huiji.service.SmsCodeService;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -44,10 +45,30 @@ public class H5Controller {
     private final ProductService productService;
     private final MallService mallService;
     private final CampaignRepository campaignRepository;
+    private final SmsCodeService smsCodeService;
 
     @PostMapping("/login")
     public Result<Map<String, Object>> login(@Valid @RequestBody H5Dto.LoginRequest req) {
         return Result.success(h5Service.login(req));
+    }
+
+    /**
+     * 发送登录短信验证码（公开接口）。
+     * dev 模式下响应中回显验证码，方便前端调试；生产模式只返回成功标志。
+     */
+    @PostMapping("/sms/send")
+    public Result<Map<String, Object>> sendSmsCode(@RequestBody Map<String, String> body) {
+        String phone = body == null ? null : body.get("phone");
+        if (phone == null || !phone.matches("^1\\d{10}$")) {
+            throw new BizException(ErrorCode.VALIDATION, "请输入正确的手机号");
+        }
+        String code = smsCodeService.send(phone);
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("phone", phone);
+        resp.put("expireSeconds", 300);
+        // dev 模式回显码（仅开发/演示）；生产环境对接短信网关后此字段为 null
+        resp.put("devCode", code);
+        return Result.success(resp);
     }
 
     @GetMapping("/profile")

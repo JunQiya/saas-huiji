@@ -156,7 +156,9 @@ async function onAddCart() {
     await mallApi.addToCart({ productId: product.value.id, quantity: quantity.value })
     showToast({ message: '已加入购物车', position: 'top' })
     loadCartCount()
-  } catch {/* */}
+  } catch (e: any) {
+    showToast(e?.message || '加入购物车失败')
+  }
   finally { adding.value = false }
 }
 
@@ -171,7 +173,9 @@ async function onBuyNow() {
       path: '/mall/checkout',
       query: { buyNow: '1', productId: String(product.value.id), quantity: String(quantity.value) }
     })
-  } catch {/* */}
+  } catch (e: any) {
+    showToast(e?.message || '操作失败')
+  }
   finally { buying.value = false }
 }
 

@@ -178,14 +178,14 @@ function exportCsv() {
     ElMessage.info('暂无数据可导出')
     return
   }
-  const head = ['时间', '类型', '会员', '门店', '金额(分)', '余额(分)', '备注']
+  const head = ['时间', '类型', '会员', '门店', '金额(元)', '余额(元)', '备注']
   const rows = list.value.map((t) => [
     t.createdAt,
     t.type,
     t.memberName || `#${t.memberId}`,
     t.storeName || '',
-    t.amount,
-    t.balanceAfter ?? '',
+    formatMoney(t.amount),  // 后端以「分」存储，这里除以 100 转为元
+    t.balanceAfter != null ? formatMoney(t.balanceAfter) : '',
     (t.remark || '').replace(/[\n,]/g, ' ')
   ])
   const csv = [head, ...rows].map((r) => r.join(',')).join('\n')

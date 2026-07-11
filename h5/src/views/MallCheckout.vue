@@ -363,7 +363,9 @@ async function onSubmit() {
     } else {
       router.replace('/mall/orders')
     }
-  } catch {/* */}
+  } catch (e: any) {
+    showToast(e?.message || '提交失败，请稍后再试')
+  }
   finally { submitting.value = false }
 }
 

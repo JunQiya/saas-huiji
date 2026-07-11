@@ -95,6 +95,13 @@ export const h5Api = {
   login(phone: string, code: string) {
     return request.post<LoginResult>('/api/h5/login', { phone, code })
   },
+  // 发送登录短信验证码（公开）
+  sendSmsCode(phone: string) {
+    return request.post<{ phone: string; expireSeconds: number; devCode?: string }>(
+      '/api/h5/sms/send',
+      { phone }
+    )
+  },
   profile() {
     return request.get<MemberProfile>('/api/h5/profile')
   },

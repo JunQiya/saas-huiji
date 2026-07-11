@@ -62,6 +62,7 @@
       </div>
 
       <el-table
+        ref="tableRef"
         v-loading="loading"
         :data="list"
         :size="compact ? 'small' : 'default'"
@@ -477,6 +478,7 @@ const tagOptions = ref<string[]>(['VIP', '高频', '待回访', '高客单', '�
 const compact = ref(false)
 
 const selected = ref<Member[]>([])
+const tableRef = ref()
 
 const query = reactive({
   keyword: '',
@@ -519,6 +521,7 @@ function onSelectionChange(rows: Member[]) {
 }
 function clearSelection() {
   selected.value = []
+  tableRef.value?.clearSelection()
 }
 
 function levelName(level?: number) {

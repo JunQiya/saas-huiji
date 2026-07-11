@@ -39,6 +39,7 @@
 <script setup lang="ts">
 import { onActivated, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { showToast } from 'vant'
 import { gameApi } from '@/api/h5'
 import NavBar from '@/components/NavBar.vue'
 import EmptyState from '@/components/EmptyState.vue'
@@ -86,7 +87,7 @@ function enter(g: any) {
 
 async function load() {
   loading.value = true
-  try { list.value = (await gameApi.list()) || [] } catch {/* */}
+  try { list.value = (await gameApi.list()) || [] } catch (e: any) { showToast(e?.message || '加载游戏失败') }
   finally { loading.value = false }
 }
 
