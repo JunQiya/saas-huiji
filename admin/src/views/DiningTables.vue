@@ -165,7 +165,7 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Plus, Location, User, Rank, Loading } from '@element-plus/icons-vue'
-import { diningApi, storesApi, productsApi } from '@/api'
+import { diningApi, storesApi, productsApi, settingsPlanApi } from '@/api'
 
 const loading = ref(false)
 const list = ref<any[]>([])
@@ -389,8 +389,16 @@ function onVisibilityChange() {
 
 onMounted(async () => {
   await loadStores()
-  if (stores.value.length && !storeId.value) {
+  if (!storeId.value) {
+    try {
+      const cur: any = await settingsPlanApi.currentStore()
+      if (cur?.storeId) storeId.value = cur.storeId
+    } catch {}
+  }
+  if (!storeId.value && stores.value.length) {
     storeId.value = stores.value[0].id
+  }
+  if (storeId.value) {
     loadList()
     loadCategories()
   }

@@ -92,7 +92,7 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
-import { diningApi, storesApi } from '@/api'
+import { diningApi, storesApi, settingsPlanApi } from '@/api'
 
 // PlaceHolder 图标在 element-plus 中不存在时用兜底，这里用 Location 代替
 import { Location as PlaceHolder } from '@element-plus/icons-vue'
@@ -177,10 +177,16 @@ function onVisibilityChange() {
 
 onMounted(async () => {
   await loadStores()
-  if (stores.value.length && !storeId.value) {
-    storeId.value = stores.value[0].id
-    loadList()
+  if (!storeId.value) {
+    try {
+      const cur: any = await settingsPlanApi.currentStore()
+      if (cur?.storeId) storeId.value = cur.storeId
+    } catch {}
   }
+  if (!storeId.value && stores.value.length) {
+    storeId.value = stores.value[0].id
+  }
+  if (storeId.value) loadList()
   document.addEventListener('visibilitychange', onVisibilityChange)
   startPolling()
 })

@@ -27,24 +27,34 @@ public interface WalletTransactionRepository extends JpaRepository<WalletTransac
             "and t.type = 'RECHARGE' and t.createdAt >= :start and t.createdAt < :end")
     Long sumRecharge(@Param("tenantId") Long tenantId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
-    /** 区间内消费总额(取绝对值) */
+    /** 区间内消费总额(取绝对值, storeId 为 null 时不过滤门店) */
     @Query("select coalesce(sum(abs(t.amount)),0) from WalletTransaction t where t.tenantId = :tenantId " +
-            "and t.type = 'CONSUME' and t.createdAt >= :start and t.createdAt < :end")
-    Long sumConsume(@Param("tenantId") Long tenantId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+            "and t.type = 'CONSUME' and t.createdAt >= :start and t.createdAt < :end " +
+            "and (:storeId is null or t.storeId = :storeId)")
+    Long sumConsume(@Param("tenantId") Long tenantId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end,
+                    @Param("storeId") Long storeId);
 
     /** 区间内消费笔数 */
     @Query("select count(t) from WalletTransaction t where t.tenantId = :tenantId " +
-            "and t.type = 'CONSUME' and t.createdAt >= :start and t.createdAt < :end")
-    Long countConsume(@Param("tenantId") Long tenantId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+            "and t.type = 'CONSUME' and t.createdAt >= :start and t.createdAt < :end " +
+            "and (:storeId is null or t.storeId = :storeId)")
+    Long countConsume(@Param("tenantId") Long tenantId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end,
+                      @Param("storeId") Long storeId);
 
     /** 按小时统计消费笔数(0-23) */
     @Query("select hour(t.createdAt), count(t) from WalletTransaction t where t.tenantId = :tenantId " +
-            "and t.type = 'CONSUME' and t.createdAt >= :start group by hour(t.createdAt) order by hour(t.createdAt)")
-    List<Object[]> countByHour(@Param("tenantId") Long tenantId, @Param("start") LocalDateTime start);
+            "and t.type = 'CONSUME' and t.createdAt >= :start " +
+            "and (:storeId is null or t.storeId = :storeId) " +
+            "group by hour(t.createdAt) order by hour(t.createdAt)")
+    List<Object[]> countByHour(@Param("tenantId") Long tenantId, @Param("start") LocalDateTime start,
+                               @Param("storeId") Long storeId);
 
     @Query("select t from WalletTransaction t where t.tenantId = :tenantId and t.type = 'CONSUME' " +
-            "and t.createdAt >= :start and t.createdAt < :end order by t.id desc")
-    List<WalletTransaction> consumeInRange(@Param("tenantId") Long tenantId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+            "and t.createdAt >= :start and t.createdAt < :end " +
+            "and (:storeId is null or t.storeId = :storeId) " +
+            "order by t.id desc")
+    List<WalletTransaction> consumeInRange(@Param("tenantId") Long tenantId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end,
+                                           @Param("storeId") Long storeId);
 
     /**
      * 全局流水查询: 按租户/类型/门店/会员/时间区间筛选, memberIds 为 null 时不限制。

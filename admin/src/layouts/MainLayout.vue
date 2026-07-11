@@ -248,7 +248,10 @@ async function loadStore() {
 }
 async function onStoreCmd(cmd: any) {
   if (cmd === 'manage') { router.push('/stores'); return }
-  await settingsPlanApi.switchStore(Number(cmd))
+  const res: any = await settingsPlanApi.switchStore(Number(cmd))
+  if (res?.token) {
+    userStore.setToken(res.token)
+  }
   ElMessage.success('已切换门店')
   await loadStore()
   router.replace('/dashboard').then(() => router.go(0))

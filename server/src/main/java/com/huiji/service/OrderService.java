@@ -326,10 +326,11 @@ public class OrderService {
 
     public Map<String, Object> todayStats() {
         Long tenantId = LoginUserHolder.currentTenantId();
+        Long storeId = LoginUserHolder.requireStoreId();
         LocalDate today = LocalDate.now();
         LocalDateTime start = today.atStartOfDay();
         LocalDateTime end = today.plusDays(1).atStartOfDay();
-        List<Object[]> rows = orderRepository.todayStats(tenantId, start, end);
+        List<Object[]> rows = orderRepository.todayStats(tenantId, start, end, storeId);
         long count = 0L;
         long amount = 0L;
         if (rows != null && !rows.isEmpty() && rows.get(0) != null) {

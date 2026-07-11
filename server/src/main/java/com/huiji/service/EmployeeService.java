@@ -104,8 +104,8 @@ public class EmployeeService {
         for (int i = 5; i >= 0; i--) {
             java.time.LocalDateTime start = now.minusMonths(i).withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
             java.time.LocalDateTime end = start.plusMonths(1);
-            Long amount = walletRepository.sumConsume(tenantId, start, end);
-            Long count = walletRepository.countConsume(tenantId, start, end);
+            Long amount = walletRepository.sumConsume(tenantId, start, end, null);
+            Long count = walletRepository.countConsume(tenantId, start, end, null);
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("month", start.getYear() + "-" + String.format("%02d", start.getMonthValue()));
             row.put("amount", amount == null ? 0L : amount);

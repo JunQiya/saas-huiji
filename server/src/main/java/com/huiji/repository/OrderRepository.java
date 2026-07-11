@@ -44,12 +44,14 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
                              @Param("status") String status,
                              Pageable pageable);
 
-    /** 今日订单统计 */
+    /** 今日订单统计(storeId 为 null 时不过滤门店) */
     @Query("select count(o), coalesce(sum(o.paidAmount),0) from Order o where o.tenantId = :tenantId " +
-            "and o.status = 'PAID' and o.paidAt >= :start and o.paidAt < :end")
+            "and o.status = 'PAID' and o.paidAt >= :start and o.paidAt < :end " +
+            "and (:storeId is null or o.storeId = :storeId)")
     List<Object[]> todayStats(@Param("tenantId") Long tenantId,
                               @Param("start") LocalDateTime start,
-                              @Param("end") LocalDateTime end);
+                              @Param("end") LocalDateTime end,
+                              @Param("storeId") Long storeId);
 
     /** 多租户已支付订单总金额(分), 用于代理商业绩统计 */
     @Query("select coalesce(sum(o.paidAmount),0) from Order o where o.tenantId in :tenantIds " +

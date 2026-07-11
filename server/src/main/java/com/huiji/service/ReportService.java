@@ -267,7 +267,7 @@ public class ReportService {
         Map<String, Object> data = new LinkedHashMap<>();
         LocalDateTime end = LocalDateTime.now();
         LocalDateTime start = end.minusDays(30);
-        List<WalletTransaction> txs = walletRepository.consumeInRange(tenantId, start, end);
+        List<WalletTransaction> txs = walletRepository.consumeInRange(tenantId, start, end, null);
 
         // 公共汇总
         long totalAmount = txs.stream().mapToLong(t -> Math.abs(t.getAmount() == null ? 0L : t.getAmount())).sum();
