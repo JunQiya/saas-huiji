@@ -52,21 +52,29 @@ public class OrderService {
     private final WalletTransactionRepository walletRepository;
     private final CouponRecordRepository couponRecordRepository;
     private final CouponService couponService;
+    private final com.huiji.repository.StoreRepository storeRepository;
     private final AuditHelper auditHelper;
 
     @Transactional
     public Map<String, Object> create(OrderDto.CreateOrderRequest req) {
         LoginUser lu = LoginUserHolder.current();
         Long tenantId = lu.getTenantId();
-        if (req.getStoreId() == null) {
-            throw new BizException(ErrorCode.VALIDATION, "请选择门店");
-        }
         if (req.getItems() == null || req.getItems().isEmpty()) {
             throw new BizException(ErrorCode.VALIDATION, "请添加商品");
         }
-        // 收银员/店长: 强制覆盖当前门店
+        // 门店: 优先从 token 取, 其次从前端传入, 最后取租户第一个门店
         Long curStore = LoginUserHolder.requireStoreId();
         Long storeId = curStore != null ? curStore : req.getStoreId();
+        if (storeId == null) {
+            List<com.huiji.entity.Store> stores = storeRepository
+                    .findByTenantIdAndDeletedFalseOrderByIdDesc(tenantId);
+            if (!stores.isEmpty()) {
+                storeId = stores.get(0).getId();
+            }
+        }
+        if (storeId == null) {
+            throw new BizException(ErrorCode.VALIDATION, "请选择门店");
+        }
 
         // 1) 加载商品 + 校验
         List<OrderItem> items = new ArrayList<>();

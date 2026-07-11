@@ -186,6 +186,7 @@ const payMethod = ref<'CASH' | 'WECHAT' | 'ALIPAY' | 'BALANCE'>('WECHAT')
 const submitting = ref(false)
 
 const storeName = ref('星河·会记')
+const currentStoreId = ref<number | null>(null)
 
 const lastReceipt = ref<any>(null)
 
@@ -233,6 +234,7 @@ async function loadAll() {
   try {
     const cur: any = await settingsPlanApi.currentStore()
     if (cur?.name) storeName.value = cur.name
+    if (cur?.storeId) currentStoreId.value = cur.storeId
   } catch {}
   loadRecent()
   loadTodayStats()
@@ -323,6 +325,7 @@ async function checkout() {
   submitting.value = true
   try {
     const payload: any = {
+      storeId: currentStoreId.value,
       memberId: member.value?.id,
       items: cart.value.map(c => ({ productId: c.productId, quantity: c.quantity })),
       discountAmount: discountFen.value,
