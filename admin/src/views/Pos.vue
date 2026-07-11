@@ -98,23 +98,29 @@
       </div>
     </div>
 
-    <!-- 小票区 -->
+    <!-- 小票区（屏幕可见，打印时仅保留此区） -->
     <div class="receipt-print">
       <div v-if="lastReceipt" class="receipt">
+        <div class="r-brand">星河·会记</div>
         <div class="r-store">{{ storeName }}</div>
-        <div class="r-line">订单号: {{ lastReceipt.orderNo }}</div>
-        <div class="r-line">时间: {{ fmtDate(lastReceipt.createdAt) }}</div>
-        <div class="r-sep"></div>
+        <div class="r-line r-meta">订单号: {{ lastReceipt.orderNo }}</div>
+        <div class="r-line r-meta">时间: {{ fmtDate(lastReceipt.createdAt) }}</div>
+        <div v-if="lastReceipt.memberName" class="r-line r-meta">会员: {{ lastReceipt.memberName }}</div>
+        <div class="r-sep">— — — — — — — —</div>
         <div v-for="it in (lastReceipt.items || [])" :key="it.id" class="r-item">
-          <span>{{ it.productName }} x{{ it.quantity }}</span>
-          <span>¥{{ yuan(it.subtotal) }}</span>
+          <div class="ri-name">{{ it.productName }}</div>
+          <div class="ri-sub">
+            <span>x{{ it.quantity }}</span>
+            <span>¥{{ yuan(it.subtotal) }}</span>
+          </div>
         </div>
-        <div class="r-sep"></div>
-        <div class="r-line total"><span>合计</span><span>¥{{ yuan(lastReceipt.totalAmount) }}</span></div>
-        <div class="r-line">优惠: -¥{{ yuan(lastReceipt.discountAmount) }}</div>
-        <div class="r-line">实付: ¥{{ yuan(lastReceipt.paidAmount) }}</div>
-        <div class="r-line">支付: {{ payMethodLabel(lastReceipt.payMethod) }}</div>
-        <div class="r-thanks">— 星河会记 谢谢惠顾 —</div>
+        <div class="r-sep">— — — — — — — —</div>
+        <div class="r-line"><span>商品金额</span><span>¥{{ yuan(lastReceipt.totalAmount) }}</span></div>
+        <div v-if="lastReceipt.discountAmount" class="r-line"><span>优惠</span><span>-¥{{ yuan(lastReceipt.discountAmount) }}</span></div>
+        <div class="r-line total"><span>实付</span><span>¥{{ yuan(lastReceipt.paidAmount) }}</span></div>
+        <div class="r-line r-meta">支付: {{ payMethodLabel(lastReceipt.payMethod) }}</div>
+        <div class="r-thanks">— 谢谢惠顾 —</div>
+        <div class="r-foot">— 星河·会记 夜读手记 —</div>
       </div>
     </div>
   </div>
@@ -252,7 +258,8 @@ async function checkout() {
 
 function printReceipt() {
   if (!lastReceipt.value) { ElMessage.warning('暂无可打印的小票'); return }
-  window.print()
+  // 等待 DOM 稳定后唤起系统打印对话框
+  setTimeout(() => window.print(), 80)
 }
 
 onMounted(loadAll)
@@ -290,16 +297,98 @@ onMounted(loadAll)
 .pay-block { margin-top: 10px; }
 .footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
 
-.receipt-print { display: none; }
+.receipt-print {
+  margin: 14px 0 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 16px 18px;
+  max-width: 320px;
+  font-family: var(--font-num);
+  color: var(--ink);
+}
+.receipt {
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+.r-brand {
+  text-align: center;
+  font-family: var(--font-serif);
+  font-size: 14px; font-weight: 500;
+  color: var(--ink);
+  letter-spacing: 0.18em;
+  margin-bottom: 4px;
+}
+.r-store {
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-bottom: 10px;
+  letter-spacing: 0.10em;
+  border-bottom: 1px dashed var(--line-2);
+  padding-bottom: 10px;
+}
+.r-meta { font-size: 11.5px; color: var(--muted); }
+.r-line {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 3px 0;
+  letter-spacing: 0.02em;
+}
+.r-line.total {
+  font-size: 14.5px; font-weight: 600;
+  color: var(--brand-deep);
+  border-top: 1px dashed var(--line-2);
+  margin-top: 6px; padding-top: 8px;
+}
+.r-sep {
+  text-align: center;
+  color: var(--muted-2);
+  font-size: 11px;
+  letter-spacing: 1px;
+  margin: 6px 0;
+}
+.r-item { padding: 3px 0; }
+.ri-name { font-size: 12.5px; }
+.ri-sub {
+  display: flex; justify-content: space-between;
+  font-size: 11.5px; color: var(--muted);
+  font-family: var(--font-num);
+}
+.r-thanks {
+  text-align: center;
+  font-family: var(--font-serif);
+  font-size: 12px;
+  color: var(--ink-2);
+  letter-spacing: 0.24em;
+  margin-top: 14px;
+}
+.r-foot {
+  text-align: center;
+  font-family: var(--font-serif);
+  font-size: 10.5px;
+  color: var(--muted-2);
+  letter-spacing: 0.18em;
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+}
+
+/* 打印样式 */
 @media print {
+  @page { margin: 0; size: 80mm auto; }
+  body, html, #app { background: #fff !important; }
   .pos-page > *:not(.receipt-print) { display: none !important; }
-  .receipt-print { display: block; }
-  .receipt { font-family: monospace; padding: 20px; }
-  .receipt .r-store { text-align: center; font-weight: 600; margin-bottom: 8px; }
-  .receipt .r-line { display: flex; justify-content: space-between; padding: 2px 0; }
-  .receipt .r-sep { border-top: 1px dashed #999; margin: 4px 0; }
-  .receipt .r-item { display: flex; justify-content: space-between; }
-  .receipt .total { font-weight: 600; }
-  .receipt .r-thanks { text-align: center; margin-top: 12px; font-size: 12px; }
+  .receipt-print {
+    display: block; margin: 0;
+    background: #fff; border: none; padding: 8mm 4mm;
+    max-width: 100%;
+  }
+  .receipt { color: #000; font-family: 'Courier New', monospace; font-size: 11pt; line-height: 1.5; }
+  .r-store { color: #555; border-color: #999; }
+  .r-line.total { color: #000; }
+  .r-meta { color: #555; }
+  .r-sep { color: #999; }
+  .ri-sub { color: #555; }
+  .r-thanks, .r-foot { color: #555; }
 }
 </style>

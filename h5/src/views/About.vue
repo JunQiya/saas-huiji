@@ -6,8 +6,21 @@
       <!-- 品牌区 -->
       <div class="brand-zone">
         <div class="brand-mark">
-          <span class="star"></span>
-          <span class="orbit"></span>
+          <svg viewBox="0 0 64 64" width="64" height="64">
+            <circle cx="14" cy="16" r="0.9" fill="var(--brand-ink)" opacity="0.4" />
+            <circle cx="50" cy="10" r="0.7" fill="var(--brand-ink)" opacity="0.32" />
+            <circle cx="56" cy="40" r="0.8" fill="var(--brand-ink)" opacity="0.36" />
+            <circle cx="12" cy="48" r="0.7" fill="var(--brand-ink)" opacity="0.28" />
+            <g stroke="var(--brand-ink)" stroke-width="0.7" opacity="0.5" fill="none">
+              <line x1="22" y1="24" x2="32" y2="36" />
+              <line x1="32" y1="36" x2="44" y2="24" />
+              <line x1="32" y1="36" x2="32" y2="50" />
+            </g>
+            <circle cx="22" cy="24" r="2" fill="var(--brand-deep)" />
+            <circle cx="44" cy="24" r="2" fill="var(--brand-deep)" />
+            <circle cx="32" cy="36" r="3" fill="var(--brand-deep)" />
+            <circle cx="32" cy="50" r="1.6" fill="var(--brand-deep)" opacity="0.7" />
+          </svg>
         </div>
         <div class="brand-name">星河·会记</div>
         <div class="brand-en">XINGHE HUIJI</div>
@@ -99,22 +112,9 @@ import NavBar from '@/components/NavBar.vue'
   display: flex; align-items: center; justify-content: center;
   background: var(--brand-soft);
   border-radius: 16px;
-  box-shadow: 0 6px 20px rgba(74, 106, 135, 0.10);
+  border: 1px dashed var(--line-2);
+  animation: x-fade-in 0.5s var(--ease-out) both;
 }
-.brand-mark .star {
-  width: 28px; height: 28px;
-  background: var(--brand-deep);
-  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-  z-index: 1;
-}
-.brand-mark .orbit {
-  position: absolute; inset: 0;
-  border: 1px dashed rgba(111, 148, 184, 0.35);
-  border-radius: 50%;
-  margin: -6px;
-  animation: spin 24s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
 .brand-name {
   font-size: 20px; font-weight: 600; color: var(--ink);
   letter-spacing: 0.08em;

@@ -52,6 +52,7 @@
 
       <div v-if="!collapsed" class="aside-foot">
         <span class="af-quote">{{ asideQuote }}</span>
+        <span class="af-version">v{{ version }}</span>
       </div>
     </el-aside>
 
@@ -257,8 +258,26 @@ async function onUserCmd(cmd: string) {
   }
 }
 
+// 版本号
+const version = '1.0.0'
+
+// 首次登录欢迎（只弹一次）
+function onFirstLogin() {
+  const key = 'huiji-welcomed'
+  if (localStorage.getItem(key)) return
+  localStorage.setItem(key, '1')
+  setTimeout(() => {
+    ElMessage({
+      message: '欢迎使用星河·会记 — 一份给会员管理的夜读手记',
+      type: 'success',
+      duration: 3000
+    })
+  }, 400)
+}
+
 onMounted(() => {
   loadStore()
+  onFirstLogin()
   const saved = localStorage.getItem('aside-collapsed')
   if (saved) collapsed.value = saved === '1'
 })

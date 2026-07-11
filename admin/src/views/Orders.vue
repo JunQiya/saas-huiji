@@ -10,6 +10,7 @@
       </div>
       <div class="header-actions">
         <el-button :icon="Refresh" @click="load">刷新</el-button>
+        <el-button :icon="Download" @click="onExport" :disabled="!list.length">导出</el-button>
         <el-button type="primary" :icon="Plus" @click="$router.push('/pos')" class="btn-scale">去收银</el-button>
       </div>
     </div>
@@ -104,11 +105,12 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { List, Plus, Refresh, Search, View } from '@element-plus/icons-vue'
-import { ordersApi, statsApi } from '@/api'
+import { List, Refresh, Plus, Search, Download, User } from '@element-plus/icons-vue'
+import { ordersApi, statsApi, storesApi } from '@/api'
 import { fenToYuan } from '@/utils/format'
+import { exportCsv } from '@/utils/csv'
 
 const orderSlogan = [
   '把每一笔流水，都记成一段值得回看的故事',
@@ -136,6 +138,34 @@ function payMethodLabel(m: string) {
 }
 function fmtDate(t: any) { if (!t) return '-'; try { return new Date(t).toLocaleString() } catch { return String(t) } }
 function yuan(f: any) { if (f == null) return '0.00'; return Number(fenToYuan(f)).toFixed(2) }
+
+const storeMap = reactive<Record<number, string>>({})
+async function loadStores() {
+  try {
+    const s: any[] = await storesApi.list()
+    s.forEach((x: any) => { storeMap[x.id] = x.name })
+  } catch {}
+}
+function storeName(id: any) {
+  if (!id) return '-'
+  return storeMap[id] || `门店${id}`
+}
+
+function onExport() {
+  if (!list.value.length) return
+  exportCsv(`订单列表-${new Date().toLocaleDateString('zh-CN')}`, list.value, [
+    { key: 'orderNo', header: '订单号' },
+    { key: 'storeId', header: '门店', format: r => storeName(r.storeId) },
+    { key: 'memberId', header: '会员', format: r => r.memberName || r.memberPhone || r.memberId },
+    { key: 'totalAmount', header: '订单金额(元)', format: r => Number(fenToYuan(r.totalAmount || 0)).toFixed(2) },
+    { key: 'paidAmount', header: '实付金额(元)', format: r => Number(fenToYuan(r.paidAmount || 0)).toFixed(2) },
+    { key: 'discountAmount', header: '优惠(元)', format: r => Number(fenToYuan(r.discountAmount || 0)).toFixed(2) },
+    { key: 'payMethod', header: '支付方式', format: r => payMethodLabel(r.payMethod) },
+    { key: 'status', header: '状态', format: r => statusLabel(r.status) },
+    { key: 'createdAt', header: '创建时间', format: r => fmtDate(r.createdAt) }
+  ])
+  ElMessage.success(`已导出 ${list.value.length} 条订单`)
+}
 
 const loading = ref(false)
 const list = ref<any[]>([])
@@ -211,7 +241,7 @@ async function voidOrder(row: any) {
   load()
 }
 
-onMounted(load)
+onMounted(() => { load(); loadStores() })
 </script>
 
 <style scoped>

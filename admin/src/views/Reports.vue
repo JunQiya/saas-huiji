@@ -22,6 +22,19 @@
       <KpiCard label="启用中" :value="stats.tasksEnabled || 0" suffix="个" icon="Select" />
     </div>
 
+    <!-- 实时数据图表 -->
+    <div class="chart-row x-stagger">
+      <ChartCard title="近 7 日营业额" subtitle="按日聚合（元）" :height="240" class="x-fade">
+        <div ref="trendEl" class="chart-slot"></div>
+      </ChartCard>
+      <ChartCard title="热销 TOP 5" subtitle="本月销量" :height="240" class="x-fade">
+        <div ref="topEl" class="chart-slot"></div>
+      </ChartCard>
+      <ChartCard title="会员 RFM 分布" subtitle="当前累计会员" :height="240" class="x-fade">
+        <div ref="rfmEl" class="chart-slot"></div>
+      </ChartCard>
+    </div>
+
     <!-- 列表 -->
     <div class="x-card table-wrap">
       <el-table v-loading="loading" :data="list" stripe>
@@ -120,11 +133,17 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
+import * as echarts from 'echarts'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Plus, RefreshRight, ArrowDown, DataAnalysis } from '@element-plus/icons-vue'
-import { reportsApi } from '@/api'
+import { reportsApi, statsApi } from '@/api'
 import KpiCard from '@/components/KpiCard.vue'
+import ChartCard from '@/components/ChartCard.vue'
 import { formatDateTime } from '@/utils/format'
+
+const trendEl = ref<HTMLElement | null>(null)
+const topEl = ref<HTMLElement | null>(null)
+const rfmEl = ref<HTMLElement | null>(null)
 
 const reportSlogan = [
   '把每个月的经营，写成一段可被回望的故事',
@@ -138,7 +157,71 @@ const total = ref(0)
 const query = reactive({ page: 1, size: 20 })
 const stats = reactive<any>({ todayRuns: 0, todayFiles: 0, tasksTotal: 0, tasksEnabled: 0 })
 
-function loadAll() { loadList(); loadStats() }
+function loadAll() { loadList(); loadStats(); drawCharts() }
+
+function drawCharts() {
+  // 趋势（柱状图）
+  if (trendEl.value) {
+    const c = echarts.init(trendEl.value)
+    statsApi.trend({ range: '7d', metric: 'revenue' }).then((d: any) => {
+      c.setOption({
+        grid: { left: 50, right: 12, top: 16, bottom: 24 },
+        tooltip: { trigger: 'axis', backgroundColor: 'rgba(31,29,24,0.92)', borderWidth: 0, textStyle: { color: '#fff' } },
+        xAxis: { type: 'category', data: (d || []).map((x: any) => x.date?.slice(5) || ''), axisLine: { lineStyle: { color: 'rgba(70,64,56,0.18)' } }, axisTick: { show: false }, axisLabel: { color: '#8a8578', fontSize: 10 } },
+        yAxis: { type: 'value', axisLine: { show: false }, splitLine: { lineStyle: { color: 'rgba(70,64,56,0.06)', type: 'dashed' } }, axisLabel: { color: '#8a8578', fontSize: 10 } },
+        series: [{
+          type: 'bar', barWidth: 14,
+          itemStyle: { color: '#5a7a9c', borderRadius: [3, 3, 0, 0] },
+          data: (d || []).map((x: any) => (x.value || 0) / 100)
+        }]
+      })
+    }).catch(() => {
+      c.setOption({ title: { text: '暂无数据', left: 'center', top: 'middle', textStyle: { color: '#b3ad9f', fontSize: 12, fontFamily: 'serif' } }, grid: { show: false }, xAxis: { show: false }, yAxis: { show: false }, series: [] })
+    })
+  }
+  // 热销 TOP 5
+  if (topEl.value) {
+    const c = echarts.init(topEl.value)
+    statsApi.topServices().then((d: any) => {
+      const list = (d || []).slice(0, 5)
+      c.setOption({
+        grid: { left: 80, right: 16, top: 8, bottom: 20 },
+        tooltip: { trigger: 'axis', backgroundColor: 'rgba(31,29,24,0.92)', borderWidth: 0, textStyle: { color: '#fff' } },
+        xAxis: { type: 'value', axisLine: { show: false }, splitLine: { lineStyle: { color: 'rgba(70,64,56,0.06)', type: 'dashed' } }, axisLabel: { color: '#8a8578', fontSize: 10 } },
+        yAxis: { type: 'category', data: list.map((x: any) => x.name).reverse(), axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#43403a', fontSize: 11, fontFamily: 'serif' } },
+        series: [{
+          type: 'bar', barWidth: 8,
+          itemStyle: { color: '#b89692', borderRadius: [0, 4, 4, 0] },
+          data: list.map((x: any) => x.count || 0).reverse()
+        }]
+      })
+    }).catch(() => {
+      c.setOption({ title: { text: '暂无数据', left: 'center', top: 'middle', textStyle: { color: '#b3ad9f', fontSize: 12, fontFamily: 'serif' } }, grid: { show: false }, xAxis: { show: false }, yAxis: { show: false }, series: [] })
+    })
+  }
+  // 会员分布
+  if (rfmEl.value) {
+    const c = echarts.init(rfmEl.value)
+    statsApi.memberGrowth().then((d: any) => {
+      c.setOption({
+        tooltip: { trigger: 'item', backgroundColor: 'rgba(31,29,24,0.92)', borderWidth: 0, textStyle: { color: '#fff' } },
+        legend: { bottom: 0, textStyle: { color: '#6a655c', fontSize: 10, fontFamily: 'serif' } },
+        series: [{
+          type: 'pie', radius: ['46%', '72%'], center: ['50%', '46%'],
+          avoidLabelOverlap: true,
+          itemStyle: { borderColor: '#fff', borderWidth: 2, borderRadius: 4 },
+          label: { show: true, formatter: '{b}\n{d}%', fontFamily: 'serif', color: '#43403a', fontSize: 10 },
+          labelLine: { length: 6, length2: 6, lineStyle: { color: 'rgba(70,64,56,0.30)' } },
+          data: (d && d.length) ? d.map((x: any) => ({ name: x.date?.slice(5) || '阶段', value: x.value || 0 })) :
+            [{ name: '高价值', value: 4 }, { name: '活跃', value: 3 }, { name: '沉睡', value: 2 }, { name: '流失', value: 1 }],
+          color: ['#5a7a9c', '#8b7ea3', '#b89692', '#b8845c']
+        }]
+      })
+    })
+  }
+}
+
+onMounted(loadAll)
 
 async function loadList() {
   loading.value = true
@@ -260,8 +343,6 @@ function onDownload(row: any, type: string) {
   const url = `/api/reports/${row.id}/download?type=${type}`
   window.open(url, '_blank')
 }
-
-onMounted(loadAll)
 </script>
 
 <style scoped>
@@ -269,6 +350,12 @@ onMounted(loadAll)
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 14px;
 }
 @media (max-width: 1100px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
+.chart-row {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 14px; margin-bottom: 18px;
+}
+@media (max-width: 1100px) { .chart-row { grid-template-columns: 1fr; } }
+.chart-slot { width: 100%; height: 190px; }
 .rp-name { font-size: 13.5px; color: var(--ink); font-weight: 500; }
 .rp-sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
 .rcpt-tag { margin-right: 4px; margin-bottom: 2px; }
