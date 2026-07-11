@@ -49,7 +49,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onActivated, onMounted, ref } from 'vue'
 import { h5Api, type Store } from '@/api/h5'
 import NavBar from '@/components/NavBar.vue'
 import EmptyState from '@/components/EmptyState.vue'
@@ -59,8 +59,40 @@ const list = ref<Store[]>([])
 
 async function load() {
   loading.value = true
-  try { list.value = await h5Api.stores() } catch {/* */}
+  try {
+    list.value = await h5Api.stores()
+    calcDistances()
+  } catch {/* */}
   finally { loading.value = false }
+}
+
+// haversine 公式计算两点间距离（米）
+function haversine(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000
+  const toRad = (d: number) => d * Math.PI / 180
+  const dLat = toRad(lat2 - lat1)
+  const dLng = toRad(lng2 - lng1)
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2
+  return Math.round(2 * R * Math.asin(Math.sqrt(a)))
+}
+
+// 获取用户定位后为每个门店计算距离
+function calcDistances() {
+  if (!navigator.geolocation) return
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const { latitude: ulat, longitude: ulng } = pos.coords
+      list.value = list.value.map(s => {
+        if (s.latitude != null && s.longitude != null) {
+          return { ...s, distance: haversine(ulat, ulng, s.latitude, s.longitude) }
+        }
+        return s
+      })
+    },
+    () => {/* 用户拒绝或获取失败，静默处理 */},
+    { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
+  )
 }
 
 function statusText(s?: string) {
@@ -72,6 +104,7 @@ function formatDist(m: number) {
 }
 
 onMounted(load)
+onActivated(load)
 </script>
 
 <style scoped>

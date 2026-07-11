@@ -191,7 +191,7 @@ async function loadDetail() {
     const d = await gameApi.detail(gameId)
     game.value = d?.game ?? d
     prizes.value = d?.prizes || []
-    remaining.value = d?.game?.remaining ?? d?.game?.dailyLimit ?? d?.remaining ?? d?.dailyLimit ?? 0
+    remaining.value = d?.game?.dailyLimit ?? 0
   } catch {/* */}
   finally { loading.value = false }
 }

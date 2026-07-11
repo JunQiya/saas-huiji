@@ -157,13 +157,28 @@ const slogan = slogans[Math.floor(Math.random() * slogans.length)]
 
 const avatarText = computed(() => memberInfo.value?.name?.charAt(0) || '星')
 
+// 等级门槛（元）：普通 0 / 银卡 500 / 金卡 2000 / 钻石 5000
+const LEVEL_THRESHOLDS = [0, 500, 2000, 5000]
+
+// 下一等级门槛（元）：优先用后端返回的 nextLevelThreshold，否则按等级规则推算
+const nextThreshold = computed(() => {
+  const p = memberInfo.value as any
+  if (p?.nextLevelThreshold != null) return p.nextLevelThreshold
+  const v = (p?.totalAmount || 0) / 100
+  return LEVEL_THRESHOLDS.find(t => t > v) ?? 0
+})
+
 const progressPct = computed(() => {
+  const next = nextThreshold.value
+  if (!next) return 100
   const v = (memberInfo.value?.totalAmount || 0) / 100
-  return Math.min(100, Math.round((v / 10000) * 100))
+  return Math.min(100, Math.round((v / next) * 100))
 })
 const gapToNext = computed(() => {
+  const next = nextThreshold.value
+  if (!next) return '0'
   const v = (memberInfo.value?.totalAmount || 0) / 100
-  return Math.max(0, 10000 - v).toFixed(0)
+  return Math.max(0, next - v).toFixed(0)
 })
 
 const mineMenus: { label: string; icon: string; tone: string; path: string; badge?: string }[] = [

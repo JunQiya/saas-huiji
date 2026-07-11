@@ -14,6 +14,7 @@ export interface MemberProfile {
   avatar?: string
   consumeCount?: number
   totalAmount?: number
+  nextLevelThreshold?: number
   lastConsumeAt?: string
   createdAt?: string
 }
