@@ -141,7 +141,7 @@ public class WeChatController {
         long[] ctx = currentMember(req);
         Map<String, String> signature = wxMpConfigService.createJsapiSignature(ctx[1], url);
         if (signature == null) {
-            return Result.fail("NOT_CONFIGURED", "未配置微信公众号");
+            return Result.success(null);
         }
         return Result.success(signature);
     }

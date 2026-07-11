@@ -171,7 +171,7 @@ public class WxMpConfigService {
         }
     }
 
-    /** JS-SDK 签名 */
+    /** JS-SDK 签名（调用失败返回 null，不抛异常，避免开发环境无真实公众号配置时 500） */
     public Map<String, String> createJsapiSignature(Long tenantId, String url) {
         WxMpService mpService = getMpService(tenantId);
         if (mpService == null) return null;
@@ -185,7 +185,8 @@ public class WxMpConfigService {
             result.put("url", sig.getUrl());
             return result;
         } catch (Exception e) {
-            throw new RuntimeException("JS-SDK 签名失败: " + e.getMessage(), e);
+            log.warn("JS-SDK 签名失败（可能未配置真实公众号）: {}", e.getMessage());
+            return null;
         }
     }
 

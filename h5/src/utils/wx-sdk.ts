@@ -90,6 +90,7 @@ export async function initWxSdk(): Promise<void> {
     // iOS 下签名 URL 用首页地址，Android 用当前地址；hash 路由下取 # 之前部分即可
     const url = window.location.href.split('#')[0]
     const res = await wxApi.jssdk(url)
+    if (!res || !res.appId) return // 未配置微信公众号，静默跳过
     window.wx!.config({
       debug: false,
       appId: res.appId,
