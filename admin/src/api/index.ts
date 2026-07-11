@@ -157,7 +157,9 @@ export const productsApi = {
   changeStatus: (id: number, status: 'ACTIVE' | 'DISABLED') =>
     request.put<any, any>(`/products/${id}/status`, { status }),
   stock: (id: number, mode: 'SET' | 'INC', value: number) =>
-    request.put<any, any>(`/products/${id}/stock`, { mode, value })
+    request.put<any, any>(`/products/${id}/stock`, { mode, value }),
+  updateStores: (id: number, storeIds: number[]) =>
+    request.put<any, any>(`/products/${id}/stores`, { storeIds })
 }
 
 // ============ 订单 ============

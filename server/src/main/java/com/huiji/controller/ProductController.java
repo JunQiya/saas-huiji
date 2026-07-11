@@ -72,6 +72,20 @@ public class ProductController {
         return Result.success(productService.changeStatus(id, body == null ? null : body.get("status")));
     }
 
+    /** 仅更新适用门店(门店管理-商品配置) */
+    @PutMapping("/{id}/stores")
+    public Result<Map<String, Object>> updateStores(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        Object ids = body == null ? null : body.get("storeIds");
+        List<Long> storeIds = new java.util.ArrayList<>();
+        if (ids instanceof List<?> list) {
+            for (Object o : list) {
+                if (o instanceof Number n) storeIds.add(n.longValue());
+                else if (o != null) storeIds.add(Long.parseLong(o.toString()));
+            }
+        }
+        return Result.success(productService.updateStoreIds(id, storeIds));
+    }
+
     @PutMapping("/{id}/stock")
     public Result<Map<String, Object>> stock(@PathVariable Long id, @Valid @RequestBody ProductDto.StockRequest req) {
         return Result.success(productService.adjustStock(id, req));

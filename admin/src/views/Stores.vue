@@ -262,7 +262,7 @@ async function saveProductConfig() {
         const next = should
           ? [...current, sid]
           : current.filter((x: number) => x !== sid)
-        return productsApi.update(p.id, { storeIds: next })
+        return productsApi.updateStores(p.id, next)
       })
       .filter(Boolean)
     await Promise.all(tasks)

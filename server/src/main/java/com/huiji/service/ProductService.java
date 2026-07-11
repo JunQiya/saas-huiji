@@ -121,6 +121,18 @@ public class ProductService {
         auditHelper.record("删除商品", "product:" + id, p.getName());
     }
 
+    /** 仅更新适用门店(门店管理-商品配置批量勾选用) */
+    @Transactional
+    public Map<String, Object> updateStoreIds(Long id, List<Long> storeIds) {
+        Long tenantId = LoginUserHolder.currentTenantId();
+        Product p = productRepository.findByIdAndTenantIdAndDeletedFalse(id, tenantId)
+                .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "商品不存在"));
+        p.setStoreIds(storeIds == null ? new ArrayList<>() : storeIds);
+        productRepository.save(p);
+        auditHelper.record("配置门店商品", "product:" + id, p.getName());
+        return toVO(p);
+    }
+
     @Transactional
     public Map<String, Object> changeStatus(Long id, String status) {
         Long tenantId = LoginUserHolder.currentTenantId();
