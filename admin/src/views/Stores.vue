@@ -36,6 +36,7 @@
         </div>
         <div class="store-actions">
           <el-button link type="primary" @click="openEdit(s)">编辑</el-button>
+          <el-button link type="primary" @click="openProductConfig(s)">商品配置</el-button>
           <el-button link type="danger" @click="onRemove(s)">删除</el-button>
         </div>
       </div>
@@ -43,6 +44,49 @@
         <el-empty description="暂无门店" />
       </div>
     </div>
+
+    <el-dialog
+      v-model="productVisible"
+      :title="`${currentStore?.name || ''} - 商品配置`"
+      width="680px"
+      :close-on-click-modal="false"
+      destroy-on-close
+    >
+      <div class="product-config-tip">
+        勾选的商品将在此门店上架；未勾选则不在此门店销售。<span class="muted-hint">storeIds 为空表示全店适用。</span>
+      </div>
+      <el-table
+        ref="productTableRef"
+        v-loading="productLoading"
+        :data="productList"
+        stripe
+        size="small"
+        max-height="460"
+        row-key="id"
+        @selection-change="onSelectionChange"
+      >
+        <el-table-column type="selection" width="48" :selectable="() => true" reserve-selection />
+        <el-table-column label="名称" prop="name" min-width="160" />
+        <el-table-column label="类型" width="84">
+          <template #default="{ row }">
+            <el-tag :type="row.category === 'GOODS' ? 'warning' : 'primary'" size="small">{{ row.category }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="售价" width="100">
+          <template #default="{ row }">¥ {{ yuan(row.price) }}</template>
+        </el-table-column>
+        <el-table-column label="适用门店" min-width="140">
+          <template #default="{ row }">
+            <span v-if="!row.storeIds || row.storeIds.length === 0" class="muted-hint">全店适用</span>
+            <span v-else>{{ row.storeIds.length }} 家门店</span>
+          </template>
+        </el-table-column>
+      </el-table>
+      <template #footer>
+        <el-button @click="productVisible = false">取消</el-button>
+        <el-button type="primary" :loading="productSaving" @click="saveProductConfig">保存</el-button>
+      </template>
+    </el-dialog>
 
     <el-dialog v-model="formVisible" :title="editing ? '编辑门店' : '新增门店'" width="480px" :close-on-click-modal="false">
       <el-form ref="formRef" :model="form" :rules="formRules" label-width="84px">
@@ -74,10 +118,11 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { nextTick, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Plus, Location, Phone, Clock } from '@element-plus/icons-vue'
-import { storesApi } from '@/api'
+import { storesApi, productsApi } from '@/api'
+import { fenToYuan } from '@/utils/format'
 import type { Store } from '@/types'
 
 const storeSlogan = [
@@ -165,6 +210,71 @@ async function onToggleStatus(row: Store, open: boolean) {
   }
 }
 
+// ===== 商品配置 =====
+const productVisible = ref(false)
+const productLoading = ref(false)
+const productSaving = ref(false)
+const currentStore = ref<Store | null>(null)
+const productList = ref<any[]>([])
+const selectedProductIds = ref<number[]>([])
+const productTableRef = ref<any>()
+
+function yuan(fen: any) {
+  if (fen == null) return '0.00'
+  return Number(fenToYuan(fen)).toFixed(2)
+}
+
+async function openProductConfig(row: Store) {
+  currentStore.value = row
+  productVisible.value = true
+  productLoading.value = true
+  selectedProductIds.value = []
+  try {
+    const data: any = await productsApi.list({ page: 1, size: 200 })
+    productList.value = data?.list || data?.records || data?.content || []
+    const sid = row.id
+    await nextTick()
+    productList.value.forEach((p: any) => {
+      if (p.storeIds && p.storeIds.includes(sid)) {
+        productTableRef.value?.toggleRowSelection(p, true)
+      }
+    })
+  } finally {
+    productLoading.value = false
+  }
+}
+
+function onSelectionChange(rows: any[]) {
+  selectedProductIds.value = rows.map((r: any) => r.id)
+}
+
+async function saveProductConfig() {
+  if (!currentStore.value) return
+  const sid = currentStore.value.id
+  productSaving.value = true
+  try {
+    const tasks = productList.value
+      .map((p: any) => {
+        const current: number[] = p.storeIds || []
+        const has = current.includes(sid)
+        const should = selectedProductIds.value.includes(p.id)
+        if (has === should) return null
+        const next = should
+          ? [...current, sid]
+          : current.filter((x: number) => x !== sid)
+        return productsApi.update(p.id, { storeIds: next })
+      })
+      .filter(Boolean)
+    await Promise.all(tasks)
+    ElMessage.success('商品配置已保存')
+    productVisible.value = false
+  } catch {
+    ElMessage.error('保存失败')
+  } finally {
+    productSaving.value = false
+  }
+}
+
 onMounted(() => loadList())
 </script>
 
@@ -237,5 +347,15 @@ onMounted(() => loadList())
 }
 .empty {
   grid-column: 1 / -1;
+}
+.product-config-tip {
+  font-size: 13px;
+  color: var(--ink-2, var(--ink));
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+.muted-hint {
+  color: var(--muted);
+  font-size: 12px;
 }
 </style>

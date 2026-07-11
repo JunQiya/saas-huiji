@@ -9,6 +9,15 @@
         </div>
       </div>
       <div class="header-actions">
+        <el-select
+          v-model="currentStoreId"
+          placeholder="选择门店"
+          class="store-select"
+          :loading="loadingStores"
+          @change="onStoreChange"
+        >
+          <el-option v-for="s in stores" :key="s.id" :label="s.name" :value="s.id" />
+        </el-select>
         <div v-if="todayStats" class="today-stat">
           <span class="ts-label">今日</span>
           <span class="ts-val">{{ todayStats.count }} 单 / ¥{{ yuan(todayStats.amount) }}</span>
@@ -156,7 +165,7 @@
 import { computed, onMounted, onBeforeUnmount, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Refresh, Search, User, Delete, Printer, Money } from '@element-plus/icons-vue'
-import { productsApi, ordersApi, membersApi, settingsPlanApi, statsApi } from '@/api'
+import { productsApi, ordersApi, membersApi, settingsPlanApi, statsApi, storesApi } from '@/api'
 import { fenToYuan, yuanToFen } from '@/utils/format'
 
 const posSlogan = [
@@ -187,6 +196,8 @@ const submitting = ref(false)
 
 const storeName = ref('星河·会记')
 const currentStoreId = ref<number | null>(null)
+const stores = ref<any[]>([])
+const loadingStores = ref(false)
 
 const lastReceipt = ref<any>(null)
 
@@ -218,7 +229,7 @@ function fmtDate(t: any) { if (!t) return '-'; try { return new Date(t).toLocale
 async function loadProducts() {
   loadingProducts.value = true
   try {
-    const data: any = await productsApi.active()
+    const data: any = await productsApi.active({ storeId: currentStoreId.value })
     products.value = Array.isArray(data) ? data : []
   } finally {
     loadingProducts.value = false
@@ -229,13 +240,38 @@ async function loadTodayStats() {
     todayStats.value = await statsApi.ordersToday()
   } catch {}
 }
-async function loadAll() {
-  await loadProducts()
+async function loadStores() {
+  loadingStores.value = true
+  try {
+    const data: any = await storesApi.list()
+    stores.value = Array.isArray(data) ? data : []
+  } catch {
+    stores.value = []
+  } finally {
+    loadingStores.value = false
+  }
+}
+async function loadCurrentStore() {
   try {
     const cur: any = await settingsPlanApi.currentStore()
     if (cur?.name) storeName.value = cur.name
     if (cur?.storeId) currentStoreId.value = cur.storeId
   } catch {}
+}
+async function onStoreChange() {
+  // 切换门店：清空购物车（商品可能不属于新门店），刷新商品与今日统计
+  clearCart()
+  member.value = null
+  memberCoupons.value = []
+  selectedCoupon.value = undefined
+  memberKeyword.value = ''
+  await loadProducts()
+  loadTodayStats()
+}
+async function loadAll() {
+  await loadStores()
+  await loadCurrentStore()
+  await loadProducts()
   loadRecent()
   loadTodayStats()
 }
@@ -424,6 +460,7 @@ onBeforeUnmount(() => {
 .coupon-row { font-size: 12px; color: var(--primary-action); }
 .coupon-row .val { color: var(--primary-action); font-weight: 500; }
 .today-stat { display: inline-flex; align-items: baseline; gap: 6px; margin-right: 8px; padding: 4px 12px; background: var(--surface-2); border: 1px solid var(--line-2); border-radius: var(--r); }
+.store-select { width: 180px; margin-right: 8px; }
 .ts-label { font-family: var(--font-serif); font-size: 11px; color: var(--muted); letter-spacing: 0.08em; }
 .ts-val { font-family: var(--font-num); font-size: 12px; color: var(--ink); }
 .pay-block { margin-top: 10px; }

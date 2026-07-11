@@ -126,7 +126,7 @@ public class H5Controller {
         long[] ctx = currentMember(req);
         bindAsMember(ctx[0], ctx[1]);
         try {
-            return Result.success(productService.listActive(category));
+            return Result.success(productService.listActive(category, null));
         } finally {
             LoginUserHolder.clear();
         }

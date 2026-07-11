@@ -41,8 +41,9 @@ public class ProductController {
     }
 
     @GetMapping("/active")
-    public Result<List<Map<String, Object>>> active(@RequestParam(required = false) String category) {
-        return Result.success(productService.listActive(category));
+    public Result<List<Map<String, Object>>> active(@RequestParam(required = false) String category,
+                                                     @RequestParam(required = false) Long storeId) {
+        return Result.success(productService.listActive(category, storeId));
     }
 
     @GetMapping("/{id}")

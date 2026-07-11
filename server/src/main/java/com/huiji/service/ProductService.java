@@ -185,10 +185,13 @@ public class ProductService {
     }
 
     /** 收银台取上架商品(SERVICE/GOODS) */
-    public List<Map<String, Object>> listActive(String category) {
+    public List<Map<String, Object>> listActive(String category, Long storeId) {
         Long tenantId = LoginUserHolder.currentTenantId();
         List<Product> rows = productRepository.listActive(tenantId, category);
-        return rows.stream().map(this::toVO).toList();
+        return rows.stream()
+                .filter(p -> storeId == null || p.getStoreIds() == null || p.getStoreIds().isEmpty() || p.getStoreIds().contains(storeId))
+                .map(this::toVO)
+                .toList();
     }
 
     /** 内部计费版校验 */

@@ -132,6 +132,12 @@
             <el-radio-button value="DISABLED">下架</el-radio-button>
           </el-radio-group>
         </el-form-item>
+        <el-form-item label="适用门店">
+          <el-select v-model="form.storeIds" multiple clearable collapse-tags collapse-tags-tooltip placeholder="不选表示全店适用" style="width: 100%">
+            <el-option v-for="s in stores" :key="s.id" :label="s.name" :value="s.id" />
+          </el-select>
+          <div class="form-hint">不选任何门店表示全店适用</div>
+        </el-form-item>
         <el-form-item label="商城展示">
           <el-switch v-model="form.mallVisible" />
           <span class="form-hint">开启后商品将在线上商城展示</span>
@@ -174,8 +180,9 @@
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Refresh, Search, Edit, Delete, Bottom, Top, More, Box, MagicStick, Goods, DocumentRemove } from '@element-plus/icons-vue'
-import { productsApi, mallApi } from '@/api'
+import { productsApi, mallApi, storesApi } from '@/api'
 import { fenToYuan, yuanToFen } from '@/utils/format'
+import type { Store } from '@/types'
 
 const productSlogan = [
   '每一件商品，都该被认真地呈现',
@@ -202,10 +209,12 @@ const form = reactive<any>({
   description: '',
   status: 'ACTIVE',
   mallVisible: false,
-  mallCategoryId: null
+  mallCategoryId: null,
+  storeIds: [] as number[]
 })
 
 const mallCategories = ref<any[]>([])
+const stores = ref<Store[]>([])
 
 const stockVisible = ref(false)
 const stockForm = reactive<any>({ id: null, name: '', stock: 0, mode: 'INC', value: 0 })
@@ -230,7 +239,7 @@ function openEdit(row?: any) {
   Object.assign(form, {
     id: null, name: '', category: 'SERVICE', priceYuan: 0, costPriceYuan: 0,
     stock: 0, cover: '', description: '', status: 'ACTIVE',
-    mallVisible: false, mallCategoryId: null
+    mallVisible: false, mallCategoryId: null, storeIds: []
   })
   if (row) {
     form.id = row.id
@@ -244,6 +253,7 @@ function openEdit(row?: any) {
     form.status = row.status || 'ACTIVE'
     form.mallVisible = !!row.mallVisible
     form.mallCategoryId = row.mallCategoryId || null
+    form.storeIds = Array.isArray(row.storeIds) ? [...row.storeIds] : []
   }
   editVisible.value = true
 }
@@ -260,7 +270,8 @@ async function save() {
     description: form.description,
     status: form.status,
     mallVisible: form.mallVisible,
-    mallCategoryId: form.mallVisible ? form.mallCategoryId : null
+    mallCategoryId: form.mallVisible ? form.mallCategoryId : null,
+    storeIds: Array.isArray(form.storeIds) ? form.storeIds : []
   }
   saving.value = true
   try {
@@ -327,6 +338,7 @@ function coverColor(cat: string) {
 onMounted(() => {
   load()
   mallApi.categories().then((d: any) => { mallCategories.value = d || [] }).catch(() => {})
+  storesApi.list().then((d: any) => { stores.value = d || [] }).catch(() => {})
 })
 </script>
 
