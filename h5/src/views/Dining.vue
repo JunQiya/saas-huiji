@@ -3,7 +3,7 @@
     <NavBar title="扫码点餐" back />
 
     <!-- 桌台信息 -->
-    <div class="table-card">
+    <div v-if="table" class="table-card">
       <div class="tc-bg"></div>
       <div class="tc-content">
         <div class="tc-top">
@@ -20,9 +20,56 @@
         </div>
       </div>
     </div>
+    <!-- 门店信息（无桌台时） -->
+    <div v-else-if="selectedStoreId" class="table-card">
+      <div class="tc-bg"></div>
+      <div class="tc-content">
+        <div class="tc-top">
+          <div class="tc-brand">
+            <div class="brand-mark"><van-icon name="shop-o" size="16" color="#fff" /></div>
+            <div>
+              <div class="tc-name">{{ selectedStore?.name || '门店' }}</div>
+              <div class="tc-sub">{{ selectedStore?.address || '地址未填' }}</div>
+            </div>
+          </div>
+          <span v-if="stores.length > 1" class="chip" @click="resetStore">更换</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 门店选择（无 tableId 且未选门店） -->
+    <div v-if="needStorePicker" class="store-picker">
+      <div class="sp-head">
+        <div class="sp-title">选择门店</div>
+        <div class="sp-sub">请选择就餐门店后查看菜单</div>
+      </div>
+      <div v-if="storesLoading" class="loading"><van-loading color="#3d597a" /></div>
+      <EmptyState v-else-if="!stores.length" title="暂无门店" sub="门店正陆续上线中" art="leaf" />
+      <div v-else class="sp-list">
+        <div
+          v-for="s in stores"
+          :key="s.id"
+          class="sp-card ui-card hoverable"
+          @click="selectStore(s.id)"
+        >
+          <div class="sp-head-row">
+            <div class="sp-cover"><van-icon name="shop-o" size="20" color="#fff" /></div>
+            <div class="sp-meta">
+              <div class="sp-name">{{ s.name }}</div>
+              <div class="sp-addr">{{ s.address || '地址未填' }}</div>
+            </div>
+            <van-icon name="arrow" size="14" color="var(--muted)" />
+          </div>
+          <div v-if="s.businessHours || s.phone" class="sp-foot">
+            <span v-if="s.businessHours" class="sp-tag"><van-icon name="clock-o" /> {{ s.businessHours }}</span>
+            <span v-if="s.phone" class="sp-tag"><van-icon name="phone-o" /> {{ s.phone }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- 菜单区域 -->
-    <div class="menu-wrap">
+    <div v-if="activeStoreId" class="menu-wrap">
       <!-- 左侧分类 -->
       <div class="cat-nav">
         <div
@@ -151,13 +198,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onActivated, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast } from 'vant'
-import { diningApi } from '@/api/h5'
+import { diningApi, h5Api } from '@/api/h5'
 import { useMemberStore } from '@/stores/member'
 import NavBar from '@/components/NavBar.vue'
 import EmptyState from '@/components/EmptyState.vue'
+
+defineOptions({ name: 'Dining' })
 
 const route = useRoute()
 const router = useRouter()
@@ -168,6 +217,14 @@ const table = ref<any>(null)
 const menu = ref<any[]>([])
 const loading = ref(false)
 const activeCat = ref(0)
+
+// 门店选择（无 tableId 时）
+const stores = ref<any[]>([])
+const storesLoading = ref(false)
+const selectedStoreId = ref<string | number>('')
+const selectedStore = computed(() => stores.value.find(s => String(s.id) === String(selectedStoreId.value)) || null)
+const needStorePicker = computed(() => !tableId.value && !selectedStoreId.value)
+const activeStoreId = computed(() => table.value?.storeId || selectedStoreId.value || '')
 
 // 购物车：productId -> { id, name, price, qty }
 const cart = ref<Record<string, { id: string | number; name: string; price: number; qty: number }>>({})
@@ -224,8 +281,9 @@ function openCheckout() {
   if (!totalCount.value) { showToast('请先选择菜品'); return }
   if (!memberStore.isLogin) {
     showToast('请先登录后点餐')
+    const redirect = tableId.value ? `/dining?tableId=${tableId.value}` : '/dining'
     setTimeout(() => {
-      router.push({ path: '/login', query: { redirect: `/dining?tableId=${tableId.value}` } })
+      router.push({ path: '/login', query: { redirect } })
     }, 600)
     return
   }
@@ -235,12 +293,14 @@ function openCheckout() {
 }
 
 async function submitOrder() {
-  if (!table.value) { showToast('桌台信息缺失'); return }
+  const storeId = table.value?.storeId || selectedStoreId.value
+  if (!storeId) { showToast('请选择门店'); return }
+  if (tableId.value && !table.value) { showToast('桌台信息缺失'); return }
   submitting.value = true
   try {
     const res: any = await diningApi.order({
-      tableId: table.value.id || tableId.value,
-      storeId: table.value.storeId,
+      tableId: table.value?.id || tableId.value,
+      storeId,
       orderType: orderType.value,
       items: cartList.value.map(it => ({
         productId: it.id,
@@ -273,21 +333,67 @@ async function loadTable() {
   }
 }
 async function loadMenu() {
-  if (!table.value?.storeId) return
+  const storeId = table.value?.storeId || selectedStoreId.value
+  if (!storeId) return
   loading.value = true
   try {
-    const data = await diningApi.menu(table.value.storeId)
+    const data = await diningApi.menu(storeId)
     menu.value = Array.isArray(data) ? data : []
+    activeCat.value = 0
   } catch {
     menu.value = []
   } finally {
     loading.value = false
   }
 }
-
-onMounted(async () => {
-  await loadTable()
+async function loadStores() {
+  if (tableId.value) return // 有 tableId 走桌台流程
+  storesLoading.value = true
+  try {
+    const data = await h5Api.stores()
+    stores.value = Array.isArray(data) ? data : []
+    if (stores.value.length === 1) {
+      // 仅一家门店，自动选中
+      selectedStoreId.value = stores.value[0].id
+      await loadMenu()
+    }
+  } catch {
+    stores.value = []
+  } finally {
+    storesLoading.value = false
+  }
+}
+async function selectStore(id: string | number) {
+  selectedStoreId.value = id
+  activeCat.value = 0
+  cart.value = {}
   await loadMenu()
+}
+function resetStore() {
+  selectedStoreId.value = ''
+  menu.value = []
+  cart.value = {}
+  activeCat.value = 0
+  loadStores()
+}
+
+async function initPage() {
+  if (tableId.value) {
+    await loadTable()
+    if (table.value?.storeId) {
+      await loadMenu()
+    }
+  } else {
+    await loadStores()
+  }
+}
+
+onMounted(() => { initPage() })
+
+let firstActivated = true
+onActivated(() => {
+  if (firstActivated) { firstActivated = false; return } // 首次由 onMounted 处理
+  initPage()
 })
 </script>
 
@@ -320,7 +426,58 @@ onMounted(async () => {
 }
 .tc-name { font-size: 15px; font-weight: 600; letter-spacing: 0.04em; }
 .tc-sub { font-size: 11px; opacity: 0.85; margin-top: 2px; letter-spacing: 0.04em; }
-.table-card .chip { background: rgba(255,255,255,0.22); color: #fff; border-color: transparent; }
+.table-card .chip { background: rgba(255,255,255,0.22); color: #fff; border-color: transparent; cursor: pointer; }
+
+/* 门店选择 */
+.store-picker {
+  margin: 12px 16px;
+}
+.sp-head { padding: 4px 2px 12px; }
+.sp-title {
+  font-family: var(--font-serif);
+  font-size: 14px; font-weight: 500; color: var(--ink);
+  letter-spacing: 0.06em;
+}
+.sp-sub {
+  font-size: 11.5px; color: var(--muted);
+  margin-top: 4px; letter-spacing: 0.04em;
+}
+.sp-list { display: flex; flex-direction: column; gap: 10px; }
+.sp-card {
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: transform var(--dur) var(--ease);
+}
+.sp-card:active { transform: scale(0.98); }
+.sp-head-row { display: flex; align-items: center; gap: 10px; }
+.sp-cover {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #5a7d9f, #4a6a87);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.sp-meta { flex: 1; min-width: 0; }
+.sp-name {
+  font-size: 14px; font-weight: 600; color: var(--ink);
+  letter-spacing: 0.02em;
+}
+.sp-addr {
+  font-size: 11.5px; color: var(--muted);
+  margin-top: 3px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sp-foot {
+  display: flex; flex-wrap: wrap; gap: 10px;
+  margin-top: 10px; padding-top: 10px;
+  border-top: 1px dashed var(--line);
+}
+.sp-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; color: var(--ink-2);
+  letter-spacing: 0.02em;
+}
+.sp-tag .van-icon { color: var(--muted); font-size: 12px; }
 
 /* 菜单区域 */
 .menu-wrap {
