@@ -7,28 +7,28 @@
  * ===================================================================== */
 
 :root {
-  /* === 底色：暖灰白 + 冷调纸 === */
-  --page-bg: #f3f2ed;
-  --page-bg-warm: #f6f5f0;
-  --page-bg-cool: #ecedef;
-  --page-bg-paper: #f9f7f1;
+  /* === 底色：中性灰白，无黄偏 === */
+  --page-bg: #f4f5f7;
+  --page-bg-warm: #f6f7f9;
+  --page-bg-cool: #eceef1;
+  --page-bg-paper: #f8f9fb;
   --surface: #ffffff;
-  --surface-2: #faf9f5;
-  --surface-3: #f1eee6;
-  --surface-dim: #ece9e0;
+  --surface-2: #f7f8fa;
+  --surface-3: #eef0f3;
+  --surface-dim: #e8eaed;
 
-  /* === 墨色：4 级（更黑更沉，少一分灰） === */
-  --ink: #1f1d18;
-  --ink-2: #43403a;
-  --ink-3: #6a655c;
-  --muted: #8a8578;
-  --muted-2: #b3ad9f;
+  /* === 墨色：4 级（中性，无暖棕） === */
+  --ink: #1a1d23;
+  --ink-2: #3d4250;
+  --ink-3: #6b7280;
+  --muted: #9ca3af;
+  --muted-2: #c3c8d0;
 
-  /* === 边框：米色细线 === */
-  --line: rgba(70, 64, 56, 0.10);
-  --line-2: rgba(70, 64, 56, 0.18);
-  --line-strong: rgba(70, 64, 56, 0.30);
-  --line-soft: rgba(70, 64, 56, 0.05);
+  /* === 边框：中性细线 === */
+  --line: rgba(30, 40, 60, 0.08);
+  --line-2: rgba(30, 40, 60, 0.14);
+  --line-strong: rgba(30, 40, 60, 0.24);
+  --line-soft: rgba(30, 40, 60, 0.04);
 
   /* === 主色：冷蓝（更深更稳） === */
   --brand: #5a7a9c;
@@ -39,32 +39,32 @@
   --brand-glow: rgba(90, 122, 156, 0.15);
 
   /* === 状态色（低饱和，不刺眼） === */
-  --success: #7a9a85;          /* 豆绿 */
-  --success-deep: #5a7a66;
-  --success-soft: rgba(122, 154, 133, 0.13);
-  --warning: #b89a5a;          /* 哑金 */
-  --warning-deep: #957a3e;
-  --warning-soft: rgba(184, 154, 90, 0.14);
-  --danger: #b87864;           /* 陶红 */
-  --danger-deep: #955944;
-  --danger-soft: rgba(184, 120, 100, 0.13);
-  --info: #8a8578;
+  --success: #6b9b7e;
+  --success-deep: #4a7a5e;
+  --success-soft: rgba(107, 155, 126, 0.12);
+  --warning: #c09a5a;
+  --warning-deep: #9a7a3e;
+  --warning-soft: rgba(192, 154, 90, 0.13);
+  --danger: #c0786a;
+  --danger-deep: #9a5948;
+  --danger-soft: rgba(192, 120, 106, 0.12);
+  --info: #7a8a9a;
 
   /* 旧 token 别名（保留兼容） */
   --primary-action: var(--brand);
   --primary-action-soft: var(--brand-soft);
   --card-bg: var(--surface);
 
-  /* === 装饰色（去黄化，扩出五色：暮紫/雾青/陶土/豆绿/淡粉） === */
-  --accent-twilight: #8b7ea3;  /* 暮紫 */
+  /* === 装饰色 === */
+  --accent-twilight: #8b7ea3;
   --accent-twilight-soft: rgba(139, 126, 163, 0.13);
-  --accent-mist: #8a9aa3;      /* 雾青 */
+  --accent-mist: #8a9aa3;
   --accent-mist-soft: rgba(138, 154, 163, 0.16);
-  --accent-clay: #b8845c;      /* 陶土 */
+  --accent-clay: #b8845c;
   --accent-clay-soft: rgba(184, 132, 92, 0.13);
-  --accent-sage: #94a89a;      /* 豆绿 */
+  --accent-sage: #94a89a;
   --accent-sage-soft: rgba(148, 168, 154, 0.14);
-  --accent-rose: #b89692;      /* 淡粉 */
+  --accent-rose: #b89692;
   --accent-rose-soft: rgba(184, 150, 146, 0.14);
 
   /* === 字体 === */
@@ -74,26 +74,26 @@
                 'Times New Roman', Georgia, serif;
   --font-num: 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
 
-  /* === 阴影（中性，多层柔和，无色偏） === */
-  --shadow-xs: 0 1px 2px rgba(40, 38, 32, 0.04);
-  --shadow-sm: 0 1px 3px rgba(40, 38, 32, 0.05);
-  --shadow: 0 2px 8px rgba(40, 38, 32, 0.06);
-  --shadow-md: 0 4px 16px rgba(40, 38, 32, 0.08);
-  --shadow-lg: 0 14px 36px rgba(40, 38, 32, 0.10);
+  /* === 阴影（中性，无色偏） === */
+  --shadow-xs: 0 1px 2px rgba(20, 30, 50, 0.04);
+  --shadow-sm: 0 1px 3px rgba(20, 30, 50, 0.05);
+  --shadow: 0 2px 8px rgba(20, 30, 50, 0.06);
+  --shadow-md: 0 4px 16px rgba(20, 30, 50, 0.08);
+  --shadow-lg: 0 14px 36px rgba(20, 30, 50, 0.10);
   --shadow-card: 0 2px 14px rgba(61, 89, 122, 0.08);
   --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 
-  /* === 圆角（多档，整体偏紧凑） === */
-  --r-xs: 3px;
-  --r-sm: 5px;
-  --r: 7px;
-  --r-md: 9px;
-  --r-lg: 12px;
-  --r-xl: 16px;
-  --r-2xl: 20px;
+  /* === 圆角（更圆润） === */
+  --r-xs: 4px;
+  --r-sm: 6px;
+  --r: 10px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 20px;
+  --r-2xl: 24px;
 
   /* === 动效 === */
-  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --dur-fast: 0.15s;
   --dur: 0.2s;
@@ -106,10 +106,7 @@
 html, body, #app { height: 100%; margin: 0; padding: 0; }
 
 body {
-  background:
-    radial-gradient(900px 480px at 8% -6%, rgba(138, 154, 163, 0.12), transparent 60%),
-    radial-gradient(1100px 560px at 105% 6%, rgba(139, 126, 163, 0.07), transparent 55%),
-    var(--page-bg);
+  background: var(--page-bg);
   background-attachment: fixed;
   color: var(--ink);
   font-family: var(--font-ui);
@@ -157,7 +154,7 @@ img { display: block; max-width: 100%; }
 .x-card.hoverable:hover {
   border-color: var(--line-2);
   box-shadow: var(--shadow-md);
-  transform: scale(1.005);
+  transform: scale(1.02);
 }
 
 /* ===== 页面骨架 ===== */
@@ -204,12 +201,6 @@ img { display: block; max-width: 100%; }
   margin: 20px 0 12px;
   display: flex; align-items: center; gap: 8px;
   letter-spacing: 0.06em;
-}
-.section-title::before {
-  content: '◇';
-  font-size: 8px; color: var(--brand);
-  flex-shrink: 0;
-  position: relative; top: -1px;
 }
 .section-title .st-tip { color: var(--muted); font-weight: 400; font-size: 12px; margin-left: auto; letter-spacing: 0.02em; }
 
@@ -336,7 +327,7 @@ img { display: block; max-width: 100%; }
 }
 .divider-poem::before, .divider-poem::after {
   content: ''; flex: 1; height: 1px;
-  background-image: linear-gradient(90deg, transparent, var(--line-2) 30%, var(--line-2) 70%, transparent);
+  background: var(--line-2);
 }
 .divider-poem .dp-text { font-family: var(--font-serif); }
 
@@ -354,13 +345,7 @@ img { display: block; max-width: 100%; }
   overflow: hidden;
   transition: transform var(--dur) var(--ease-out), box-shadow var(--dur) var(--ease-out);
 }
-.lift-card:hover { transform: scale(1.005); box-shadow: var(--shadow-md); }
-.lift-card::after {
-  content: ''; position: absolute; inset: auto -30% -50% auto;
-  width: 160px; height: 160px; border-radius: 50%;
-  background: var(--brand-softer);
-  pointer-events: none;
-}
+.lift-card:hover { transform: scale(1.02); box-shadow: var(--shadow-md); }
 
 /* ===== Tab ===== */
 .el-tabs__item { font-weight: 500; font-family: var(--font-serif); letter-spacing: 0.04em; }
@@ -464,10 +449,7 @@ html.dark {
 }
 
 html.dark body {
-  background:
-    radial-gradient(900px 480px at 8% -6%, rgba(122, 158, 197, 0.08), transparent 60%),
-    radial-gradient(700px 400px at 95% 100%, rgba(166, 152, 188, 0.06), transparent 55%),
-    var(--page-bg);
+  background: var(--page-bg);
 }
 
 html.dark .el-card,
@@ -497,41 +479,6 @@ html.dark .el-table__body tr:hover > td {
   from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-@keyframes x-shimmer {
-  0%   { background-position: -120% 0; }
-  100% { background-position: 220% 0; }
-}
-@keyframes x-twinkle {
-  0%, 100% { opacity: 0.35; transform: scale(1); }
-  50%      { opacity: 1; transform: scale(1.15); }
-}
-@keyframes x-orbit {
-  0%   { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-@keyframes x-blink {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.4; }
-}
-@keyframes x-pulse-soft {
-  0%, 100% { box-shadow: 0 0 0 0 var(--brand-soft); }
-  50%      { box-shadow: 0 0 0 6px transparent; }
-}
-
-/* 错落婓现工具：使用 :nth-child 阶梯 */
-.x-stagger > * { animation: x-rise var(--dur-slow) var(--ease-out) backwards; }
-.x-stagger > *:nth-child(1)  { animation-delay: 0ms; }
-.x-stagger > *:nth-child(2)  { animation-delay: 60ms; }
-.x-stagger > *:nth-child(3)  { animation-delay: 120ms; }
-.x-stagger > *:nth-child(4)  { animation-delay: 180ms; }
-.x-stagger > *:nth-child(5)  { animation-delay: 240ms; }
-.x-stagger > *:nth-child(6)  { animation-delay: 300ms; }
-.x-stagger > *:nth-child(7)  { animation-delay: 360ms; }
-.x-stagger > *:nth-child(8)  { animation-delay: 420ms; }
-.x-stagger > *:nth-child(9)  { animation-delay: 480ms; }
-.x-stagger > *:nth-child(10) { animation-delay: 540ms; }
-.x-stagger > *:nth-child(n+11) { animation-delay: 600ms; }
-
 .x-fade { animation: x-fade-in var(--dur-slow) var(--ease-out) backwards; }
 .x-fade-soft { animation: x-fade-in-soft var(--dur-slow) var(--ease-out) backwards; }
 
@@ -606,13 +553,10 @@ html.dark .el-table__body tr:hover > td {
 .metric .m-delta .up { color: var(--success); }
 .metric .m-delta .down { color: var(--danger); }
 
-/* 纸面信笺感（背景纹理） */
+/* 纸面信笺感 */
 .paper {
   background-color: var(--surface);
-  background-image:
-    linear-gradient(180deg, transparent 0, transparent calc(100% - 1px), var(--line-soft) 100%),
-    radial-gradient(900px 360px at 50% -10%, rgba(184, 150, 146, 0.05), transparent 60%);
-  background-size: 100% 32px, auto;
+  background-size: 100% 32px;
 }
 
 /* 路由切换 */

@@ -174,7 +174,6 @@ onActivated(load)
   letter-spacing: 0.04em;
   transition: opacity var(--dur) var(--ease);
 }
-.action-link:active { opacity: 0.6; }
 .distance {
   font-size: 11.5px;
   color: var(--muted);

@@ -325,7 +325,6 @@ onMounted(() => {
   transition: background-color var(--dur) var(--ease-out);
 }
 .ben-row:last-child { border-bottom: none; }
-.ben-row:active { background: var(--surface-2); }
 .ben-icon {
   width: 32px; height: 32px;
   border-radius: 8px;
@@ -351,7 +350,6 @@ onMounted(() => {
   transition: opacity var(--dur) var(--ease-out);
 }
 .link-row:last-child { border-bottom: none; }
-.link-row:active { opacity: 0.6; }
 .lk-left { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--ink-2); font-family: var(--font-serif); letter-spacing: 0.04em; }
 .lk-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; }
 .lk-arrow { color: var(--muted-2); font-size: 16px; line-height: 1; font-family: var(--font-serif); }

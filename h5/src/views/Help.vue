@@ -152,7 +152,6 @@ function onlineChat() { window.location.href = 'mailto:xinghe@mail.lxxno.cn?subj
   letter-spacing: 0.02em;
   transition: color var(--dur) var(--ease);
 }
-.faq-q:active { opacity: 0.6; }
 .faq-num {
   display: inline-flex; align-items: center; justify-content: center;
   width: 24px; height: 18px;

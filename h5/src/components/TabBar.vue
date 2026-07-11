@@ -37,7 +37,7 @@ function go(p: string) { router.push(p) }
   position: fixed; left: 0; right: 0; bottom: 0;
   max-width: 480px;
   margin: 0 auto;
-  background: rgba(255, 255, 255, 0.96);
+  background: var(--surface);
   backdrop-filter: saturate(160%) blur(12px);
   -webkit-backdrop-filter: saturate(160%) blur(12px);
   border-top: 1px dashed var(--line-2);

@@ -6,8 +6,6 @@
     <!-- 用户卡 -->
     <div class="user-wrap">
       <div class="user-card" :class="`lv-${memberInfo?.level || 1}`">
-        <div class="card-decor decor-1"></div>
-        <div class="card-decor decor-2"></div>
         <div class="uc-content">
           <div class="uc-top">
             <div class="uc-avatar">{{ avatarText }}</div>
@@ -145,7 +143,7 @@ function toggleDark(val: boolean) {
   isDark.value = val
   document.documentElement.classList.toggle('dark', val)
   localStorage.setItem('theme', val ? 'dark' : 'light')
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', val ? '#16151a' : '#f4f4f1')
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', val ? '#16151a' : '#f4f5f7')
 }
 
 const slogans = [
@@ -294,20 +292,17 @@ onActivated(() => {
 .user-wrap { padding: 0 16px 12px; }
 .user-card {
   position: relative;
-  background: linear-gradient(135deg, #5a7d9f 0%, #4a6a87 100%);
+  background: #5a7d9f;
   color: #fff;
   border-radius: var(--r-lg);
   padding: 18px 20px 16px;
   overflow: hidden;
-  box-shadow: 0 6px 24px rgba(74, 106, 135, 0.18);
+  box-shadow: 0 4px 18px rgba(74, 106, 135, 0.14);
 }
-.user-card.lv-1 { background: linear-gradient(135deg, #6c7066 0%, #8a8e85 100%); }
-.user-card.lv-2 { background: linear-gradient(135deg, #5a7d9f 0%, #6f94b8 100%); }
-.user-card.lv-3 { background: linear-gradient(135deg, #4a6a87 0%, #5a7d9f 100%); }
-.user-card.lv-4 { background: linear-gradient(135deg, #3a5a76 0%, #4a6a87 100%); }
-.card-decor { position: absolute; border-radius: 50%; pointer-events: none; }
-.decor-1 { width: 200px; height: 200px; top: -80px; right: -60px; background: radial-gradient(circle, rgba(255, 255, 255, 0.12), transparent 60%); }
-.decor-2 { width: 120px; height: 120px; bottom: -40px; left: -30px; background: radial-gradient(circle, rgba(255, 255, 255, 0.06), transparent 60%); }
+.user-card.lv-1 { background: #8a8e85; }
+.user-card.lv-2 { background: #5a7d9f; }
+.user-card.lv-3 { background: #4a6a87; }
+.user-card.lv-4 { background: #3a5a76; }
 
 .uc-content { position: relative; z-index: 1; }
 .uc-top { display: flex; align-items: center; gap: 12px; }
@@ -362,9 +357,8 @@ onActivated(() => {
   padding: 14px 0;
   position: relative; z-index: 1;
 }
-.stat-cell { text-align: center; border-right: 1px solid var(--line); cursor: pointer; transition: opacity var(--dur) var(--ease); }
+.stat-cell { text-align: center; border-right: 1px solid var(--line); cursor: pointer; }
 .stat-cell:last-child { border-right: none; }
-.stat-cell:active { opacity: 0.6; }
 .stat-val { font-size: 17px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
 .stat-lbl { font-size: 11.5px; color: var(--muted); margin-top: 4px; letter-spacing: 0.08em; }
 
@@ -399,10 +393,8 @@ onActivated(() => {
   padding: 13px 0;
   border-bottom: 1px dashed var(--line);
   cursor: pointer;
-  transition: opacity var(--dur) var(--ease);
 }
 .menu-card .menu-row:last-child { border-bottom: none; }
-.menu-row:active { opacity: 0.6; }
 .m-icon {
   width: 30px; height: 30px;
   border-radius: 8px;
@@ -436,9 +428,7 @@ onActivated(() => {
   font-size: 13.5px;
   letter-spacing: 0.16em;
   cursor: pointer;
-  transition: all var(--dur) var(--ease);
 }
-.logout-btn:active { transform: scale(0.99); background: var(--surface-2); }
 .logout-btn .van-icon { font-size: 16px; }
 
 .version {

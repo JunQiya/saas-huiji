@@ -8,27 +8,27 @@
 
 :root {
   /* === 底色：暖灰白 + 冷调纸 === */
-  --page-bg: #f1efea;
-  --page-bg-warm: #f6f5f0;
-  --page-bg-cool: #ecedef;
-  --page-bg-paper: #f9f7f1;
+  --page-bg: #f4f5f7;
+  --page-bg-warm: #f6f7f9;
+  --page-bg-cool: #eceef1;
+  --page-bg-paper: #f8f9fb;
   --surface: #ffffff;
-  --surface-2: #faf9f5;
-  --surface-3: #f1eee6;
-  --surface-dim: #ece9e0;
+  --surface-2: #f7f8fa;
+  --surface-3: #eef0f3;
+  --surface-dim: #e8eaed;
 
   /* === 墨色：4 级 === */
-  --ink: #1f1d18;
-  --ink-2: #43403a;
-  --ink-3: #6a655c;
-  --muted: #8a8578;
-  --muted-2: #b3ad9f;
+  --ink: #1a1d23;
+  --ink-2: #3d4250;
+  --ink-3: #6b7280;
+  --muted: #9ca3af;
+  --muted-2: #c3c8d0;
 
   /* === 边框 === */
-  --line: rgba(70, 64, 56, 0.10);
-  --line-2: rgba(70, 64, 56, 0.18);
-  --line-strong: rgba(70, 64, 56, 0.30);
-  --line-soft: rgba(70, 64, 56, 0.05);
+  --line: rgba(30, 40, 60, 0.08);
+  --line-2: rgba(30, 40, 60, 0.14);
+  --line-strong: rgba(30, 40, 60, 0.24);
+  --line-soft: rgba(30, 40, 60, 0.04);
 
   /* === 主色：冷蓝 === */
   --brand: #5a7a9c;
@@ -39,16 +39,16 @@
   --brand-glow: rgba(90, 122, 156, 0.15);
 
   /* === 状态色（低饱和） === */
-  --success: #7a9a85;
-  --success-deep: #5a7a66;
+  --success: #6b9b7e;
+  --success-deep: #4a7a5e;
   --success-soft: rgba(122, 154, 133, 0.13);
-  --warning: #b89a5a;
-  --warning-deep: #957a3e;
+  --warning: #c09a5a;
+  --warning-deep: #9a7a3e;
   --warning-soft: rgba(184, 154, 90, 0.14);
-  --danger: #b87864;
-  --danger-deep: #955944;
+  --danger: #c0786a;
+  --danger-deep: #9a5948;
   --danger-soft: rgba(184, 120, 100, 0.13);
-  --info: #8a8578;
+  --info: #7a8a9a;
 
   /* === 装饰色 === */
   --accent-twilight: #8b7ea3;
@@ -70,23 +70,23 @@
   --font-num: 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
 
   /* === 阴影 === */
-  --shadow-xs: 0 1px 2px rgba(40, 38, 32, 0.04);
-  --shadow-sm: 0 1px 3px rgba(40, 38, 32, 0.05);
-  --shadow: 0 2px 8px rgba(40, 38, 32, 0.06);
-  --shadow-md: 0 4px 16px rgba(40, 38, 32, 0.08);
+  --shadow-xs: 0 1px 2px rgba(20, 30, 50, 0.04);
+  --shadow-sm: 0 1px 3px rgba(20, 30, 50, 0.05);
+  --shadow: 0 2px 8px rgba(20, 30, 50, 0.06);
+  --shadow-md: 0 4px 16px rgba(20, 30, 50, 0.08);
   --shadow-card: 0 2px 14px rgba(61, 89, 122, 0.08);
 
   /* === 圆角（紧凑） === */
-  --r-xs: 3px;
-  --r-sm: 5px;
-  --r: 7px;
-  --r-md: 9px;
-  --r-lg: 12px;
-  --r-xl: 16px;
-  --r-2xl: 20px;
+  --r-xs: 4px;
+  --r-sm: 6px;
+  --r: 10px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 20px;
+  --r-2xl: 24px;
 
   /* === 动效 === */
-  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --dur-fast: 0.15s;
   --dur: 0.2s;
@@ -118,9 +118,7 @@ body {
   max-width: 480px;
   margin: 0 auto;
   min-height: 100vh;
-  background:
-    radial-gradient(800px 460px at 50% -8%, rgba(138, 154, 163, 0.10), transparent 60%),
-    var(--page-bg);
+  background: var(--page-bg);
   position: relative;
   box-shadow: 0 0 32px rgba(31, 29, 24, 0.05);
   overflow: hidden;
@@ -160,7 +158,6 @@ img { display: block; max-width: 100%; }
 }
 .ui-card.hoverable:active {
   transform: scale(0.995);
-  box-shadow: var(--shadow);
 }
 
 /* ===== 页面容器 ===== */
@@ -180,12 +177,6 @@ img { display: block; max-width: 100%; }
   margin: 18px 0 10px; padding-left: 2px;
   display: flex; align-items: center; gap: 8px;
   letter-spacing: 0.06em;
-}
-.section-title::before {
-  content: '◇';
-  font-size: 8px; color: var(--brand);
-  flex-shrink: 0;
-  position: relative; top: -1px;
 }
 .section-title .st-tip { color: var(--muted); font-weight: 400; font-size: 11.5px; margin-left: auto; letter-spacing: 0.02em; }
 
@@ -239,7 +230,7 @@ img { display: block; max-width: 100%; }
 }
 .divider-poem::before, .divider-poem::after {
   content: ''; flex: 1; height: 1px;
-  background-image: linear-gradient(90deg, transparent, var(--line-2) 30%, var(--line-2) 70%, transparent);
+  background: var(--line-2);
 }
 .divider-poem .dp-text { font-family: var(--font-serif); }
 
@@ -356,9 +347,9 @@ img { display: block; max-width: 100%; }
   --van-tabbar-item-active-color: var(--brand-deep);
   --van-tabbar-item-text-color: var(--muted);
   --van-tabbar-item-active-background: transparent;
-  --van-tabbar-background: rgba(255, 255, 255, 0.96);
+  --van-tabbar-background: var(--surface);
   --van-tag-text-color: var(--ink-2);
-  --van-toast-background: rgba(31, 29, 24, 0.88);
+  --van-toast-background: rgba(26, 29, 35, 0.88);
   --van-dialog-background: var(--surface);
   --van-popup-background: var(--surface);
   --van-field-input-text-color: var(--ink);
@@ -469,8 +460,5 @@ html.dark {
 }
 
 html.dark body {
-  background:
-    radial-gradient(900px 480px at 8% -6%, rgba(122, 158, 197, 0.08), transparent 60%),
-    radial-gradient(700px 400px at 95% 100%, rgba(166, 152, 188, 0.06), transparent 55%),
-    var(--page-bg);
+  background: var(--page-bg);
 }

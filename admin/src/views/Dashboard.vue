@@ -12,29 +12,6 @@
         </div>
         <div class="hero-slogan">{{ slogan }}</div>
       </div>
-      <div class="hero-right">
-        <div class="hero-constellation" aria-hidden="true">
-          <svg viewBox="0 0 80 80" width="80" height="80">
-            <circle cx="14" cy="20" r="0.8" fill="var(--brand-ink)" opacity="0.35" />
-            <circle cx="48" cy="14" r="0.7" fill="var(--brand-ink)" opacity="0.30" />
-            <circle cx="66" cy="36" r="0.9" fill="var(--brand-ink)" opacity="0.40" />
-            <circle cx="56" cy="62" r="0.8" fill="var(--brand-ink)" opacity="0.35" />
-            <circle cx="20" cy="56" r="0.7" fill="var(--brand-ink)" opacity="0.30" />
-            <g stroke="var(--brand-ink)" stroke-width="0.5" fill="none" opacity="0.45">
-              <line x1="14" y1="20" x2="34" y2="34" />
-              <line x1="34" y1="34" x2="48" y2="14" />
-              <line x1="34" y1="34" x2="66" y2="36" />
-              <line x1="34" y1="34" x2="56" y2="62" />
-              <line x1="34" y1="34" x2="20" y2="56" />
-            </g>
-            <circle cx="34" cy="34" r="2" fill="var(--brand-deep)" />
-            <circle cx="14" cy="20" r="1.4" fill="var(--brand-deep)" />
-            <circle cx="48" cy="14" r="1.4" fill="var(--brand-deep)" />
-            <circle cx="66" cy="36" r="1.4" fill="var(--brand-deep)" />
-            <circle cx="56" cy="62" r="1.2" fill="var(--brand-deep)" opacity="0.7" />
-          </svg>
-        </div>
-      </div>
     </div>
 
     <!-- 4 个核心指标 -->
@@ -111,7 +88,7 @@
           </div>
           <div v-if="!activity.length" class="empty-state">
             <div class="empty-text">暂无新动态</div>
-            <div class="empty-tip">— 安静也是一种美好 —</div>
+            <div class="empty-tip">最近没有会员活动</div>
           </div>
         </div>
       </div>
@@ -135,7 +112,7 @@
           </div>
           <div v-if="!hotProducts.length" class="empty-state">
             <div class="empty-text">本月还没有销售记录</div>
-            <div class="empty-tip">— 慢慢来，第一个订单尤其值得记住 —</div>
+            <div class="empty-tip">等待第一笔订单产生</div>
           </div>
         </div>
       </div>
@@ -160,7 +137,7 @@
       </div>
     </div>
 
-    <div class="footnote">星河滚烫 不如经营里的一次回访</div>
+    <div class="footnote">星河·会记 经营面板</div>
   </div>
 </template>
 
@@ -202,12 +179,9 @@ const hour = new Date().getHours()
 const greeting = hour < 6 ? '夜深了' : hour < 11 ? '早安' : hour < 14 ? '午安' : hour < 18 ? '下午好' : '晚上好'
 
 const slogans = [
-  '把今天的到店，妥帖安放',
-  '把数字读成故事',
-  '星河很远，到店很近',
-  '用心服务，会被记得',
-  '好生意，从一份会员名单开始',
-  '慢慢来，是最好的节奏'
+  '今日经营概览',
+  '数据更新于刚才',
+  '关门店客，从了解开始'
 ]
 const slogan = slogans[Math.floor(Math.random() * slogans.length)]
 
@@ -286,7 +260,7 @@ async function load() {
     if (kpi.value.todayOrders > 0) {
       todos.value.push({ title: '统计今日热销并复盘', sub: `当前已成交 ${kpi.value.todayOrders} 笔`, tone: 'primary' })
     } else {
-      todos.value.push({ title: '今天还没有到店', sub: '一束好的开场，从问候开始', tone: 'muted' })
+      todos.value.push({ title: '今天还没有到店', sub: '可以主动联系老会员', tone: 'muted' })
     }
   } catch (e) {
     drawTrend([]); drawPie([]); drawHour([])
@@ -376,15 +350,37 @@ function formatTime(s: any) {
   return `${d.getMonth() + 1}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
+function cssVar(name: string): string {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+}
+function chartColors() {
+  return {
+    ink2: cssVar('--ink-2') || '#3d4250',
+    ink3: cssVar('--ink-3') || '#6b7280',
+    muted: cssVar('--muted') || '#9ca3af',
+    line: cssVar('--line') || 'rgba(30,40,60,0.08)',
+    line2: cssVar('--line-2') || 'rgba(30,40,60,0.14)',
+    lineSoft: cssVar('--line-soft') || 'rgba(30,40,60,0.04)',
+    lineStrong: cssVar('--line-strong') || 'rgba(30,40,60,0.24)',
+    surface: cssVar('--surface') || '#fff',
+    brand: cssVar('--brand') || '#5a7a9c',
+    twilight: cssVar('--accent-twilight') || '#8b7ea3',
+    rose: cssVar('--accent-rose') || '#b89692',
+    clay: cssVar('--accent-clay') || '#b8845c',
+    sage: cssVar('--accent-sage') || '#94a89a',
+  }
+}
+
 function drawTrend(data: any[]) {
   if (!trendEl.value) return
   echarts.getInstanceByDom(trendEl.value)?.dispose()
   const chart = echarts.init(trendEl.value)
+  const c = chartColors()
   chart.setOption({
     grid: { left: 50, right: 24, top: 18, bottom: 28 },
     tooltip: {
       trigger: 'axis',
-      backgroundColor: 'rgba(31, 29, 24, 0.92)',
+      backgroundColor: 'rgba(26, 29, 35, 0.92)',
       borderWidth: 0,
       textStyle: { color: '#fff', fontFamily: 'PingFang SC, serif', fontSize: 12 },
       padding: [8, 12]
@@ -392,16 +388,16 @@ function drawTrend(data: any[]) {
     xAxis: {
       type: 'category',
       data: data.map(d => d.date?.slice(5) || ''),
-      axisLine: { lineStyle: { color: 'rgba(70, 64, 56, 0.18)' } },
+      axisLine: { lineStyle: { color: c.line2 } },
       axisTick: { show: false },
-      axisLabel: { color: '#8a8578', fontSize: 11, fontFamily: 'serif' }
+      axisLabel: { color: c.ink3, fontSize: 11, fontFamily: 'serif' }
     },
     yAxis: [
       {
         type: 'value',
         axisLine: { show: false }, axisTick: { show: false },
-        splitLine: { lineStyle: { color: 'rgba(70, 64, 56, 0.06)', type: 'dashed' } },
-        axisLabel: { color: '#8a8578', fontSize: 11, fontFamily: 'monospace' }
+        splitLine: { lineStyle: { color: c.lineSoft, type: 'dashed' } },
+        axisLabel: { color: c.ink3, fontSize: 11, fontFamily: 'monospace' }
       }
     ],
     series: [
@@ -412,17 +408,8 @@ function drawTrend(data: any[]) {
         data: data.map(d => (d.amount || 0) / 100),
         symbol: 'circle',
         symbolSize: 5,
-        lineStyle: { color: '#5a7a9c', width: 2 },
-        itemStyle: { color: '#5a7a9c' },
-        areaStyle: {
-          color: {
-            type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [
-              { offset: 0, color: 'rgba(90, 122, 156, 0.16)' },
-              { offset: 1, color: 'rgba(90, 122, 156, 0.02)' }
-            ]
-          }
-        }
+        lineStyle: { color: c.brand, width: 2 },
+        itemStyle: { color: c.brand }
       },
       {
         type: 'line',
@@ -431,13 +418,13 @@ function drawTrend(data: any[]) {
         data: data.map(d => d.orders || 0),
         symbol: 'circle',
         symbolSize: 4,
-        lineStyle: { color: '#b89692', width: 1.6 },
-        itemStyle: { color: '#b89692' }
+        lineStyle: { color: c.rose, width: 1.6 },
+        itemStyle: { color: c.rose }
       }
     ],
     legend: {
       right: 0, top: 0,
-      textStyle: { color: '#6a655c', fontSize: 11, fontFamily: 'serif' }
+      textStyle: { color: c.ink3, fontSize: 11, fontFamily: 'serif' }
     }
   })
 }
@@ -446,19 +433,20 @@ function drawPie(data: any[]) {
   if (!pieEl.value) return
   echarts.getInstanceByDom(pieEl.value)?.dispose()
   const chart = echarts.init(pieEl.value)
+  const c = chartColors()
   chart.setOption({
-    tooltip: { trigger: 'item', backgroundColor: 'rgba(31, 29, 24, 0.92)', borderWidth: 0, textStyle: { color: '#fff' } },
-    legend: { bottom: 0, textStyle: { color: '#6a655c', fontSize: 11, fontFamily: 'serif' } },
+    tooltip: { trigger: 'item', backgroundColor: 'rgba(26, 29, 35, 0.92)', borderWidth: 0, textStyle: { color: '#fff' } },
+    legend: { bottom: 0, textStyle: { color: c.ink3, fontSize: 11, fontFamily: 'serif' } },
     series: [{
       type: 'pie',
       radius: ['50%', '78%'],
       center: ['50%', '46%'],
       avoidLabelOverlap: true,
-      itemStyle: { borderColor: '#fff', borderWidth: 2, borderRadius: 4 },
-      label: { show: true, formatter: '{b}\n{d}%', fontFamily: 'serif', color: '#43403a', fontSize: 11 },
-      labelLine: { length: 8, length2: 8, lineStyle: { color: 'rgba(70, 64, 56, 0.30)' } },
+      itemStyle: { borderColor: c.surface, borderWidth: 2, borderRadius: 4 },
+      label: { show: true, formatter: '{b}\n{d}%', fontFamily: 'serif', color: c.ink2, fontSize: 11 },
+      labelLine: { length: 8, length2: 8, lineStyle: { color: c.lineStrong } },
       data: data.map(d => ({ name: d.name, value: d.value })),
-      color: ['#5a7a9c', '#8b7ea3', '#b89692', '#b8845c', '#94a89a']
+      color: [c.brand, c.twilight, c.rose, c.clay, c.sage]
     }]
   })
 }
@@ -467,6 +455,7 @@ function drawHour(data: any[]) {
   if (!hourEl.value) return
   echarts.getInstanceByDom(hourEl.value)?.dispose()
   const chart = echarts.init(hourEl.value)
+  const c = chartColors()
   // 只展示 8-22 营业时段
   const filtered = (data || []).filter((d: any) => d.hour >= 8 && d.hour <= 22)
   const labels = filtered.map((d: any) => `${d.hour}:00`)
@@ -475,7 +464,7 @@ function drawHour(data: any[]) {
     grid: { left: 36, right: 18, top: 14, bottom: 26 },
     tooltip: {
       trigger: 'axis',
-      backgroundColor: 'rgba(31, 29, 24, 0.92)',
+      backgroundColor: 'rgba(26, 29, 35, 0.92)',
       borderWidth: 0,
       textStyle: { color: '#fff', fontSize: 12 },
       padding: [6, 10]
@@ -483,31 +472,22 @@ function drawHour(data: any[]) {
     xAxis: {
       type: 'category',
       data: labels,
-      axisLine: { lineStyle: { color: 'rgba(70, 64, 56, 0.18)' } },
+      axisLine: { lineStyle: { color: c.line2 } },
       axisTick: { show: false },
-      axisLabel: { color: '#8a8578', fontSize: 10, fontFamily: 'monospace' }
+      axisLabel: { color: c.ink3, fontSize: 10, fontFamily: 'monospace' }
     },
     yAxis: {
       type: 'value',
       axisLine: { show: false }, axisTick: { show: false },
-      splitLine: { lineStyle: { color: 'rgba(70, 64, 56, 0.06)', type: 'dashed' } },
-      axisLabel: { color: '#8a8578', fontSize: 10, fontFamily: 'monospace' }
+      splitLine: { lineStyle: { color: c.lineSoft, type: 'dashed' } },
+      axisLabel: { color: c.ink3, fontSize: 10, fontFamily: 'monospace' }
     },
     series: [{
       type: 'bar',
       data: values,
       barWidth: 12,
-      itemStyle: {
-        color: {
-          type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-          colorStops: [
-            { offset: 0, color: '#5a7a9c' },
-            { offset: 1, color: '#8b7ea3' }
-          ]
-        },
-        borderRadius: [3, 3, 0, 0]
-      },
-      emphasis: { itemStyle: { color: '#5a7a9c' } }
+      itemStyle: { color: c.brand, borderRadius: [3, 3, 0, 0] },
+      emphasis: { itemStyle: { color: c.twilight } }
     }]
   })
 }
@@ -551,7 +531,6 @@ onMounted(load)
   content: ''; position: absolute; left: 0; top: 4px; bottom: 4px;
   width: 1px; background: var(--brand);
 }
-.hero-constellation { animation: x-fade-in 0.6s var(--ease-out) 0.2s both; }
 
 /* KPI */
 .kpi-row {
@@ -618,9 +597,9 @@ onMounted(load)
   flex-shrink: 0;
   background: var(--brand);
 }
-.act-dot.tone-brand { background: #5a7a9c; }
-.act-dot.tone-twilight { background: #8b7ea3; }
-.act-dot.tone-rose { background: #b89692; }
+.act-dot.tone-brand { background: var(--brand); }
+.act-dot.tone-twilight { background: var(--accent-twilight); }
+.act-dot.tone-rose { background: var(--accent-rose); }
 .act-title {
   font-family: var(--font-serif);
   font-size: 13px; color: var(--ink);

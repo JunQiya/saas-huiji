@@ -68,7 +68,6 @@ function onBack() { if (window.history.length > 1) router.back(); else router.pu
   cursor: pointer;
 }
 .nav-icon:hover { background: var(--surface-2); }
-.nav-icon:active { background: var(--surface-3); }
 .nav-title {
   flex: 1; text-align: center;
   display: flex; flex-direction: column; gap: 0;
