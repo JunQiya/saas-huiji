@@ -254,6 +254,18 @@ export const diningApi = {
     request.post<any, any>('/dining/kitchen-orders/{id}/status', { status })
 }
 
+// ============ 赢奖小游戏 ============
+export const gameApi = {
+  list: (params?: any) => request.get<any, any[]>('/games', { params }),
+  detail: (id: number) => request.get<any, any>(`/games/${id}`),
+  save: (data: any) => request.post<any, any>('/games', data),
+  remove: (id: number) => request.delete<any, null>(`/games/${id}`),
+  prizes: (gameId: number) => request.get<any, any[]>(`/games/${gameId}/prizes`),
+  savePrize: (gameId: number, data: any) => request.post<any, any>(`/games/${gameId}/prizes`, data),
+  removePrize: (prizeId: number) => request.delete<any, null>(`/games/prizes/${prizeId}`),
+  stats: (gameId: number) => request.get<any, any>(`/games/${gameId}/stats`)
+}
+
 // ============ 线上商城 ============
 export const mallApi = {
   categories: () => request.get<any, any[]>('/mall/categories'),

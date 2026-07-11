@@ -161,6 +161,7 @@ const menuGroups = [
     items: [
       { path: '/coupons', title: '优惠券', icon: 'Ticket' },
       { path: '/campaigns', title: '营销活动', icon: 'Promotion' },
+      { path: '/games', title: '赢奖小游戏', icon: 'Trophy' },
       { path: '/marketing-calendar', title: '营销日历', icon: 'Calendar' }
     ]
   },
@@ -191,6 +192,7 @@ const crumbs = computed(() => {
     '/wallet': '储值流水',
     '/coupons': '优惠券',
     '/campaigns': '营销活动',
+    '/games': '赢奖小游戏',
     '/pos': '收银台',
     '/products': '商品服务',
     '/orders': '订单流水',

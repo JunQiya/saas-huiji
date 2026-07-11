@@ -127,7 +127,7 @@ public class WxMpConfigService {
             payConfig.setKeyPath(account.getCertPath());
         }
         WxPayServiceImpl payService = new WxPayServiceImpl();
-        payService.setWxPayConfig(payConfig);
+        payService.setConfig(payConfig);
 
         payServiceCache.put(tenantId, payService);
         payMchIdCache.put(tenantId, mchId);
@@ -221,7 +221,7 @@ public class WxMpConfigService {
             }
         }
         try {
-            mpService.getTemplateMsgService().sendTemplateMessage(message);
+            mpService.getTemplateMsgService().sendTemplateMsg(message);
         } catch (Exception e) {
             throw new RuntimeException("发送模板消息失败: " + e.getMessage(), e);
         }

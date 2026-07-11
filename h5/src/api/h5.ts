@@ -243,6 +243,18 @@ export const diningApi = {
   myOrders: () => request.get<any[]>('/api/h5/dining/my-orders')
 }
 
+// ============ 赢奖小游戏 ============
+export const gameApi = {
+  // 可玩游戏列表（公开）
+  list: () => request.get<any[]>('/api/h5/games'),
+  // 游戏详情（含奖品列表，公开）
+  detail: (id: number | string) => request.get<any>(`/api/h5/games/${id}`),
+  // 玩游戏（需 member token），返回中奖结果
+  play: (id: number | string) => request.post<any>(`/api/h5/games/${id}/play`),
+  // 我的游戏记录（需 member token）
+  myPlays: (id: number | string) => request.get<any[]>(`/api/h5/games/${id}/my-plays`)
+}
+
 // ============ 线上商城 ============
 export const mallApi = {
   // 商城分类（公开）

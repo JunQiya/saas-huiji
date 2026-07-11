@@ -64,4 +64,15 @@ public class Product extends BaseEntity {
     @Convert(converter = LongListConverter.class)
     @Column(name = "store_ids")
     private List<Long> storeIds = new ArrayList<>();
+
+    @Column(name = "menu_category_id")
+    private Long menuCategoryId;
+
+    /** 商城分类 ID */
+    @Column(name = "mall_category_id")
+    private Long mallCategoryId;
+
+    /** 是否在商城展示 */
+    @Column(name = "mall_visible")
+    private Boolean mallVisible = false;
 }

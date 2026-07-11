@@ -42,4 +42,30 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     /** 套餐配额统计 */
     long countByTenantIdAndDeletedFalse(Long tenantId);
+
+    /** 按菜单分类查上架商品 */
+    List<Product> findByTenantIdAndMenuCategoryIdAndStatusAndDeletedFalseOrderByIdAsc(
+            Long tenantId, Long menuCategoryId, String status);
+
+    /** 按 ID 批量查商品(绑定分类用) */
+    List<Product> findByIdInAndTenantIdAndDeletedFalse(List<Long> ids, Long tenantId);
+
+    /** 商城分类下上架商品 */
+    List<Product> findByTenantIdAndMallCategoryIdAndMallVisibleTrueAndDeletedFalseOrderByIdAsc(
+            Long tenantId, Long mallCategoryId);
+
+    /** 商城所有上架商品 */
+    List<Product> findByTenantIdAndMallVisibleTrueAndDeletedFalseOrderByIdDesc(Long tenantId);
+
+    /** 商城商品搜索(关键字+分类, 分页) */
+    @Query("select p from Product p where p.tenantId = :tenantId and p.deleted = false " +
+            "and p.mallVisible = true and p.status = 'ACTIVE' " +
+            "and (:categoryId is null or p.mallCategoryId = :categoryId) " +
+            "and (:keyword is null or :keyword = '' or lower(p.name) like lower(concat('%', :keyword, '%')) " +
+            "    or lower(coalesce(p.description, '')) like lower(concat('%', :keyword, '%'))) " +
+            "order by p.id desc")
+    Page<Product> searchMall(@Param("tenantId") Long tenantId,
+                             @Param("categoryId") Long categoryId,
+                             @Param("keyword") String keyword,
+                             Pageable pageable);
 }

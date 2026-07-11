@@ -145,6 +145,7 @@ const quote = quotes[Math.floor(Math.random() * quotes.length)]
 const grids = [
   { label: '我的券', path: '/my-coupons', icon: 'coupon-o', tone: 'brand' },
   { label: '领券中心', path: '/coupon-center', icon: 'gift-card-o', tone: 'rose' },
+  { label: '赢奖游戏', path: '/games', icon: 'point-gift-o', tone: 'twilight' },
   { label: '消费记录', path: '/transactions', icon: 'balance-list-o', tone: 'mist' },
   { label: '附近门店', path: '/stores', icon: 'shop-o', tone: 'clay' },
   { label: '我的订单', path: '/my-orders', icon: 'orders-o', tone: 'twilight' },

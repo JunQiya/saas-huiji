@@ -96,11 +96,12 @@ public class WeChatController {
             }
 
             // 查/建会员
-            String openid = userInfo.getOpenid();
+            final String openid = userInfo.getOpenid();
+            final Long tid = tenantId;
             Member member = memberRepository.findByWxOpenidAndTenantIdAndDeletedFalse(openid, tenantId)
                     .orElseGet(() -> {
                         Member m = new Member();
-                        m.setTenantId(tenantId);
+                        m.setTenantId(tid);
                         m.setWxOpenid(openid);
                         m.setPhone("");
                         m.setName(userInfo.getNickname() != null ? userInfo.getNickname() : "微信用户");

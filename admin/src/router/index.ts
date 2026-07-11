@@ -88,6 +88,12 @@ export const routes: RouteRecordRaw[] = [
         meta: { title: '营销活动', icon: 'Promotion', group: '营销中心' }
       },
       {
+        path: 'games',
+        name: 'Games',
+        component: () => import('@/views/Games.vue'),
+        meta: { title: '赢奖小游戏', icon: 'Trophy', group: '营销中心' }
+      },
+      {
         path: 'stores',
         name: 'Stores',
         component: () => import('@/views/Stores.vue'),

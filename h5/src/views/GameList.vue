@@ -1,0 +1,131 @@
+<template>
+  <div class="page game-list">
+    <NavBar title="赢奖小游戏" back />
+    <div class="page-padding">
+      <div class="page-tip">把好运，轻轻递到手里。</div>
+
+      <div v-if="loading" class="loading"><van-loading color="#5a7a9c" /></div>
+      <EmptyState v-else-if="!list.length" title="暂无可玩的游戏" sub="更多惊喜正在路上" art="star" />
+
+      <div v-else class="game-cards x-stagger">
+        <div
+          v-for="g in list"
+          :key="g.id"
+          class="game-card ui-card"
+          :class="`type-${g.type}`"
+          @click="enter(g)"
+        >
+          <div class="gc-cover">
+            <img v-if="g.coverImage" :src="g.coverImage" :alt="g.name" />
+            <van-icon v-else :name="typeIcon(g.type)" size="36" />
+          </div>
+          <div class="gc-body">
+            <div class="gc-name">{{ g.name }}</div>
+            <div class="gc-sub" v-if="g.subtitle">{{ g.subtitle }}</div>
+            <div class="gc-meta">
+              <span class="chip brand">{{ typeText(g.type) }}</span>
+              <span class="gc-cost" v-if="g.pointsCost > 0">{{ g.pointsCost }} 积分/次</span>
+              <span class="gc-cost" v-else>免费</span>
+            </div>
+          </div>
+          <div class="gc-arrow">›</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { gameApi } from '@/api/h5'
+import NavBar from '@/components/NavBar.vue'
+import EmptyState from '@/components/EmptyState.vue'
+
+const router = useRouter()
+const loading = ref(false)
+const list = ref<any[]>([])
+
+// 游戏类型文案
+function typeText(t: string) {
+  return ({ WHEEL: '大转盘', SCRATCH: '刮刮乐', EGG: '砸金蛋', SHAKE: '摇一摇' } as any)[t] || '游戏'
+}
+// 游戏类型图标
+function typeIcon(t: string) {
+  return ({ WHEEL: 'point-gift-o', SCRATCH: 'gold-coin-o', EGG: 'gift-o', SHAKE: 'shake-o' } as any)[t] || 'gift-o'
+}
+
+// 根据游戏类型跳转对应页面
+function enter(g: any) {
+  const pathMap: Record<string, string> = {
+    WHEEL: `/games/wheel/${g.id}`,
+    SCRATCH: `/games/scratch/${g.id}`,
+    EGG: `/games/egg/${g.id}`,
+    SHAKE: `/games/shake/${g.id}`
+  }
+  router.push(pathMap[g.type] || `/games/wheel/${g.id}`)
+}
+
+async function load() {
+  loading.value = true
+  try { list.value = (await gameApi.list()) || [] } catch {/* */}
+  finally { loading.value = false }
+}
+
+onMounted(load)
+</script>
+
+<style scoped>
+.game-list { padding-bottom: 24px; }
+.page-tip {
+  font-family: var(--font-serif);
+  font-size: 12.5px; color: var(--muted);
+  letter-spacing: 0.06em; margin-bottom: 14px;
+}
+.loading { padding: 60px 0; text-align: center; }
+
+.game-cards { display: flex; flex-direction: column; gap: 12px; }
+.game-card {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px;
+  cursor: pointer;
+  transition: transform var(--dur) var(--ease-out);
+}
+.game-card:active { transform: scale(0.99); }
+.gc-cover {
+  width: 64px; height: 64px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  color: #fff;
+}
+.game-card.type-WHEEL .gc-cover { background: #5a7d9f; }
+.game-card.type-SCRATCH .gc-cover { background: #a88366; }
+.game-card.type-EGG .gc-cover { background: #a89466; }
+.game-card.type-SHAKE .gc-cover { background: #8b7ea3; }
+.gc-cover img { width: 100%; height: 100%; object-fit: cover; }
+.gc-body { flex: 1; min-width: 0; }
+.gc-name {
+  font-family: var(--font-serif);
+  font-size: 15.5px; font-weight: 500; color: var(--ink);
+  letter-spacing: 0.04em;
+}
+.gc-sub {
+  font-size: 12px; color: var(--muted);
+  margin-top: 3px; letter-spacing: 0.02em;
+}
+.gc-meta {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 8px;
+}
+.gc-cost {
+  font-size: 11.5px; color: var(--ink-3);
+  font-family: var(--font-num);
+}
+.gc-arrow {
+  color: var(--muted-2); font-size: 18px;
+  font-family: var(--font-serif);
+  flex-shrink: 0;
+}
+</style>

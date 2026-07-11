@@ -126,6 +126,36 @@ const routes: RouteRecordRaw[] = [
     name: 'Dining',
     component: () => import('@/views/Dining.vue'),
     meta: { title: '扫码点餐', public: true }
+  },
+  {
+    path: '/games',
+    name: 'GameList',
+    component: () => import('@/views/GameList.vue'),
+    meta: { title: '赢奖小游戏', public: true }
+  },
+  {
+    path: '/games/wheel/:id',
+    name: 'GameWheel',
+    component: () => import('@/views/GameWheel.vue'),
+    meta: { title: '大转盘' }
+  },
+  {
+    path: '/games/scratch/:id',
+    name: 'GameScratch',
+    component: () => import('@/views/GameScratch.vue'),
+    meta: { title: '刮刮乐' }
+  },
+  {
+    path: '/games/egg/:id',
+    name: 'GameEgg',
+    component: () => import('@/views/GameEgg.vue'),
+    meta: { title: '砸金蛋' }
+  },
+  {
+    path: '/games/shake/:id',
+    name: 'GameShake',
+    component: () => import('@/views/GameShake.vue'),
+    meta: { title: '摇一摇' }
   }
 ]
 
