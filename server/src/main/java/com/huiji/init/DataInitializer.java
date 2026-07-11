@@ -39,6 +39,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import jakarta.persistence.EntityManager;
 
@@ -76,6 +77,7 @@ public class DataInitializer {
     private final SettingsService settingsService;
     private final PasswordEncoder passwordEncoder;
     private final EntityManager entityManager;
+    private final TransactionTemplate transactionTemplate;
 
     @Value("${huiji.init-data:false}")
     private boolean initData;
@@ -84,19 +86,25 @@ public class DataInitializer {
     public ApplicationRunner versionFixRunner() {
         return args -> {
             // 修复 @Version 字段添加后已有数据的 version=null 问题
-            String[] tables = {"tenant", "tenant_setting", "user", "member", "member_tag", "store",
-                    "product", "coupon", "coupon_record", "campaign", "order", "order_item",
-                    "wallet_transaction", "dining_table", "menu_category", "kitchen_order",
-                    "mall_category", "cart", "order_extend", "game", "game_prize", "game_play",
-                    "wx_account", "agent", "referral", "message", "audit_log", "report_task"};
-            for (String table : tables) {
-                try {
-                    entityManager.createNativeQuery(
-                            "UPDATE `" + table + "` SET `version` = 0 WHERE `version` IS NULL")
-                            .executeUpdate();
-                } catch (Exception ignored) { }
-            }
-            log.info("version 字段修复完成");
+            String[] tables = {"tenant", "tenant_setting", "app_user", "member", "member_tag", "store",
+                    "product", "coupon", "coupon_record", "campaign", "campaign_log",
+                    "sales_order", "sales_order_item", "wallet_transaction", "dining_table",
+                    "menu_category", "kitchen_order", "mall_category", "cart", "order_extend",
+                    "game", "game_prize", "game_play", "wx_account", "agent", "referral",
+                    "message_task", "login_log", "audit_log", "report_task"};
+            transactionTemplate.execute(status -> {
+                int total = 0;
+                for (String table : tables) {
+                    try {
+                        int n = entityManager.createNativeQuery(
+                                "UPDATE `" + table + "` SET `version` = 0 WHERE `version` IS NULL")
+                                .executeUpdate();
+                        total += n;
+                    } catch (Exception ignored) { }
+                }
+                log.info("version 字段修复完成, 共更新 {} 条记录", total);
+                return null;
+            });
         };
     }
 

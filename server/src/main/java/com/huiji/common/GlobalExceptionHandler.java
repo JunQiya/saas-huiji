@@ -7,8 +7,10 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -70,6 +72,22 @@ public class GlobalExceptionHandler {
         resp.setStatus(HttpStatus.NOT_FOUND.value());
         log.debug("资源未找到: {}", e.getMessage());
         return Result.fail(ErrorCode.NOT_FOUND, "接口不存在");
+    }
+
+    /** 400: 路径变量类型不匹配(如 /{id} 收到非数字) */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public Result<Void> handleTypeMismatch(MethodArgumentTypeMismatchException e, HttpServletResponse resp) {
+        resp.setStatus(HttpStatus.BAD_REQUEST.value());
+        log.warn("参数类型不匹配: {}", e.getMessage());
+        return Result.fail(ErrorCode.VALIDATION, "参数格式错误: " + e.getName());
+    }
+
+    /** 400: 缺少必需的请求参数 */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public Result<Void> handleMissingParam(MissingServletRequestParameterException e, HttpServletResponse resp) {
+        resp.setStatus(HttpStatus.BAD_REQUEST.value());
+        log.warn("缺少请求参数: {}", e.getParameterName());
+        return Result.fail(ErrorCode.VALIDATION, "缺少必需参数: " + e.getParameterName());
     }
 
     /** 兜底 500 */
