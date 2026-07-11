@@ -124,7 +124,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  ArrowDown, Expand, Fold, Moon, SwitchButton, Shop, Setting
+  ArrowDown, Expand, Fold, Moon, SwitchButton, Shop, Setting, QuestionFilled
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { settingsPlanApi, storesApi } from '@/api'
@@ -256,6 +256,14 @@ async function onUserCmd(cmd: string) {
       router.replace('/login')
     } catch {}
   }
+}
+
+function onHelp() {
+  ElMessageBox.alert(
+    '使用要点：\n\n1. 收银台：会员手机号可快速核销券、扣储值\n2. 会员管理：支持等级筛选、批量导出、详情 RFM 分析\n3. 优惠券：可批量导入 / 导出 CSV\n4. 报表中心：实时图表 + 报表下载\n5. 订单/储值：均支持导出 CSV\n\n需要更多帮助？联系客服 xinghe@mail.lxxno.cn',
+    '使用说明 · 星河·会记',
+    { confirmButtonText: '知道了', dangerouslyUseHTMLString: false, customClass: 'help-dialog' }
+  ).catch(() => {})
 }
 
 // 版本号

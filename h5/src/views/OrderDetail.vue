@@ -83,9 +83,36 @@
         <button class="action-btn primary" @click="onContact">
           <van-icon name="service-o" size="14" /> 联系门店
         </button>
+        <button class="action-btn" @click="onPrint">
+          <van-icon name="printer-o" size="14" /> 打印小票
+        </button>
         <button class="action-btn" @click="onCopy">
           <van-icon name="orders-o" size="14" /> 复制单号
         </button>
+      </div>
+    </div>
+
+    <!-- 打印专用区（屏幕隐藏） -->
+    <div class="print-receipt">
+      <div v-if="order" class="pr-block">
+        <div class="pr-brand">星河·会记</div>
+        <div class="pr-store">{{ order.storeName || order.storeId || '门店' }}</div>
+        <div class="pr-sep">- - - - - - - - - - - - -</div>
+        <div class="pr-meta">订单号：{{ order.orderNo }}</div>
+        <div class="pr-meta">时间：{{ fmt(order.createdAt) }}</div>
+        <div v-if="order.memberName" class="pr-meta">会员：{{ order.memberName }}</div>
+        <div class="pr-sep">- - - - - - - - - - - - -</div>
+        <div v-for="it in (order.items || [])" :key="it.id" class="pr-item">
+          <div>{{ it.productName }}</div>
+          <div class="pr-item-sub">x{{ it.quantity }}     ¥{{ yuan(it.subtotal) }}</div>
+        </div>
+        <div class="pr-sep">- - - - - - - - - - - - -</div>
+        <div class="pr-row"><span>商品总额</span><span>¥{{ yuan(order.totalAmount) }}</span></div>
+        <div v-if="order.discountAmount" class="pr-row"><span>优惠</span><span>-¥{{ yuan(order.discountAmount) }}</span></div>
+        <div class="pr-row pr-total"><span>实付</span><span>¥{{ yuan(order.paidAmount) }}</span></div>
+        <div class="pr-meta">支付：{{ payLabel(order.payMethod) }}</div>
+        <div class="pr-thanks">— 谢谢惠顾 —</div>
+        <div class="pr-foot">— 星河·会记 夜读手记 —</div>
       </div>
     </div>
 
@@ -148,6 +175,10 @@ async function load() {
 }
 
 function onContact() { showToast('门店热线：详见门店页') }
+function onPrint() {
+  // 唤起系统打印；只保留 print-receipt 区
+  setTimeout(() => window.print(), 60)
+}
 function onCopy() {
   if (!order.value?.orderNo) return
   if (navigator.clipboard) {
@@ -298,4 +329,24 @@ onMounted(load)
   border-color: transparent;
 }
 .action-btn.primary:active { background: #2e4863; }
+
+/* 打印专用区（屏幕隐藏） */
+.print-receipt { display: none; }
+@media print {
+  @page { margin: 0; size: 80mm auto; }
+  body, html, #app { background: #fff !important; }
+  .order-detail > *:not(.print-receipt) { display: none !important; }
+  .print-receipt { display: block; padding: 8mm 4mm; font-family: 'Courier New', monospace; color: #000; }
+  .pr-block { font-size: 11pt; line-height: 1.55; }
+  .pr-brand { text-align: center; font-size: 14pt; font-weight: 700; letter-spacing: 4px; }
+  .pr-store { text-align: center; font-size: 10pt; color: #555; margin: 4px 0 10px; }
+  .pr-sep { text-align: center; color: #999; margin: 6px 0; font-size: 9pt; }
+  .pr-meta { font-size: 9.5pt; color: #555; }
+  .pr-item { margin: 4px 0; }
+  .pr-item-sub { font-size: 9.5pt; color: #555; margin-top: 1px; }
+  .pr-row { display: flex; justify-content: space-between; padding: 2px 0; }
+  .pr-total { font-size: 13pt; font-weight: 700; margin-top: 4px; padding-top: 6px; border-top: 1px dashed #999; }
+  .pr-thanks { text-align: center; margin-top: 14px; font-size: 10pt; color: #555; }
+  .pr-foot { text-align: center; font-size: 9pt; color: #999; margin-top: 6px; }
+}
 </style>
