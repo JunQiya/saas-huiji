@@ -55,4 +55,13 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("select coalesce(sum(o.paidAmount),0) from Order o where o.tenantId in :tenantIds " +
             "and o.status = 'PAID' and o.deleted = false")
     Long sumPaidByTenantIds(@Param("tenantIds") List<Long> tenantIds);
+
+    /** 商城订单列表: 仅含有 OrderExtend 记录的订单 */
+    @Query("select o from Order o where o.tenantId = :tenantId and o.deleted = false " +
+            "and o.id in (select e.orderId from OrderExtend e where e.deleted = false) " +
+            "and (:status is null or :status = '' or o.status = :status) " +
+            "order by o.id desc")
+    Page<Order> searchMallOrders(@Param("tenantId") Long tenantId,
+                                  @Param("status") String status,
+                                  Pageable pageable);
 }

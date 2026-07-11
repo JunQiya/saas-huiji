@@ -235,6 +235,7 @@ async function load() {
 
 function drawTrend(data: any[]) {
   if (!trendEl.value) return
+  echarts.getInstanceByDom(trendEl.value)?.dispose()
   const chart = echarts.init(trendEl.value)
   chart.setOption({
     grid: { left: 50, right: 24, top: 18, bottom: 28 },
@@ -300,6 +301,7 @@ function drawTrend(data: any[]) {
 
 function drawPie(data: any[]) {
   if (!pieEl.value) return
+  echarts.getInstanceByDom(pieEl.value)?.dispose()
   const chart = echarts.init(pieEl.value)
   chart.setOption({
     tooltip: { trigger: 'item', backgroundColor: 'rgba(31, 29, 24, 0.92)', borderWidth: 0, textStyle: { color: '#fff' } },

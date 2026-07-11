@@ -95,7 +95,7 @@
           <div v-for="it in cartList" :key="it.id" class="cp-item">
             <div class="ci-name">{{ it.name }}</div>
             <div class="ci-right">
-              <span class="ci-price val">¥{{ (it.price * it.qty).toFixed(2) }}</span>
+              <span class="ci-price val">¥{{ (it.price * it.qty / 100).toFixed(2) }}</span>
               <div class="pc-stepper">
                 <button class="step-btn minus" @click="changeQty(it.id, -1)">−</button>
                 <span class="step-num val">{{ it.qty }}</span>

@@ -341,8 +341,7 @@ public class MallService {
     public List<Map<String, Object>> mallOrders(Long tenantId, String status, int page, int size) {
         Pageable pageable = PageRequest.of(Math.max(0, page - 1), size <= 0 ? 20 : size);
         String st = (status == null || status.isBlank()) ? null : status.trim();
-        // 商城订单: 有 OrderExtend 记录的订单
-        Page<Order> p = orderRepository.search(tenantId, st, null, null, null, null, pageable);
+        Page<Order> p = orderRepository.searchMallOrders(tenantId, st, pageable);
         return p.getContent().stream()
                 .map(o -> toOrderVO(o, true))
                 .collect(Collectors.toList());

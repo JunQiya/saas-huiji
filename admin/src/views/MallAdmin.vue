@@ -170,7 +170,7 @@
           全选 / 取消
         </el-checkbox>
         <el-checkbox-group v-model="bindForm.productIds" class="bind-grid">
-          <el-checkbox v-for="p in productList" :key="p.id" :label="p.id" class="bind-item">
+          <el-checkbox v-for="p in productList" :key="p.id" :value="p.id" :label="p.name" class="bind-item">
             <div class="bind-prod">
               <span class="bp-name">{{ p.name }}</span>
               <span class="bp-meta muted">¥{{ yuan(p.price) }} · {{ p.category === 'GOODS' ? '商品' : '服务' }}</span>

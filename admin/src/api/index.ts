@@ -170,11 +170,6 @@ export const ordersApi = {
   void: (id: number, data: any) => request.post<any, any>(`/orders/${id}/void`, data)
 }
 
-// ============ 营销日历 ============
-export const marketingApi = {
-  calendar: (params: { month: string }) => request.get<any, { month: string; events: any[] }>('/marketing/calendar', { params })
-}
-
 // ============ Settings 扩展: 计费 / 多店 ============
 export const settingsPlanApi = {
   get: () => request.get<any, any>('/settings/plan'),

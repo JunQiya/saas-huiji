@@ -230,14 +230,6 @@ const saving = ref(false)
 const upgrading = ref(false)
 const userStore = useUserStore()
 
-// 品牌色实时生效
-watch(() => form.brandColor, (color) => {
-  if (color) {
-    document.documentElement.style.setProperty('--brand', color)
-    document.documentElement.style.setProperty('--primary-action', color)
-  }
-}, { immediate: true })
-
 const form = reactive({
   tenantName: '',
   brandColor: '#8a8278',
@@ -245,6 +237,14 @@ const form = reactive({
   levelRules: [] as any[],
   rechargeRules: [] as any[]
 })
+
+// 品牌色实时生效
+watch(() => form.brandColor, (color) => {
+  if (color) {
+    document.documentElement.style.setProperty('--brand', color)
+    document.documentElement.style.setProperty('--primary-action', color)
+  }
+}, { immediate: true })
 
 const plans = [
   { value: 'FREE', label: '免费版', price: 0, features: ['会员 500', '门店 3', '商品 30', '基础数据看板'] },

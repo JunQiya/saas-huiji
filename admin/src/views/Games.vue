@@ -17,8 +17,8 @@
     <div class="x-card filter-wrap">
       <div class="filter-bar">
         <el-select v-model="query.status" placeholder="状态" clearable @change="loadList" style="width: 140px">
-          <el-option label="启用" :value="1" />
-          <el-option label="停用" :value="0" />
+          <el-option label="启用" value="ENABLED" />
+          <el-option label="停用" value="DISABLED" />
         </el-select>
         <el-select v-model="query.type" placeholder="游戏类型" clearable @change="loadList" style="width: 160px">
           <el-option v-for="t in typeOptions" :key="t.value" :label="t.label" :value="t.value" />
@@ -39,7 +39,7 @@
             <div class="game-type">{{ typeText(g.type) }}<span v-if="g.subtitle"> · {{ g.subtitle }}</span></div>
           </div>
           <el-switch
-            :model-value="g.status === 1"
+            :model-value="g.status === 'ENABLED'"
             @change="(v: any) => onToggleStatus(g, !!v)"
             inline-prompt active-text="启" inactive-text="停"
           />
@@ -112,7 +112,7 @@
           <el-input v-model="form.rules" type="textarea" :rows="3" placeholder="如：1. 每日 3 次免费抽奖机会&#10;2. 中奖后优惠券将自动发放至账户" />
         </el-form-item>
         <el-form-item label="启用状态">
-          <el-switch v-model="form.status" :active-value="1" :inactive-value="0" />
+          <el-switch v-model="form.status" active-value="ENABLED" inactive-value="DISABLED" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -274,7 +274,7 @@ function prizeTagType(t: string): '' | 'success' | 'warning' | 'info' {
 // ============ 列表 ============
 const loading = ref(false)
 const list = ref<any[]>([])
-const query = reactive({ status: undefined as number | undefined, type: undefined as string | undefined })
+const query = reactive({ status: undefined as string | undefined, type: undefined as string | undefined })
 const stores = ref<any[]>([])
 
 async function loadList() {
@@ -295,7 +295,7 @@ async function loadStores() {
 
 // 切换状态：保存后刷新
 async function onToggleStatus(row: any, status: boolean) {
-  const newStatus = status ? 1 : 0
+  const newStatus = status ? 'ENABLED' : 'DISABLED'
   try {
     await gameApi.save({ ...row, status: newStatus })
     row.status = newStatus
@@ -330,7 +330,7 @@ const form = reactive({
   pointsCost: 0,
   storeId: undefined as number | undefined,
   rules: '',
-  status: 1
+  status: 'ENABLED'
 })
 const formRules: FormRules = {
   name: [{ required: true, message: '请输入游戏名称', trigger: 'blur' }],
@@ -344,7 +344,7 @@ function openCreate() {
   Object.assign(form, {
     id: 0, name: '', type: 'WHEEL', subtitle: '', coverImage: '', bgImage: '',
     range: [], dailyLimit: 1, totalLimit: 0, pointsCost: 0, storeId: undefined,
-    rules: '', status: 1
+    rules: '', status: 'ENABLED'
   })
   formVisible.value = true
 }
@@ -357,7 +357,7 @@ function openEdit(row: any) {
     range: row.startTime && row.endTime ? [row.startTime, row.endTime] : [],
     dailyLimit: row.dailyLimit ?? 1, totalLimit: row.totalLimit ?? 0,
     pointsCost: row.pointsCost ?? 0, storeId: row.storeId, rules: row.rules || '',
-    status: row.status ?? 1
+    status: row.status ?? 'ENABLED'
   })
   formVisible.value = true
 }

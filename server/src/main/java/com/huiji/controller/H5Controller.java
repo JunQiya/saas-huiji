@@ -74,9 +74,10 @@ public class H5Controller {
     }
 
     @GetMapping("/transactions")
-    public Result<List<Map<String, Object>>> transactions(HttpServletRequest req) {
+    public Result<List<Map<String, Object>>> transactions(HttpServletRequest req,
+                                                         @RequestParam(required = false) String type) {
         long[] ctx = currentMember(req);
-        return Result.success(h5Service.transactions(ctx[0], ctx[1]));
+        return Result.success(h5Service.transactions(ctx[0], ctx[1], type));
     }
 
     @GetMapping("/stores")

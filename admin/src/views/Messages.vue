@@ -195,7 +195,7 @@ import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'elem
 import { Plus, RefreshRight, RefreshLeft, Search, ChatLineRound } from '@element-plus/icons-vue'
 import { messagesApi } from '@/api'
 import KpiCard from '@/components/KpiCard.vue'
-import { formatDate, formatDateTime, formatMoney } from '@/utils/format'
+import { formatDateTime, formatMoney } from '@/utils/format'
 
 const msgSlogan = [
   '一句抵达，便是一次温暖的提醒',

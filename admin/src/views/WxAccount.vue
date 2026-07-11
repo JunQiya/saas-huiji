@@ -28,7 +28,7 @@
             <el-input v-model="form.appSecret" type="password" show-password placeholder="公众号 AppSecret" />
           </el-form-item>
           <el-form-item label="回调域名">
-            <el-input v-model="form.callbackDomain" placeholder="如: huiji.example.com" />
+            <el-input v-model="form.domain" placeholder="如: huiji.example.com" />
           </el-form-item>
           <el-form-item label="状态">
             <el-switch
@@ -51,7 +51,7 @@
             <el-input v-model="form.mchId" placeholder="微信支付商户号" />
           </el-form-item>
           <el-form-item label="API 密钥">
-            <el-input v-model="form.apiKey" type="password" show-password placeholder="商户 API 密钥" />
+            <el-input v-model="form.mchKey" type="password" show-password placeholder="商户 API 密钥" />
           </el-form-item>
           <el-form-item label="API v3 密钥">
             <el-input v-model="form.apiV3Key" type="password" show-password placeholder="API v3 密钥" />
@@ -77,34 +77,11 @@
           >
             <el-form label-width="100px">
               <el-form-item label="模板 ID">
-                <el-input v-model="form.templates[t.key]" placeholder="微信模板消息 ID" />
+                <el-input v-model="templates[t.key]" placeholder="微信模板消息 ID" />
               </el-form-item>
             </el-form>
           </el-collapse-item>
         </el-collapse>
-      </div>
-
-      <!-- 代理商挂靠 -->
-      <div class="x-card section-card">
-        <div class="section-title">代理商挂靠</div>
-        <div v-if="form.agentId" class="agent-bind">
-          <div class="ab-row">
-            <span class="ab-label">代理商</span>
-            <span class="val">{{ form.agentName || '-' }}</span>
-          </div>
-          <div class="ab-row">
-            <span class="ab-label">联系人</span>
-            <span class="val">{{ form.agentContact || '-' }}</span>
-          </div>
-          <div class="ab-row">
-            <span class="ab-label">电话</span>
-            <span class="val">{{ form.agentPhone || '-' }}</span>
-          </div>
-        </div>
-        <div v-else class="agent-empty">
-          <el-icon><InfoFilled /></el-icon>
-          <span>未挂靠代理商</span>
-        </div>
       </div>
 
       <!-- OAuth 授权链接预览 -->
@@ -131,7 +108,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { ChatDotRound, Connection, InfoFilled } from '@element-plus/icons-vue'
+import { ChatDotRound, Connection } from '@element-plus/icons-vue'
 import { wxAccountApi } from '@/api'
 
 // 随机副标题，避免每次都一样
@@ -157,23 +134,23 @@ const activeTpls = ref<string[]>(['loginNotify'])
 const form = reactive<any>({
   appId: '',
   appSecret: '',
-  callbackDomain: '',
+  domain: '',
   status: 'ENABLED',
   mchId: '',
-  apiKey: '',
+  mchKey: '',
   apiV3Key: '',
   certPath: '',
-  templates: {} as Record<string, string>,
-  agentId: null,
-  agentName: '',
-  agentContact: '',
-  agentPhone: ''
+  templateIds: '',
+  agentId: null
 })
+
+// 模板消息本地对象（与 templateIds JSON 字符串互转）
+const templates = reactive<Record<string, string>>({})
 
 // 计算 OAuth 授权链接
 const oauthUrl = computed(() => {
-  if (!form.appId || !form.callbackDomain) return '请先填写 AppId 与回调域名'
-  const redirect = encodeURIComponent(`https://${form.callbackDomain}/wx/callback`)
+  if (!form.appId || !form.domain) return '请先填写 AppId 与回调域名'
+  const redirect = encodeURIComponent(`https://${form.domain}/wx/callback`)
   return `https://open.weixin.qq.com/connect/oauth2/authorize?appid=${form.appId}&redirect_uri=${redirect}&response_type=code&scope=snsapi_base&state=huiji#wechat_redirect`
 })
 
@@ -185,18 +162,21 @@ async function loadDetail() {
       Object.assign(form, {
         appId: data.appId || '',
         appSecret: data.appSecret || '',
-        callbackDomain: data.callbackDomain || '',
+        domain: data.domain || '',
         status: data.status || 'ENABLED',
         mchId: data.mchId || '',
-        apiKey: data.apiKey || '',
+        mchKey: data.mchKey || '',
         apiV3Key: data.apiV3Key || '',
         certPath: data.certPath || '',
-        templates: data.templates || {},
-        agentId: data.agentId ?? null,
-        agentName: data.agentName || '',
-        agentContact: data.agentContact || '',
-        agentPhone: data.agentPhone || ''
+        templateIds: data.templateIds || '',
+        agentId: data.agentId ?? null
       })
+      // 解析 templateIds JSON 字符串到 templates 对象
+      Object.keys(templates).forEach(k => delete templates[k])
+      try {
+        const parsed = form.templateIds ? JSON.parse(form.templateIds) : {}
+        Object.assign(templates, parsed)
+      } catch {/* 容错 */}
     }
   } finally {
     loading.value = false
@@ -207,7 +187,8 @@ async function onSave() {
   if (!form.appId.trim()) { ElMessage.warning('请填写 AppId'); return }
   saving.value = true
   try {
-    await wxAccountApi.save({ ...form })
+    const payload = { ...form, templateIds: JSON.stringify(templates) }
+    await wxAccountApi.save(payload)
     ElMessage.success('配置已保存')
     loadDetail()
   } finally {
@@ -226,7 +207,7 @@ async function onTest() {
 }
 
 function copyOauth() {
-  if (!form.appId || !form.callbackDomain) {
+  if (!form.appId || !form.domain) {
     ElMessage.warning('请先填写 AppId 与回调域名')
     return
   }
@@ -254,32 +235,6 @@ onMounted(() => loadDetail())
   justify-content: flex-end;
   gap: 10px;
   padding: 4px 0 12px;
-}
-
-/* 代理商挂靠信息 */
-.agent-bind {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.ab-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 13px;
-}
-.ab-label {
-  width: 60px;
-  color: var(--muted);
-  letter-spacing: 0.04em;
-}
-.agent-empty {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--muted);
-  font-size: 13px;
-  padding: 8px 0;
 }
 
 /* OAuth 链接 */

@@ -193,6 +193,10 @@ async function loadCartItems() {
     if (itemIds.length) {
       // 仅结算选中的购物车项
       items.value = all.filter(i => itemIds.includes(String(i.id)))
+    } else if (route.query.buyNow === '1' && route.query.productId) {
+      const pid = Number(route.query.productId)
+      items.value = all.filter((it: any) => it.productId === pid)
+      return
     } else {
       items.value = all.filter(i => i.selected)
     }

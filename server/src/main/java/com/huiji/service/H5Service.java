@@ -100,8 +100,8 @@ public class H5Service {
     }
 
     /** 消费记录 */
-    public List<Map<String, Object>> transactions(Long memberId, Long tenantId) {
-        List<WalletTransaction> all = walletRepository.findByMember(tenantId, memberId, "CONSUME",
+    public List<Map<String, Object>> transactions(Long memberId, Long tenantId, String type) {
+        List<WalletTransaction> all = walletRepository.findByMember(tenantId, memberId, type,
                 PageRequest.of(0, 50)).getContent();
         return all.stream().map(this::txVO).collect(Collectors.toList());
     }
@@ -142,6 +142,7 @@ public class H5Service {
         vo.put("address", s.getAddress());
         vo.put("phone", s.getPhone());
         vo.put("businessHours", s.getBusinessHours());
+        vo.put("status", s.getStatus());
         return vo;
     }
 }

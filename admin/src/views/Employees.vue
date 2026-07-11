@@ -151,7 +151,7 @@
 <script setup lang="ts">
 
 import { onMounted, reactive, ref } from 'vue'
-import { ElMessage, ElMessageBox, ElMessageBoxOptions, type FormInstance, type FormRules } from 'element-plus'
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Plus, RefreshRight , Upload, Download } from '@element-plus/icons-vue'
 import { employeesApi, storesApi } from '@/api'
 import { formatMoney } from '@/utils/format'

@@ -4,7 +4,6 @@ import com.huiji.common.BizException;
 import com.huiji.common.ErrorCode;
 import com.huiji.common.PageData;
 import com.huiji.common.Result;
-import com.huiji.security.LoginUserHolder;
 import com.huiji.service.ReferralService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -46,16 +45,21 @@ public class ReferralController {
 
     @Data
     public static class BindRequest {
+        private Long memberId;
         private String code;
     }
 
     /**
-     * 提供给后台手工"代绑定"(同步给 H5 端路径相同)
+     * 后台手工代绑定: 由管理员指定要绑定的会员 ID 和推荐码。
      */
     @PostMapping("/admin/bind")
     public Result<Map<String, Object>> adminBind(@RequestBody BindRequest req) {
-        Long memberId = LoginUserHolder.currentUserId();
-        if (memberId == null) throw new BizException(ErrorCode.SESSION_EXPIRED, "请先登录");
-        return Result.success(referralService.bind(memberId, req.getCode()));
+        if (req.getMemberId() == null) {
+            throw new BizException(ErrorCode.VALIDATION, "请指定会员");
+        }
+        if (req.getCode() == null || req.getCode().isBlank()) {
+            throw new BizException(ErrorCode.VALIDATION, "请输入推荐码");
+        }
+        return Result.success(referralService.bind(req.getMemberId(), req.getCode()));
     }
 }

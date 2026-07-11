@@ -54,7 +54,7 @@ public class SecurityConfig {
                                 "/api/wx/oauth/**",
                                 "/api/wx/callback",
                                 "/api/wx/jssdk",
-                                "/api/wxpay/**",
+                                "/api/wxpay/notify",
                                 "/h2-console/**",
                                 "/error"
                         ).permitAll()

@@ -137,6 +137,7 @@ import * as echarts from 'echarts'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Plus, RefreshRight, ArrowDown, DataAnalysis } from '@element-plus/icons-vue'
 import { reportsApi, statsApi } from '@/api'
+import request from '@/api/request'
 import KpiCard from '@/components/KpiCard.vue'
 import ChartCard from '@/components/ChartCard.vue'
 import { formatDateTime } from '@/utils/format'
@@ -350,10 +351,20 @@ async function onRemove(row: any) {
   ElMessage.success('已删除')
   loadList()
 }
-function onDownload(row: any, type: string) {
-  // 直接打开下载链接(走 cookie/JWT 时使用 _self 跳转)
-  const url = `/api/reports/${row.id}/download?type=${type}`
-  window.open(url, '_blank')
+async function onDownload(row: any, type: string) {
+  const url = reportsApi.downloadUrl(row.id, type as 'pdf' | 'xlsx')
+  const filename = `${row.name || 'report'}_${type === 'pdf' ? 'PDF' : 'Excel'}.${type === 'pdf' ? 'pdf' : 'xlsx'}`
+  try {
+    const res = await request.get(url, { responseType: 'blob' })
+    const blob = new Blob([res])
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = filename
+    link.click()
+    URL.revokeObjectURL(link.href)
+  } catch {
+    ElMessage.error('下载失败')
+  }
 }
 </script>
 

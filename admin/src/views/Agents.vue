@@ -12,7 +12,7 @@
       <el-table :data="list" size="small">
         <el-table-column label="名称" prop="name" min-width="120" />
         <el-table-column label="联系人" prop="contactName" width="100" />
-        <el-table-column label="电话" prop="phone" width="130" />
+        <el-table-column label="电话" prop="contactPhone" width="130" />
         <el-table-column label="AppId" prop="appId" min-width="140">
           <template #default="{ row }">
             <span class="val muted">{{ row.appId || '—' }}</span>
@@ -30,7 +30,7 @@
         </el-table-column>
         <el-table-column label="挂靠商家" width="90" align="right">
           <template #default="{ row }">
-            <span class="val">{{ row.storeCount ?? 0 }}</span>
+            <span class="val">{{ row.tenantCount ?? 0 }}</span>
           </template>
         </el-table-column>
         <el-table-column label="状态" width="80">
@@ -63,8 +63,8 @@
         <el-form-item label="联系人" prop="contactName">
           <el-input v-model="form.contactName" />
         </el-form-item>
-        <el-form-item label="电话" prop="phone">
-          <el-input v-model="form.phone" />
+        <el-form-item label="电话" prop="contactPhone">
+          <el-input v-model="form.contactPhone" />
         </el-form-item>
         <el-form-item label="AppId">
           <el-input v-model="form.appId" placeholder="公众号 AppId（可空）" />
@@ -73,17 +73,14 @@
           <el-input v-model="form.mchId" placeholder="微信支付商户号（可空）" />
         </el-form-item>
         <el-form-item label="抽佣比例">
-          <el-input-number v-model="form.commissionRate" :min="0" :max="100" :precision="2" controls-position="right" style="width: 160px" />
-          <span class="muted" style="margin-left: 8px">%</span>
+          <el-input-number v-model="form.commissionRate" :min="0" :max="100" :precision="1" controls-position="right" style="width: 160px" />
+          <span class="muted" style="margin-left: 8px">‰</span>
         </el-form-item>
         <el-form-item label="状态">
           <el-radio-group v-model="form.status">
             <el-radio value="ENABLED">启用</el-radio>
             <el-radio value="DISABLED">停用</el-radio>
           </el-radio-group>
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input v-model="form.remark" type="textarea" :rows="2" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -97,7 +94,7 @@
       <div v-loading="statsLoading" class="stats-grid">
         <div class="x-card stat-tile">
           <div class="stat-label">挂靠商家数</div>
-          <div class="stat-value val">{{ stats.storeCount ?? 0 }}</div>
+          <div class="stat-value val">{{ stats.tenantCount ?? 0 }}</div>
         </div>
         <div class="x-card stat-tile">
           <div class="stat-label">总交易额</div>
@@ -105,7 +102,7 @@
         </div>
         <div class="x-card stat-tile">
           <div class="stat-label">抽佣金额</div>
-          <div class="stat-value val t-brand">¥ {{ formatMoney(stats.commissionAmount) }}</div>
+          <div class="stat-value val t-brand">¥ {{ formatMoney(stats.commission) }}</div>
         </div>
       </div>
       <div v-if="stats.updatedAt" class="stats-time">统计时间: {{ formatDateTime(stats.updatedAt) }}</div>
@@ -129,10 +126,10 @@ const agentSlogan = [
 const loading = ref(false)
 const list = ref<any[]>([])
 
-// 抽佣比例展示：后端若用整数百分比或小数需统一展示
+// 抽佣比例展示：千分比
 function formatRate(rate: number | undefined | null): string {
-  if (rate === null || rate === undefined || isNaN(rate as number)) return '0%'
-  return `${Number(rate).toFixed(2)}%`
+  if (rate === null || rate === undefined || isNaN(rate as number)) return '0‰'
+  return `${Number(rate).toFixed(1)}‰`
 }
 
 async function loadList() {
@@ -153,23 +150,22 @@ const form = reactive<any>({
   id: 0,
   name: '',
   contactName: '',
-  phone: '',
+  contactPhone: '',
   appId: '',
   mchId: '',
   commissionRate: 0,
-  status: 'ENABLED',
-  remark: ''
+  status: 'ENABLED'
 })
 const formRules: FormRules = {
   name: [{ required: true, message: '请输入代理商名称', trigger: 'blur' }],
   contactName: [{ required: true, message: '请输入联系人', trigger: 'blur' }],
-  phone: [{ required: true, message: '请输入联系电话', trigger: 'blur' }]
+  contactPhone: [{ required: true, message: '请输入联系电话', trigger: 'blur' }]
 }
 function openCreate() {
   editing.value = false
   Object.assign(form, {
-    id: 0, name: '', contactName: '', phone: '',
-    appId: '', mchId: '', commissionRate: 0, status: 'ENABLED', remark: ''
+    id: 0, name: '', contactName: '', contactPhone: '',
+    appId: '', mchId: '', commissionRate: 0, status: 'ENABLED'
   })
   formVisible.value = true
 }
@@ -179,12 +175,11 @@ function openEdit(row: any) {
     id: row.id,
     name: row.name || '',
     contactName: row.contactName || '',
-    phone: row.phone || '',
+    contactPhone: row.contactPhone || '',
     appId: row.appId || '',
     mchId: row.mchId || '',
     commissionRate: row.commissionRate ?? 0,
-    status: row.status || 'ENABLED',
-    remark: row.remark || ''
+    status: row.status || 'ENABLED'
   })
   formVisible.value = true
 }
@@ -217,23 +212,23 @@ const statsVisible = ref(false)
 const statsLoading = ref(false)
 const statsTarget = ref<any>(null)
 const stats = reactive<any>({
-  storeCount: 0,
+  tenantCount: 0,
   totalAmount: 0,
-  commissionAmount: 0,
+  commission: 0,
   updatedAt: ''
 })
 async function openStats(row: any) {
   statsTarget.value = row
   statsVisible.value = true
-  Object.assign(stats, { storeCount: 0, totalAmount: 0, commissionAmount: 0, updatedAt: '' })
+  Object.assign(stats, { tenantCount: 0, totalAmount: 0, commission: 0, updatedAt: '' })
   statsLoading.value = true
   try {
     const data: any = await agentsApi.stats(row.id)
     if (data) {
       Object.assign(stats, {
-        storeCount: data.storeCount ?? 0,
+        tenantCount: data.tenantCount ?? 0,
         totalAmount: data.totalAmount ?? 0,
-        commissionAmount: data.commissionAmount ?? 0,
+        commission: data.commission ?? 0,
         updatedAt: data.updatedAt || ''
       })
     }

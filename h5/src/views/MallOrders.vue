@@ -88,23 +88,23 @@
             </div>
             <div class="dp-row">
               <span class="muted">配送方式</span>
-              <span>{{ detail.deliveryType === 'PICKUP' ? '到店自提' : '配送到家' }}</span>
+              <span>{{ detail.extend?.deliveryType === 'PICKUP' ? '到店自提' : '配送到家' }}</span>
             </div>
           </div>
 
-          <div v-if="detail.deliveryType !== 'PICKUP' && detail.receiverName" class="dp-section">
+          <div v-if="detail.extend?.deliveryType !== 'PICKUP' && detail.extend?.receiverName" class="dp-section">
             <div class="section-title">收货信息</div>
             <div class="dp-addr">
-              <div>{{ detail.receiverName }} {{ detail.receiverPhone }}</div>
-              <div class="muted">{{ detail.receiverProvince }}{{ detail.receiverCity }}{{ detail.receiverDistrict }}{{ detail.receiverAddress }}</div>
+              <div>{{ detail.extend?.receiverName }} {{ detail.extend?.receiverPhone }}</div>
+              <div class="muted">{{ detail.extend?.receiverProvince }}{{ detail.extend?.receiverCity }}{{ detail.extend?.receiverDistrict }}{{ detail.extend?.receiverAddress }}</div>
             </div>
           </div>
 
-          <div v-if="detail.trackingNo" class="dp-section">
+          <div v-if="detail.extend?.trackingNo" class="dp-section">
             <div class="section-title">物流信息</div>
             <div class="dp-addr">
-              <span class="val">{{ detail.trackingNo }}</span>
-              <span v-if="detail.trackingCompany" class="muted">（{{ detail.trackingCompany }}）</span>
+              <span class="val">{{ detail.extend?.trackingNo }}</span>
+              <span v-if="detail.extend?.trackingCompany" class="muted">（{{ detail.extend?.trackingCompany }}）</span>
             </div>
           </div>
 
@@ -178,6 +178,17 @@ interface MallOrder {
   remark?: string
   createdAt: string
   items?: OrderItem[]
+  extend?: {
+    deliveryType?: string
+    trackingNo?: string
+    trackingCompany?: string
+    receiverName?: string
+    receiverPhone?: string
+    receiverProvince?: string
+    receiverCity?: string
+    receiverDistrict?: string
+    receiverAddress?: string
+  }
 }
 
 const loading = ref(false)
@@ -187,10 +198,10 @@ const highlightId = ref<number | string>('')
 
 const tabs = [
   { label: '全部', value: '' },
-  { label: '待付款', value: 'PENDING_PAY' },
-  { label: '待发货', value: 'PENDING_SHIP' },
-  { label: '待收货', value: 'PENDING_RECEIVE' },
-  { label: '已完成', value: 'COMPLETED' }
+  { label: '待付款', value: 'PENDING' },
+  { label: '已付款', value: 'PAID' },
+  { label: '已退款', value: 'REFUNDED' },
+  { label: '已作废', value: 'VOID' }
 ]
 
 async function load() {
@@ -235,26 +246,18 @@ function goMall() { router.push('/mall') }
 
 function statusText(s: string) {
   return ({
-    PENDING_PAY: '待付款',
-    PENDING_SHIP: '待发货',
-    PENDING_RECEIVE: '待收货',
-    COMPLETED: '已完成',
-    CANCELLED: '已取消',
+    PENDING: '待付款',
     PAID: '已付款',
-    SHIPPED: '已发货',
-    REFUNDED: '已退款'
+    REFUNDED: '已退款',
+    VOID: '已作废'
   } as any)[s] || s || '-'
 }
 function statusChipClass(s: string) {
   return ({
-    PENDING_PAY: 'warning',
-    PENDING_SHIP: 'warning',
-    PENDING_RECEIVE: 'mist',
-    COMPLETED: 'success',
-    CANCELLED: 'muted',
+    PENDING: 'warning',
     PAID: 'success',
-    SHIPPED: 'brand',
-    REFUNDED: 'danger'
+    REFUNDED: 'danger',
+    VOID: 'muted'
   } as any)[s] || 'mist'
 }
 

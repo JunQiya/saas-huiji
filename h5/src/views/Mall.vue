@@ -167,7 +167,7 @@ async function loadCartCount() {
   if (!isLogin.value) { cartCount.value = 0; return }
   try {
     const data: any = await mallApi.cartSummary()
-    cartCount.value = Number(data?.count ?? data?.quantity ?? 0)
+    cartCount.value = Number(data?.selectedCount ?? data?.totalCount ?? 0)
   } catch { cartCount.value = 0 }
 }
 

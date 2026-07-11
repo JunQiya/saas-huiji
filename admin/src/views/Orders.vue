@@ -114,7 +114,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { List, Refresh, Plus, Search, Download, User } from '@element-plus/icons-vue'
+import { List, Refresh, Plus, Search, Download } from '@element-plus/icons-vue'
 import { ordersApi, statsApi, storesApi } from '@/api'
 import { fenToYuan } from '@/utils/format'
 import { exportCsv } from '@/utils/csv'
@@ -224,26 +224,19 @@ async function openDetail(row: any) {
 }
 
 async function quickPay(row: any) {
-  // 用自定义弹窗选择支付方式，而非手输
-  const result = await ElMessageBox.confirm(
+  const { value } = await ElMessageBox.prompt(
     `订单 ${row.orderNo}，应付 ¥${yuan(row.totalAmount)}`,
     '选择支付方式',
     {
-      distinguishCancelAndClose: true,
-      confirmButtonText: '确认收款',
+      inputValue: 'WECHAT',
+      inputPlaceholder: '请输入: CASH / WECHAT / ALIPAY / BALANCE',
+      confirmButtonText: '确定收款',
       cancelButtonText: '取消',
-      type: 'info'
+      inputValidator: (v: string) =>
+        ['CASH', 'WECHAT', 'ALIPAY', 'BALANCE'].includes(v?.toUpperCase().trim())
+        || '请输入 CASH / WECHAT / ALIPAY / BALANCE'
     }
-  ).catch(() => null)
-  if (!result) return
-  // 用 prompt 但提示更清晰
-  const { value } = await ElMessageBox.prompt('请选择支付方式', '收款', {
-    inputValue: 'WECHAT',
-    inputPlaceholder: 'CASH=现金 / WECHAT=微信 / ALIPAY=支付宝 / BALANCE=余额',
-    confirmButtonText: '确定收款',
-    cancelButtonText: '取消',
-    inputValidator: (v: string) => ['CASH', 'WECHAT', 'ALIPAY', 'BALANCE'].includes(v?.toUpperCase().trim()) || '请输入 CASH / WECHAT / ALIPAY / BALANCE'
-  })
+  )
   await ordersApi.pay(row.id, { payMethod: value.toUpperCase().trim() })
   ElMessage.success('已收款')
   load()
