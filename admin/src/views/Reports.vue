@@ -352,6 +352,7 @@ async function onRun(row: any) {
     loading.close()
     ElMessage.success('已生成: ' + (r?.lastRunAt ? formatDateTime(r.lastRunAt) : '完成'))
     loadList()
+    loadStats()
   } catch { loading.close() }
 }
 async function onToggle(row: any, enabled: boolean) {
@@ -359,6 +360,7 @@ async function onToggle(row: any, enabled: boolean) {
   row.enabled = enabled
   ElMessage.success(enabled ? '已启用' : '已停用')
   loadList()
+  loadStats()
 }
 async function onRemove(row: any) {
   try {
@@ -367,6 +369,7 @@ async function onRemove(row: any) {
   await reportsApi.remove(row.id)
   ElMessage.success('已删除')
   loadList()
+  loadStats()
 }
 async function onDownload(row: any, type: string) {
   const url = reportsApi.downloadUrl(row.id, type as 'pdf' | 'xlsx')

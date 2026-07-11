@@ -151,8 +151,8 @@ async function onSmash(index: number) {
   }
 }
 
-// 继续：重置金蛋
-function onContinue() {
+// 继续：重置金蛋并重新玩
+async function onContinue() {
   resultVisible.value = false
   result.value = null
   brokenIndex.value = 0
@@ -160,6 +160,20 @@ function onContinue() {
   playing.value = false
   // 随机刷新金蛋数量
   eggCount.value = 3 + Math.floor(Math.random() * 4)
+  if (remaining.value <= 0) {
+    showToast('今日次数已用完，明日再来')
+    return
+  }
+  try {
+    const res = await gameApi.play(gameId)
+    result.value = res
+    remaining.value = Math.max(0, remaining.value - 1)
+    loadRecords()
+    resultVisible.value = true
+  } catch {
+    result.value = { prizeType: 'EMPTY', prizeName: '未中奖' }
+    resultVisible.value = true
+  }
 }
 
 async function loadDetail() {

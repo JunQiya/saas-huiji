@@ -80,7 +80,7 @@
       <span>关于与帮助</span>
     </div>
     <div class="link-card ui-card x-fade">
-      <div class="link-row" @click="router.push('/about')">
+      <div class="link-row" @click="router.push('/profile')">
         <div class="lk-left">
           <span class="lk-dot dot-mist"></span>
           <span>关于星河</span>

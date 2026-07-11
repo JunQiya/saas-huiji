@@ -19,7 +19,13 @@
       <EmptyState v-else-if="!list.length" title="暂无该状态券" sub="领几张好券，下次到店就有小惊喜" art="leaf" />
 
       <div v-else class="coupon-list">
-        <div v-for="c in list" :key="c.id" class="coupon-row" :class="`s-${c.status}`">
+        <div
+          v-for="c in list"
+          :key="c.id"
+          class="coupon-row"
+          :class="[`s-${c.status}`, { clickable: c.status === 'UNUSED' }]"
+          @click="onUse(c)"
+        >
           <div class="left-stripe" :class="`type-${c.type}`">
             <div class="stripe-val">
               <template v-if="c.type === 'PERCENT'">
@@ -48,6 +54,7 @@
               <span class="dot" :class="dotClass(c.status)"></span>
               {{ statusText(c.status) }}
             </div>
+            <div v-if="c.status === 'UNUSED'" class="c-use-btn" @click.stop="onUse(c)">去使用 ›</div>
           </div>
         </div>
       </div>
@@ -57,12 +64,14 @@
 
 <script setup lang="ts">
 import { onActivated, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
 import { h5Api, type CouponRecord } from '@/api/h5'
 import { formatDateTime } from '@/utils/format'
 import NavBar from '@/components/NavBar.vue'
 import EmptyState from '@/components/EmptyState.vue'
 
+const router = useRouter()
 const tabs = [
   { label: '未使用', value: 'UNUSED' as const },
   { label: '已使用', value: 'USED' as const },
@@ -88,6 +97,14 @@ function statusText(s: string) {
 }
 function dotClass(s: string) {
   return ({ UNUSED: 'success', USED: 'info', EXPIRED: 'danger' } as any)[s] || 'info'
+}
+
+// 跳转目标：商品相关券跳商城，其他（到店核销类）跳门店
+function onUse(c: CouponRecord) {
+  if (c.status !== 'UNUSED') return
+  // EXPERIENCE / BIRTHDAY / FULL_CUT 一般到店使用；其他跳商城
+  const toStore = c.type === 'EXPERIENCE' || c.type === 'BIRTHDAY' || c.type === 'FULL_CUT' || c.type === 'PERCENT'
+  router.push(toStore ? '/stores' : '/mall')
 }
 
 onMounted(load)
@@ -122,6 +139,17 @@ onActivated(load)
 }
 .coupon-row:hover { transform: scale(1.005); box-shadow: var(--shadow-sm); }
 .coupon-row.s-USED, .coupon-row.s-EXPIRED { opacity: 0.7; }
+.coupon-row.clickable { cursor: pointer; }
+.coupon-row.clickable:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.c-use-btn {
+  align-self: flex-end;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--brand-deep);
+  letter-spacing: 0.06em;
+  padding: 2px 0;
+  font-weight: 500;
+}
 
 .left-stripe {
   width: 100px; flex-shrink: 0;

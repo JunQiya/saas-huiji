@@ -16,7 +16,7 @@
               </div>
               <div class="uc-phone">{{ memberInfo?.phone || '点击登录' }}</div>
             </div>
-            <van-icon name="setting-o" class="uc-set" @click="router.push('/about')" />
+            <van-icon name="setting-o" class="uc-set" @click="router.push('/profile')" />
           </div>
           <div class="uc-progress" v-if="memberInfo">
             <div class="prog-row">

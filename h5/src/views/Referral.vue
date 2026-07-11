@@ -78,7 +78,7 @@
             <div class="li-avatar">{{ avatarChar(r.refereeName) }}</div>
             <div class="li-main">
               <div class="li-name">{{ r.refereeName || '匿名' }}</div>
-              <div class="li-time">{{ r.refereePhone || '' }} · {{ formatDate(r.createdAt) }}</div>
+              <div class="li-time">{{ maskPhone(r.refereePhone) }} · {{ formatDate(r.createdAt) }}</div>
             </div>
             <div class="chip" :class="chipClass(r.status)">{{ statusText(r.status) }}</div>
           </div>
@@ -155,6 +155,12 @@ async function onBind() {
 function avatarChar(name?: string) {
   if (!name) return '友'
   return name.slice(0, 1)
+}
+function maskPhone(p?: string) {
+  if (!p) return ''
+  const s = String(p)
+  if (s.length < 7) return s
+  return s.slice(0, 3) + '****' + s.slice(-4)
 }
 function statusText(s: string) {
   return ({ REGISTERED: '已注册', ACTIVE: '已活跃', REWARDED: '已奖励' } as any)[s] || s

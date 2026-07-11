@@ -123,7 +123,7 @@
 <script setup lang="ts">
 import { computed, onActivated, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { showToast, showSuccessToast, showFailToast, showLoadingToast, showConfirmDialog } from 'vant'
+import { showToast, showSuccessToast, showFailToast, showLoadingToast, showConfirmDialog, closeToast } from 'vant'
 import { h5Api } from '@/api/h5'
 import NavBar from '@/components/NavBar.vue'
 import EmptyState from '@/components/EmptyState.vue'
@@ -173,12 +173,14 @@ async function load() {
 
 async function onPay() {
   if (!order.value) return
+  showLoadingToast({ message: '支付中...', forbidClick: true })
   try {
-    showLoadingToast({ message: '支付中...', duration: 0 })
     const res: any = await h5Api.payOrder(order.value.id)
     order.value = res
+    closeToast()
     showSuccessToast('支付成功')
   } catch {
+    closeToast()
     showFailToast('支付失败，请稍后重试')
   }
 }

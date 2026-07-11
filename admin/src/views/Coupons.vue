@@ -237,9 +237,7 @@
           <div class="display-member">持券人：{{ displayData?.memberName }}</div>
           <div class="display-qr">
             <div class="qr-box">
-              <div class="qr-mock">
-                <div v-for="i in 81" :key="i" class="qr-cell" :class="{ on: ((i * 7) % 3) === 0 }"></div>
-              </div>
+              <canvas ref="qrCanvas" class="qr-canvas"></canvas>
             </div>
           </div>
           <div class="display-foot">
@@ -292,7 +290,8 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { onBeforeUnmount, onMounted, reactive, ref, watch, nextTick } from 'vue'
+import QRCode from 'qrcode'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import {
   Plus, RefreshRight, Ticket, Clock, DocumentRemove,
@@ -591,16 +590,25 @@ async function submitVerify() {
 // ============ 展示码 ============
 const displayVisible = ref(false)
 const displayData = ref<CouponDisplay>()
+const qrCanvas = ref<HTMLCanvasElement>()
 let displayTimer: number | null = null
 async function openDisplay(code: string) {
   displayVisible.value = true
   await refreshDisplay(code)
+}
+async function drawQr() {
+  const code = displayData.value?.code
+  if (!qrCanvas.value || !code) return
+  try {
+    await QRCode.toCanvas(qrCanvas.value, code, { width: 200, margin: 1 })
+  } catch {/* */}
 }
 async function refreshDisplay(code?: string) {
   const c = code || displayData.value?.code
   if (!c) return
   try {
     displayData.value = await couponsApi.display(c)
+    await nextTick(drawQr)
   } catch {
     displayData.value = { code: c, couponName: '券码查询', memberName: '——', status: 'EXPIRED', expireAt: '' } as any
   }
@@ -780,21 +788,13 @@ onBeforeUnmount(() => {
 .display-member { font-size: 12px; opacity: 0.85; margin-bottom: 18px; }
 .display-qr { margin: 14px 0; }
 .qr-box {
-  width: 120px; height: 120px;
   margin: 0 auto;
   background: #fff;
   border-radius: 8px;
   padding: 10px;
   display: flex; align-items: center; justify-content: center;
 }
-.qr-mock {
-  display: grid;
-  grid-template-columns: repeat(9, 1fr);
-  gap: 1px;
-  width: 100%; height: 100%;
-}
-.qr-cell { background: transparent; }
-.qr-cell.on { background: var(--ink); }
+.qr-canvas { display: block; width: 200px; height: 200px; }
 .display-foot { font-size: 12px; opacity: 0.85; margin-top: 10px; }
 .display-actions { margin-top: 18px; display: flex; justify-content: center; gap: 8px; }
 .display-actions .el-button { background: rgba(255,255,255,0.18); color: #fff; border-color: rgba(255,255,255,0.25); }

@@ -280,10 +280,19 @@ async function loadExtendedKpi() {
       .reduce((s, t) => s + (t.amount || 0), 0)
   } catch { kpi.value.monthPoints = 0 }
 
-  // 厨房待出工单
+  // 厨房待出工单（按当前选中门店）
   try {
-    const ko: any = await diningApi.kitchenOrders(1, 'PENDING')
-    kpi.value.kitchenPending = (ko || []).length
+    let sid: number | undefined
+    try {
+      const cur: any = await settingsPlanApi.currentStore()
+      if (cur?.storeId) sid = cur.storeId
+    } catch {/* */}
+    if (sid != null) {
+      const ko: any = await diningApi.kitchenOrders(sid, 'PENDING')
+      kpi.value.kitchenPending = (ko || []).length
+    } else {
+      kpi.value.kitchenPending = 0
+    }
   } catch { kpi.value.kitchenPending = 0 }
 
   // 进行中活动

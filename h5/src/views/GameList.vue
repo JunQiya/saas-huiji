@@ -26,6 +26,7 @@
               <span class="chip brand">{{ typeText(g.type) }}</span>
               <span class="gc-cost" v-if="g.pointsCost > 0">{{ g.pointsCost }} 积分/次</span>
               <span class="gc-cost" v-else>免费</span>
+              <span class="gc-remaining" v-if="remainingText(g)">{{ remainingText(g) }}</span>
             </div>
           </div>
           <div class="gc-arrow">›</div>
@@ -36,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onActivated, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { gameApi } from '@/api/h5'
 import NavBar from '@/components/NavBar.vue'
@@ -53,6 +54,23 @@ function typeText(t: string) {
 // 游戏类型图标
 function typeIcon(t: string) {
   return ({ WHEEL: 'point-gift-o', SCRATCH: 'gold-coin-o', EGG: 'gift-o', SHAKE: 'shake-o' } as any)[t] || 'gift-o'
+}
+
+// 剩余次数展示
+function remainingText(g: any): string {
+  if (typeof g.remaining === 'number') {
+    if (g.remaining <= 0) return '今日已用完'
+    return `今日剩余 ${g.remaining} 次`
+  }
+  if (typeof g.plays === 'number') {
+    if (g.plays <= 0) return '今日已用完'
+    return `今日剩余 ${g.plays} 次`
+  }
+  if (typeof g.todayLimit === 'number') {
+    if (g.todayLimit <= 0) return '今日已用完'
+    return `今日剩余 ${g.todayLimit} 次`
+  }
+  return ''
 }
 
 // 根据游戏类型跳转对应页面
@@ -73,6 +91,7 @@ async function load() {
 }
 
 onMounted(load)
+onActivated(load)
 </script>
 
 <style scoped>
@@ -121,6 +140,15 @@ onMounted(load)
 }
 .gc-cost {
   font-size: 11.5px; color: var(--ink-3);
+  font-family: var(--font-num);
+}
+.gc-remaining {
+  font-size: 11px;
+  color: var(--warning);
+  background: rgba(184, 132, 92, 0.10);
+  padding: 1px 8px;
+  border-radius: 999px;
+  letter-spacing: 0.04em;
   font-family: var(--font-num);
 }
 .gc-arrow {

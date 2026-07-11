@@ -180,9 +180,23 @@ async function onShake() {
   }
 }
 
-function onContinue() {
+async function onContinue() {
   resultVisible.value = false
   result.value = null
+  if (remaining.value <= 0) {
+    showToast('今日次数已用完，明日再来')
+    return
+  }
+  try {
+    const res = await gameApi.play(gameId)
+    result.value = res
+    remaining.value = Math.max(0, remaining.value - 1)
+    loadRecords()
+    resultVisible.value = true
+  } catch {
+    result.value = { prizeType: 'EMPTY', prizeName: '未中奖' }
+    resultVisible.value = true
+  }
 }
 
 async function loadDetail() {

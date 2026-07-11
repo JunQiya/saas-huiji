@@ -39,7 +39,12 @@
         </ul>
       </div>
 
-      <button class="join-btn" @click="onJoin">立即参与</button>
+      <button
+        class="join-btn"
+        :class="{ claimed: isClaimed }"
+        :disabled="isClaimed"
+        @click="onJoin"
+      >{{ isClaimed ? '已领取' : '立即参与' }}</button>
     </div>
   </div>
 </template>
@@ -57,6 +62,7 @@ const router = useRouter()
 const id = computed(() => String(route.params.id || ''))
 const loading = ref(false)
 const detail = ref<CampaignDetail | null>(null)
+const isClaimed = ref(false)
 
 const name = computed(() => detail.value?.name || '限时活动')
 const tagText = computed(() => detail.value?.tag || '活动')
@@ -81,7 +87,10 @@ async function load() {
   if (!id.value) return
   loading.value = true
   try {
-    detail.value = await h5Api.campaignDetail(id.value)
+    const d: any = await h5Api.campaignDetail(id.value)
+    detail.value = d
+    // 后端可能在 detail 中返回 claimed 字段；这里也兼容 memberClaimed
+    isClaimed.value = !!(d && (d.claimed || d.memberClaimed))
   } catch {
     detail.value = null
   } finally {
@@ -92,9 +101,13 @@ async function load() {
 async function onJoin() {
   const d = detail.value
   if (!d) return
+  if (isClaimed.value) return
   if (d.couponId) {
     try {
       await h5Api.claimCoupon(d.couponId)
+      isClaimed.value = true
+      // 重新拉取详情，更新领取状态/剩余库存
+      try { await load() } catch {/* 静默失败：本地标志位已足够 */}
       showToast('领取成功，请到「我的券」查看')
     } catch {
       showToast('领取失败，请稍后再试')
@@ -173,5 +186,13 @@ onMounted(load)
   cursor: pointer;
   font-family: inherit;
   z-index: 5;
+  transition: all var(--dur) var(--ease);
+}
+.join-btn.claimed,
+.join-btn:disabled {
+  background: var(--muted-2);
+  color: #fff;
+  cursor: not-allowed;
+  letter-spacing: 0.32em;
 }
 </style>
