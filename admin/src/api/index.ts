@@ -231,3 +231,37 @@ export const agentsApi = {
   remove: (id: number) => request.delete<any, null>(`/agents/${id}`),
   stats: (id: number) => request.get<any, any>(`/agents/${id}/stats`)
 }
+
+// ============ 门店点餐 ============
+export const diningApi = {
+  // 桌台
+  tables: (storeId: number) => request.get<any, any[]>('/dining/tables', { params: { storeId } }),
+  saveTable: (data: any) => request.post<any, any>('/dining/tables', data),
+  removeTable: (id: number) => request.delete<any, null>(`/dining/tables/${id}`),
+  occupyTable: (id: number) => request.post<any, any>(`/dining/tables/${id}/occupy`),
+  freeTable: (id: number) => request.post<any, any>(`/dining/tables/${id}/free`),
+  qrcode: (id: number) => request.post<any, any>(`/dining/tables/${id}/qrcode`),
+  // 菜单分类
+  categories: (storeId: number) => request.get<any, any[]>('/dining/categories', { params: { storeId } }),
+  saveCategory: (data: any) => request.post<any, any>('/dining/categories', data),
+  removeCategory: (id: number) => request.delete<any, null>(`/dining/categories/${id}`),
+  bindProducts: (categoryId: number, productIds: number[]) =>
+    request.post<any, any>(`/dining/categories/${categoryId}/products`, { productIds }),
+  // 厨房工单
+  kitchenOrders: (storeId: number, status?: string) =>
+    request.get<any, any[]>('/dining/kitchen-orders', { params: { storeId, status } }),
+  updateKitchenStatus: (id: number, status: string) =>
+    request.post<any, any>('/dining/kitchen-orders/{id}/status', { status })
+}
+
+// ============ 线上商城 ============
+export const mallApi = {
+  categories: () => request.get<any, any[]>('/mall/categories'),
+  saveCategory: (data: any) => request.post<any, any>('/mall/categories', data),
+  removeCategory: (id: number) => request.delete<any, null>(`/mall/categories/${id}`),
+  bindProducts: (categoryId: number, productIds: number[]) =>
+    request.post<any, any>(`/mall/categories/${categoryId}/products`, { productIds }),
+  orders: (params: any) => request.get<any, any>('/mall/orders', { params }),
+  updateTracking: (orderId: number, data: any) =>
+    request.put<any, any>(`/mall/orders/${orderId}/tracking`, data)
+}

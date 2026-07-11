@@ -59,7 +59,31 @@ const routes: RouteRecordRaw[] = [
     path: '/mall',
     name: 'Mall',
     component: () => import('@/views/Mall.vue'),
-    meta: { title: '积分商城' }
+    meta: { title: '线上商城', public: true }
+  },
+  {
+    path: '/mall/product/:id',
+    name: 'MallProduct',
+    component: () => import('@/views/MallProduct.vue'),
+    meta: { title: '商品详情', public: true }
+  },
+  {
+    path: '/mall/cart',
+    name: 'MallCart',
+    component: () => import('@/views/MallCart.vue'),
+    meta: { title: '购物车' }
+  },
+  {
+    path: '/mall/checkout',
+    name: 'MallCheckout',
+    component: () => import('@/views/MallCheckout.vue'),
+    meta: { title: '确认订单' }
+  },
+  {
+    path: '/mall/orders',
+    name: 'MallOrders',
+    component: () => import('@/views/MallOrders.vue'),
+    meta: { title: '商城订单' }
   },
   {
     path: '/my-orders',
@@ -96,6 +120,12 @@ const routes: RouteRecordRaw[] = [
     name: 'Referral',
     component: () => import('@/views/Referral.vue'),
     meta: { title: '邀请有礼' }
+  },
+  {
+    path: '/dining',
+    name: 'Dining',
+    component: () => import('@/views/Dining.vue'),
+    meta: { title: '扫码点餐', public: true }
   }
 ]
 

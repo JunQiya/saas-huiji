@@ -142,7 +142,10 @@ const menuGroups = [
       { path: '/dashboard', title: '仪表盘', icon: 'DataLine' },
       { path: '/pos', title: '收银台', icon: 'Cashier' },
       { path: '/products', title: '商品服务', icon: 'Goods' },
-      { path: '/orders', title: '订单流水', icon: 'List' }
+      { path: '/orders', title: '订单流水', icon: 'List' },
+      { path: '/dining-tables', title: '桌台管理', icon: 'Grid' },
+      { path: '/kitchen-orders', title: '厨房工单', icon: 'Food' },
+      { path: '/mall-admin', title: '线上商城', icon: 'Shop' }
     ]
   },
   {
@@ -191,6 +194,9 @@ const crumbs = computed(() => {
     '/pos': '收银台',
     '/products': '商品服务',
     '/orders': '订单流水',
+    '/dining-tables': '桌台管理',
+    '/kitchen-orders': '厨房工单',
+    '/mall-admin': '线上商城',
     '/marketing-calendar': '营销日历',
     '/stores': '门店管理',
     '/employees': '员工权限',

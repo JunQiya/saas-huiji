@@ -34,6 +34,24 @@ export const routes: RouteRecordRaw[] = [
         meta: { title: '订单流水', icon: 'List', group: '经营总览' }
       },
       {
+        path: 'dining-tables',
+        name: 'DiningTables',
+        component: () => import('@/views/DiningTables.vue'),
+        meta: { title: '桌台管理', icon: 'Grid', group: '经营总览' }
+      },
+      {
+        path: 'kitchen-orders',
+        name: 'KitchenOrders',
+        component: () => import('@/views/KitchenOrders.vue'),
+        meta: { title: '厨房工单', icon: 'Food', group: '经营总览' }
+      },
+      {
+        path: 'mall-admin',
+        name: 'MallAdmin',
+        component: () => import('@/views/MallAdmin.vue'),
+        meta: { title: '线上商城', icon: 'Shop', group: '经营总览' }
+      },
+      {
         path: 'marketing-calendar',
         name: 'MarketingCalendar',
         component: () => import('@/views/MarketingCalendar.vue'),

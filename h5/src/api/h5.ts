@@ -224,3 +224,52 @@ export const wxApi = {
   // 查询支付状态
   queryPay: (orderId: number) => request.get<WxPayStatusResult>(`/api/wxpay/query/${orderId}`)
 }
+
+// ============ 门店点餐 ============
+export const diningApi = {
+  // 桌台信息（公开）
+  table: (tableId: number | string) => request.get<any>(`/api/h5/dining/table/${tableId}`),
+  // 菜单（公开，按分类分组）
+  menu: (storeId: number | string) => request.get<any[]>('/api/h5/dining/menu', { storeId }),
+  // 提交点餐（需 member token）
+  order: (data: {
+    tableId: number | string
+    storeId: number | string
+    orderType: 'DINE_IN' | 'TAKEOUT'
+    items: { productId: number | string; quantity: number; remark?: string }[]
+    remark?: string
+  }) => request.post<any>('/api/h5/dining/order', data),
+  // 我的点餐订单（需 member token）
+  myOrders: () => request.get<any[]>('/api/h5/dining/my-orders')
+}
+
+// ============ 线上商城 ============
+export const mallApi = {
+  // 商城分类（公开）
+  categories: () => request.get<any[]>('/api/h5/mall/categories'),
+  // 商城商品列表（公开）
+  products: (params: any) => request.get<any>('/api/h5/mall/products', params),
+  // 商品详情（公开）
+  productDetail: (id: number | string) => request.get<any>(`/api/h5/mall/products/${id}`),
+  // 购物车列表（需 member token）
+  cart: () => request.get<any[]>('/api/h5/mall/cart'),
+  // 加购
+  addToCart: (data: { productId: number | string; quantity: number }) =>
+    request.post<any>('/api/h5/mall/cart', data),
+  // 更新数量 / 选中状态
+  updateCart: (cartId: number | string, data: { quantity?: number; selected?: boolean }) =>
+    request.put<any>(`/api/h5/mall/cart/${cartId}`, data),
+  // 移除购物车项（按商品 ID）
+  removeFromCart: (productId: number | string) =>
+    request.delete<null>(`/api/h5/mall/cart/${productId}`),
+  // 清空购物车
+  clearCart: () => request.post<null>('/api/h5/mall/cart/clear'),
+  // 购物车汇总
+  cartSummary: () => request.get<any>('/api/h5/mall/cart/summary'),
+  // 结算下单
+  checkout: (data: any) => request.post<any>('/api/h5/mall/checkout', data),
+  // 我的商城订单
+  myOrders: (params: any) => request.get<any>('/api/h5/mall/my-orders', params),
+  // 商城订单详情
+  orderDetail: (id: number | string) => request.get<any>(`/api/h5/mall/orders/${id}`)
+}
