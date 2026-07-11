@@ -65,4 +65,12 @@ public class Member extends BaseEntity {
 
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
+
+    /** 微信 openid */
+    @Column(name = "wx_openid")
+    private String wxOpenid;
+
+    /** 微信头像 */
+    @Column(name = "wx_head_img_url", length = 512)
+    private String wxHeadImgUrl;
 }

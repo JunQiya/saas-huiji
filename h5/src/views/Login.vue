@@ -91,6 +91,15 @@
           {{ loading ? '登录中…' : '登 录' }}
         </button>
 
+        <div class="divider-poem">
+          <span class="dp-text">或</span>
+        </div>
+
+        <button class="wx-btn" @click="onWxLogin">
+          <span class="wx-icon">微</span>
+          <span>微信登录</span>
+        </button>
+
         <div class="agreement">
           登录即代表同意
           <span class="agree-link">《服务协议》</span>
@@ -105,12 +114,13 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { showToast } from 'vant'
 import { h5Api } from '@/api/h5'
 import { useMemberStore } from '@/stores/member'
 
 const router = useRouter()
+const route = useRoute()
 const memberStore = useMemberStore()
 const phone = ref('')
 const code = ref('')
@@ -158,6 +168,26 @@ async function onLogin() {
   } finally {
     loading.value = false
   }
+}
+
+// 获取租户 ID：优先 URL 参数，其次 localStorage，默认 1
+function getTenantId(): string {
+  const fromUrl = new URLSearchParams(window.location.search).get('tenantId')
+  if (fromUrl) {
+    localStorage.setItem('tenantId', fromUrl)
+    return fromUrl
+  }
+  return localStorage.getItem('tenantId') || '1'
+}
+
+// 微信授权登录：跳转到后端 OAuth 入口，由后端 302 到微信授权页
+function onWxLogin() {
+  const tenantId = getTenantId()
+  const redirect = window.location.href
+  // state 作为透传参数，登录成功后 WxLogin 页面用它决定跳转目标
+  const state = (route.query.redirect as string) || '/home'
+  const oauthUrl = `/api/wx/oauth/${tenantId}?redirect=${encodeURIComponent(redirect)}&state=${encodeURIComponent(state)}`
+  window.location.href = oauthUrl
 }
 
 onMounted(() => {
@@ -306,6 +336,38 @@ onMounted(() => {
 .submit-btn:hover:not(:disabled) { transform: scale(1.01); background: #2e4863; }
 .submit-btn:active:not(:disabled) { transform: scale(0.99); }
 .submit-btn:disabled { background: var(--muted-2); cursor: not-allowed; }
+
+/* 微信登录按钮 — 低饱和绿，不抢主按钮视觉 */
+.wx-btn {
+  height: 44px;
+  background: rgba(7, 193, 96, 0.06);
+  border: 1px solid rgba(7, 193, 96, 0.22);
+  border-radius: var(--r);
+  color: #2e7d4f;
+  font-size: 14px;
+  font-family: var(--font-serif);
+  letter-spacing: 0.16em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all var(--dur) var(--ease-out);
+}
+.wx-btn:active { transform: scale(0.99); background: rgba(7, 193, 96, 0.10); }
+.wx-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px; height: 20px;
+  background: #07c160;
+  color: #fff;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--font-ui);
+  letter-spacing: 0;
+}
 
 .agreement {
   font-size: 11px; color: var(--muted);

@@ -117,6 +117,7 @@ import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { h5Api } from '@/api/h5'
 import { useMemberStore } from '@/stores/member'
+import { initWxSdk, wxShare } from '@/utils/wx-sdk'
 import BlogHeader from '@/components/BlogHeader.vue'
 import MemberCard from '@/components/MemberCard.vue'
 import TabBar from '@/components/TabBar.vue'
@@ -179,7 +180,20 @@ async function loadProfile() {
   } catch {/* */}
 }
 
-onMounted(loadProfile)
+// 初始化微信 JS-SDK 并设置默认分享内容（非微信环境静默失败）
+async function initWx() {
+  try {
+    await initWxSdk()
+    wxShare('星河·会记', '会员卡 · 优惠券 · 积分商城', window.location.href, '')
+  } catch {
+    // 非微信环境或签名失败，不影响页面正常使用
+  }
+}
+
+onMounted(() => {
+  loadProfile()
+  initWx()
+})
 </script>
 
 <style scoped>

@@ -51,6 +51,10 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/login",
                                 "/api/h5/**",
+                                "/api/wx/oauth/**",
+                                "/api/wx/callback",
+                                "/api/wx/jssdk",
+                                "/api/wxpay/**",
                                 "/h2-console/**",
                                 "/error"
                         ).permitAll()

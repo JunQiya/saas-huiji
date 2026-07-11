@@ -215,3 +215,19 @@ export const referralsApi = {
   adminStats: (memberId: number) => request.get<any, any>(`/referrals/admin/stats?memberId=${memberId}`),
   adminBind: (code: string) => request.post<any, any>('/referrals/admin/bind', { code })
 }
+
+// ============ 微信公众号 ============
+export const wxAccountApi = {
+  get: () => request.get<any, any>('/wx/account'),
+  save: (data: any) => request.put<any, any>('/wx/account', data),
+  test: () => request.get<any, any>('/wx/account/test')
+}
+
+// ============ 代理商 ============
+export const agentsApi = {
+  list: () => request.get<any, any[]>('/agents'),
+  create: (data: any) => request.post<any, any>('/agents', data),
+  update: (id: number, data: any) => request.put<any, any>(`/agents/${id}`, data),
+  remove: (id: number) => request.delete<any, null>(`/agents/${id}`),
+  stats: (id: number) => request.get<any, any>(`/agents/${id}/stats`)
+}

@@ -166,6 +166,7 @@ const menuGroups = [
     items: [
       { path: '/stores', title: '门店管理', icon: 'Shop' },
       { path: '/employees', title: '员工权限', icon: 'UserFilled' },
+      { path: '/agents', title: '代理商', icon: 'Connection' },
       { path: '/audit', title: '操作审计', icon: 'Document' }
     ]
   },
@@ -174,6 +175,7 @@ const menuGroups = [
     items: [
       { path: '/messages', title: '消息中心', icon: 'ChatLineRound' },
       { path: '/reports', title: '报表中心', icon: 'DataAnalysis' },
+      { path: '/wx-account', title: '微信公众号', icon: 'ChatDotRound' },
       { path: '/settings', title: '系统设置', icon: 'Setting' }
     ]
   }
@@ -196,7 +198,9 @@ const crumbs = computed(() => {
     '/settings': '系统设置',
     '/messages': '消息中心',
     '/reports': '报表中心',
-    '/referrals': '推荐裂变'
+    '/referrals': '推荐裂变',
+    '/agents': '代理商',
+    '/wx-account': '微信公众号'
   }
   return [map[route.path] || ''].filter(Boolean)
 })

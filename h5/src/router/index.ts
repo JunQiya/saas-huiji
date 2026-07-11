@@ -14,6 +14,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '登录', public: true }
   },
   {
+    path: '/wx-login',
+    name: 'WxLogin',
+    component: () => import('@/views/WxLogin.vue'),
+    meta: { public: true, title: '登录中' }
+  },
+  {
     path: '/home',
     name: 'Home',
     component: () => import('@/views/Home.vue'),

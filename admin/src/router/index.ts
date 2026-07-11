@@ -82,6 +82,12 @@ export const routes: RouteRecordRaw[] = [
         meta: { title: '员工管理', icon: 'Avatar', group: '组织与运营' }
       },
       {
+        path: 'agents',
+        name: 'Agents',
+        component: () => import('@/views/Agents.vue'),
+        meta: { title: '代理商', icon: 'Connection', group: '组织与运营' }
+      },
+      {
         path: 'audit',
         name: 'Audit',
         component: () => import('@/views/Audit.vue'),
@@ -110,6 +116,12 @@ export const routes: RouteRecordRaw[] = [
         name: 'Settings',
         component: () => import('@/views/Settings.vue'),
         meta: { title: '系统设置', icon: 'Setting', group: '系统' }
+      },
+      {
+        path: 'wx-account',
+        name: 'WxAccount',
+        component: () => import('@/views/WxAccount.vue'),
+        meta: { title: '微信公众号', icon: 'ChatDotRound', group: '系统' }
       }
     ]
   },

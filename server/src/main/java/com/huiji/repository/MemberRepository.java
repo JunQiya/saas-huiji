@@ -17,6 +17,9 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     Optional<Member> findByPhoneAndTenantIdAndDeletedFalse(String phone, Long tenantId);
 
+    /** 微信授权登录: 按 openid 查找会员 */
+    Optional<Member> findByWxOpenidAndTenantIdAndDeletedFalse(String wxOpenid, Long tenantId);
+
     /** H5 登录: 按手机号跨租户查找(演示单租户场景) */
     Optional<Member> findFirstByPhoneAndDeletedFalseOrderByIdAsc(String phone);
 

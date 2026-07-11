@@ -162,6 +162,26 @@ public class OrderService {
         return detail(order.getId());
     }
 
+    /** 微信支付回调标记已支付, 无需登录上下文 */
+    @Transactional
+    public void markPaidByWxNotify(String orderNo, String transactionId) {
+        Order order = orderRepository.findByOrderNoAndDeletedFalse(orderNo)
+                .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "订单不存在: " + orderNo));
+        if ("PAID".equals(order.getStatus())) {
+            return;
+        }
+        if (!"PENDING".equals(order.getStatus())) {
+            throw new BizException(ErrorCode.BIZ_ERROR, "订单状态不可支付: " + order.getStatus());
+        }
+        order.setPayMethod("WECHAT");
+        order.setStatus("PAID");
+        order.setPaidAt(LocalDateTime.now());
+        long payable = order.getTotalAmount() - (order.getDiscountAmount() == null ? 0L : order.getDiscountAmount());
+        order.setPaidAmount(payable);
+        orderRepository.save(order);
+        auditHelper.record("微信支付回调", "order:" + order.getOrderNo(), transactionId);
+    }
+
     @Transactional
     public Map<String, Object> pay(Long id, OrderDto.PayRequest req) {
         LoginUser lu = LoginUserHolder.current();

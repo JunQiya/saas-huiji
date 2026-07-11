@@ -50,4 +50,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Object[]> todayStats(@Param("tenantId") Long tenantId,
                               @Param("start") LocalDateTime start,
                               @Param("end") LocalDateTime end);
+
+    /** 多租户已支付订单总金额(分), 用于代理商业绩统计 */
+    @Query("select coalesce(sum(o.paidAmount),0) from Order o where o.tenantId in :tenantIds " +
+            "and o.status = 'PAID' and o.deleted = false")
+    Long sumPaidByTenantIds(@Param("tenantIds") List<Long> tenantIds);
 }

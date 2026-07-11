@@ -189,3 +189,38 @@ export const referralApi = {
   list: () => request.get<any>('/api/h5/referral/list'),
   bind: (code: string) => request.post<any>('/api/h5/referral/bind', { code })
 }
+
+
+// ============ 微信 ============
+// JS-SDK 签名响应
+export interface WxJsSdkSignature {
+  appId: string
+  timestamp: string
+  nonceStr: string
+  signature: string
+}
+
+// 微信支付下单响应（调起微信内置支付所需参数）
+export interface WxPayParams {
+  timeStamp: string
+  nonceStr: string
+  package: string
+  signType: string
+  paySign: string
+}
+
+// 微信支付状态查询结果
+export interface WxPayStatusResult {
+  status: 'PENDING' | 'PAID' | 'REFUNDED' | 'FAILED'
+  paidAt?: string
+  transactionId?: string
+}
+
+export const wxApi = {
+  // 获取 JS-SDK 签名（需要 member token）
+  jssdk: (url: string) => request.get<WxJsSdkSignature>('/api/wx/jssdk', { url }),
+  // 微信支付下单
+  pay: (orderId: number) => request.post<WxPayParams>(`/api/wxpay/order/${orderId}`),
+  // 查询支付状态
+  queryPay: (orderId: number) => request.get<WxPayStatusResult>(`/api/wxpay/query/${orderId}`)
+}

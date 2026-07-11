@@ -44,6 +44,8 @@ huiji-cors:
 # 是否初始化演示数据(dev 开启, prod 关闭)
 huiji:
   init-data: false
+  # H5 前端域名(微信授权回调后重定向使用), 未配置 WxAccount.domain 时回退到此值
+  h5-domain: http://localhost:5173
 
 logging:
   level:
