@@ -963,7 +963,7 @@ onBeforeUnmount(() => {
 .pager { display: flex; justify-content: flex-end; margin-top: 14px; }
 .recharge-member {
   display: flex; align-items: center; gap: 10px;
-  padding: 10px 12px; background: #faf9f6; border-radius: 8px;
+  padding: 10px 12px; background: var(--surface-2); border-radius: 8px;
 }
 .form-tip { font-size: 12px; color: var(--muted); line-height: 1.4; }
 
@@ -977,7 +977,7 @@ onBeforeUnmount(() => {
   gap: 10px; margin-bottom: 16px;
 }
 .ds-item {
-  background: #faf9f6; border: 1px solid var(--card-border);
+  background: var(--surface-2); border: 1px solid var(--card-border);
   border-radius: 8px; padding: 10px 12px; text-align: center;
 }
 .ds-val { font-size: 16px; font-weight: 600; color: var(--ink); }

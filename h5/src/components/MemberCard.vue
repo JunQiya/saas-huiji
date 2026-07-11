@@ -1,14 +1,5 @@
 <template>
   <div class="member-card" :class="`level-${level}`">
-    <div class="card-decor decor-1" aria-hidden="true"></div>
-    <div class="card-decor decor-2" aria-hidden="true"></div>
-    <svg class="card-stars" viewBox="0 0 200 200" aria-hidden="true">
-      <circle cx="160" cy="40" r="1" fill="#fff" opacity="0.45" />
-      <circle cx="178" cy="70" r="0.8" fill="#fff" opacity="0.35" />
-      <circle cx="180" cy="120" r="1.2" fill="#fff" opacity="0.50" />
-      <circle cx="156" cy="170" r="0.7" fill="#fff" opacity="0.30" />
-      <circle cx="30" cy="180" r="0.8" fill="#fff" opacity="0.32" />
-    </svg>
     <div class="card-content">
       <div class="row-top">
         <div class="brand-mark" aria-hidden="true">
@@ -85,39 +76,12 @@ function formatPhone(p: string) {
   box-shadow: 0 6px 24px rgba(31, 29, 24, 0.18);
   border: 1px solid transparent;
 }
-/* 等级配色（深浅有别，但都去掉了亮亮的高饱和渐变） */
-.member-card.level-1 {
-  background: #8a8578;
-}
-.member-card.level-2 {
-  background: #6b7e8e;
-}
-.member-card.level-3 {
-  background: #4a6583;
-}
-.member-card.level-4 {
-  background: #2e4863;
-  box-shadow: 0 8px 28px rgba(46, 72, 99, 0.30);
-}
+/* 等级配色：深浅有别 */
+.member-card.level-1 { background: #8a8578; }
+.member-card.level-2 { background: #6b7e8e; }
+.member-card.level-3 { background: #4a6583; }
+.member-card.level-4 { background: #2e4863; }
 
-.card-decor {
-  position: absolute; border-radius: 50%;
-  pointer-events: none;
-}
-.decor-1 {
-  width: 220px; height: 220px;
-  top: -80px; right: -60px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.06), transparent 70%);
-}
-.decor-2 {
-  width: 120px; height: 120px;
-  bottom: -30px; left: -30px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.04), transparent 70%);
-}
-.card-stars {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  pointer-events: none;
-}
 .card-content { position: relative; z-index: 1; }
 .row-top { display: flex; align-items: center; gap: 8px; margin-bottom: 22px; }
 .brand-mark {

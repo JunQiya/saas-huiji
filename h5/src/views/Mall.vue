@@ -297,8 +297,8 @@ onActivated(() => { loadCartCount(); reset(); load() })
   height: 108px;
   display: flex; align-items: center; justify-content: center;
 }
-.cover.tone-GOODS { background: linear-gradient(135deg, #6f94b8, #4a6a87); }
-.cover.tone-SERVICE { background: linear-gradient(135deg, #c89d96, #a8736a); }
+.cover.tone-GOODS { background: var(--brand); }
+.cover.tone-SERVICE { background: var(--accent-rose); }
 .cover img { width: 100%; height: 100%; object-fit: cover; }
 .stock-flag {
   position: absolute; top: 8px; right: 8px;
@@ -356,7 +356,7 @@ onActivated(() => { loadCartCount(); reset(); load() })
 }
 .cart-fab {
   bottom: 28px;
-  background: linear-gradient(135deg, #6f94b8, var(--brand-deep));
+  background: var(--brand-deep);
 }
 .orders-fab {
   bottom: 88px;

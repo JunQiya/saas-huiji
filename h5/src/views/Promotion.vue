@@ -7,8 +7,6 @@
 
     <div v-else class="page-padding">
       <div class="hero" :class="`hero-${id}`">
-        <div class="hero-decor decor-1"></div>
-        <div class="hero-decor decor-2"></div>
         <div class="hero-content">
           <div class="hero-tag">{{ tagText }}</div>
           <h1 class="hero-title">{{ name }}</h1>
@@ -35,9 +33,9 @@
           <span class="dot"></span>温馨提示
         </div>
         <ul class="tip-list">
-          <li>活动期间领取的券可在「我的券」中查看</li>
+          <li>领取的券可在「我的券」中查看</li>
           <li>请到店出示券码使用</li>
-          <li>最终解释权归星河·会记所有</li>
+          <li>最终解释权归门店所有</li>
         </ul>
       </div>
 
@@ -62,7 +60,7 @@ const detail = ref<CampaignDetail | null>(null)
 
 const name = computed(() => detail.value?.name || '限时活动')
 const tagText = computed(() => detail.value?.tag || '活动')
-const subText = computed(() => detail.value?.subtitle || '星河·会记祝你消费愉快')
+const subText = computed(() => detail.value?.subtitle || '请到店出示券码使用')
 const ruleText = computed(() => detail.value?.rules || '')
 const timeText = computed(() => {
   const d = detail.value
@@ -122,15 +120,11 @@ onMounted(load)
   overflow: hidden;
   margin-bottom: 16px;
   color: #fff;
-  background: linear-gradient(135deg, #5a7d9f 0%, #4a6a87 100%);
-  box-shadow: 0 6px 20px rgba(74, 106, 135, 0.20);
+  background: var(--brand);
 }
-.hero-1 { background: linear-gradient(135deg, #b88780 0%, #9c6a5a 100%); box-shadow: 0 6px 20px rgba(184, 135, 128, 0.22); }
-.hero-2 { background: linear-gradient(135deg, #7e9a8a 0%, #5b7868 100%); box-shadow: 0 6px 20px rgba(126, 154, 138, 0.22); }
-.hero-3 { background: linear-gradient(135deg, #b8825a 0%, #9c6a45 100%); box-shadow: 0 6px 20px rgba(184, 130, 90, 0.22); }
-.hero-decor { position: absolute; border-radius: 50%; pointer-events: none; }
-.decor-1 { width: 220px; height: 220px; top: -80px; right: -50px; background: radial-gradient(circle, rgba(255, 255, 255, 0.18), transparent 60%); }
-.decor-2 { width: 140px; height: 140px; bottom: -60px; left: -30px; background: radial-gradient(circle, rgba(255, 255, 255, 0.08), transparent 60%); }
+.hero-1 { background: var(--accent-rose); }
+.hero-2 { background: var(--success); }
+.hero-3 { background: var(--accent-clay); }
 .hero-content { position: relative; padding: 24px 22px; z-index: 1; }
 .hero-tag {
   display: inline-block;
@@ -178,9 +172,6 @@ onMounted(load)
   letter-spacing: 0.32em;
   cursor: pointer;
   font-family: inherit;
-  box-shadow: 0 6px 18px rgba(74, 106, 135, 0.30);
-  transition: all var(--dur) var(--ease);
   z-index: 5;
 }
-.join-btn:active { transform: scale(0.99); }
 </style>

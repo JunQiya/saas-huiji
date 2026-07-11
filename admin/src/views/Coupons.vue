@@ -704,10 +704,10 @@ onBeforeUnmount(() => {
   width: 6px;
   flex-shrink: 0;
 }
-.type-FULL_CUT { background: linear-gradient(180deg, #6f94b8, #5d82a8); }
-.type-PERCENT { background: linear-gradient(180deg, #b8a16a, #9c8754); }
-.type-EXPERIENCE { background: linear-gradient(180deg, #7e9a8a, #688272); }
-.type-BIRTHDAY { background: linear-gradient(180deg, #c08574, #a56e5f); }
+.type-FULL_CUT { background: var(--brand); }
+.type-PERCENT { background: var(--warning); }
+.type-EXPERIENCE { background: var(--success); }
+.type-BIRTHDAY { background: var(--accent-rose); }
 
 .coupon-body { padding: 14px 16px 12px; flex: 1; }
 .coupon-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
@@ -739,7 +739,7 @@ onBeforeUnmount(() => {
 .form-right {
   flex: 1;
   padding: 18px 14px;
-  background: #faf9f6;
+  background: var(--surface-2);
   border-radius: var(--radius-md);
   display: flex; flex-direction: column; align-items: center;
 }
@@ -750,19 +750,12 @@ onBeforeUnmount(() => {
 /* 展示码弹窗 */
 .display-card {
   position: relative;
-  border-radius: 16px;
+  border-radius: var(--r-lg);
   overflow: hidden;
   min-height: 380px;
-  background: linear-gradient(140deg, #6f94b8 0%, #4a6a87 100%);
+  background: var(--brand);
   color: #fff;
   padding: 28px 24px;
-}
-.display-bg {
-  position: absolute; inset: 0;
-  background:
-    radial-gradient(circle at 18% 16%, rgba(255,255,255,0.10), transparent 40%),
-    radial-gradient(circle at 82% 84%, rgba(255,255,255,0.06), transparent 40%);
-  pointer-events: none;
 }
 .display-content { position: relative; z-index: 1; text-align: center; }
 .display-status {
@@ -801,7 +794,7 @@ onBeforeUnmount(() => {
   width: 100%; height: 100%;
 }
 .qr-cell { background: transparent; }
-.qr-cell.on { background: #2f322e; }
+.qr-cell.on { background: var(--ink); }
 .display-foot { font-size: 12px; opacity: 0.85; margin-top: 10px; }
 .display-actions { margin-top: 18px; display: flex; justify-content: center; gap: 8px; }
 .display-actions .el-button { background: rgba(255,255,255,0.18); color: #fff; border-color: rgba(255,255,255,0.25); }
@@ -810,7 +803,7 @@ onBeforeUnmount(() => {
 .c-name { font-size: 13px; color: var(--ink); font-weight: 500; }
 .grant-coupon {
   display: flex; align-items: center; gap: 10px;
-  padding: 10px 12px; background: #faf9f6; border-radius: 8px;
+  padding: 10px 12px; background: var(--surface-2); border-radius: 8px;
 }
 .pager { display: flex; justify-content: flex-end; margin-top: 14px; }
 </style>

@@ -1,64 +1,18 @@
 <template>
   <div class="login-page">
-    <!-- 左侧装饰区（星座 + 寄语） -->
+    <!-- 左侧品牌区 -->
     <div class="login-left">
-      <svg class="starfield" viewBox="0 0 600 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-        <g class="stars">
-          <circle cx="60" cy="80" r="1.2" fill="var(--brand-ink)" opacity="0.30" />
-          <circle cx="180" cy="140" r="0.8" fill="var(--brand-ink)" opacity="0.25" />
-          <circle cx="320" cy="100" r="1" fill="var(--brand-ink)" opacity="0.30" />
-          <circle cx="480" cy="220" r="1.2" fill="var(--brand-ink)" opacity="0.32" />
-          <circle cx="120" cy="320" r="0.8" fill="var(--brand-ink)" opacity="0.22" />
-          <circle cx="380" cy="380" r="1" fill="var(--brand-ink)" opacity="0.28" />
-          <circle cx="240" cy="480" r="0.9" fill="var(--brand-ink)" opacity="0.26" />
-          <circle cx="500" cy="540" r="1.1" fill="var(--brand-ink)" opacity="0.30" />
-          <circle cx="80" cy="620" r="0.9" fill="var(--brand-ink)" opacity="0.24" />
-          <circle cx="320" cy="700" r="1" fill="var(--brand-ink)" opacity="0.28" />
-          <circle cx="450" cy="760" r="0.7" fill="var(--brand-ink)" opacity="0.20" />
-        </g>
-        <g class="constellation" stroke="var(--brand-ink)" stroke-width="0.6" fill="none" opacity="0.45">
-          <line x1="120" y1="320" x2="240" y2="480" />
-          <line x1="240" y1="480" x2="380" y2="380" />
-          <line x1="380" y1="380" x2="500" y2="540" />
-        </g>
-        <g class="stars-emphasis">
-          <circle cx="120" cy="320" r="2" fill="var(--brand-deep)" />
-          <circle cx="240" cy="480" r="2.6" fill="var(--brand-deep)" />
-          <circle cx="380" cy="380" r="2" fill="var(--brand-deep)" />
-          <circle cx="500" cy="540" r="2" fill="var(--brand-deep)" />
-        </g>
-      </svg>
-
       <div class="left-content">
         <div class="brand-row">
-          <div class="brand-mark">
-            <svg viewBox="0 0 36 36" width="36" height="36">
-              <circle cx="9" cy="9" r="0.8" fill="var(--brand-deep)" opacity="0.4" />
-              <circle cx="27" cy="6" r="0.7" fill="var(--brand-deep)" opacity="0.32" />
-              <circle cx="30" cy="22" r="0.8" fill="var(--brand-deep)" opacity="0.36" />
-              <circle cx="7" cy="28" r="0.7" fill="var(--brand-deep)" opacity="0.28" />
-              <g stroke="var(--brand-deep)" stroke-width="0.7" opacity="0.5" fill="none">
-                <line x1="13" y1="14" x2="18" y2="20" />
-                <line x1="18" y1="20" x2="23" y2="14" />
-                <line x1="18" y1="20" x2="18" y2="26" />
-              </g>
-              <circle cx="13" cy="14" r="1.6" fill="var(--brand-deep)" />
-              <circle cx="23" cy="14" r="1.6" fill="var(--brand-deep)" />
-              <circle cx="18" cy="20" r="2.2" fill="var(--brand-deep)" />
-              <circle cx="18" cy="26" r="1.2" fill="var(--brand-deep)" opacity="0.7" />
-            </svg>
-          </div>
+          <div class="brand-mark">星</div>
           <div class="brand-text">
             <div class="brand-name">星河·会记</div>
-            <div class="brand-sub">HUIJI · 夜读手记</div>
+            <div class="brand-sub">HUIJI · 会员经营</div>
           </div>
         </div>
 
-        <h1 class="slogan">
-          {{ slogan }}
-        </h1>
-        <div class="slogan-divider"></div>
-        <p class="slogan-sub">在细水长流的经营里，<br />记住每一位会员的故事。</p>
+        <h1 class="slogan">{{ slogan }}</h1>
+        <p class="slogan-sub">在细水长流的经营里，记住每一位会员的故事。</p>
 
         <div v-if="!isProd" class="bottom-tip">
           <span class="dot"></span>
@@ -92,10 +46,7 @@
         </el-form>
 
         <div class="tip-card">
-          <div class="tip-label">
-            <span class="tip-icon">✦</span>
-            <span>今日营业小贴士</span>
-          </div>
+          <div class="tip-label">今日营业小贴士</div>
           <div class="tip-text">{{ todayTip }}</div>
         </div>
       </div>
@@ -126,20 +77,16 @@ const loading = ref(false)
 const isProd = import.meta.env.PROD
 
 const slogans = [
-  '记得星河，也记得你',
-  '经营从每一次回访开始',
-  '把每一位会员，妥帖地安放',
-  '慢慢来，比较快',
-  '细水长流，是最好的生意',
-  '今天的回访，明天的回头客'
+  '记住每一位会员',
+  '细水长流的经营',
+  '让回访有迹可循'
 ]
 const slogan = slogans[Math.floor(Math.random() * slogans.length)]
 
 const tips = [
   '节后 7 天内回访的会员，复购率比平时高出 32%',
-  '沉睡 60 天以上的会员，发一张小额代金券往往能唤醒',
-  '生日券提前 3 天发放，比生日当天更显心意',
-  '同一时段发送营销短信，打开率最高',
+  '沉睡 60 天以上的会员，小额代金券往往能唤醒',
+  '生日券提前 3 天发放，更显心意',
   '下午 4-6 点的优惠券领取率高于早高峰'
 ]
 const todayTip = tips[Math.floor(Math.random() * tips.length)]
@@ -168,18 +115,11 @@ async function submit() {
 .login-left {
   position: relative;
   width: 48%;
-  background:
-    radial-gradient(circle at 20% 22%, rgba(90, 122, 156, 0.15), transparent 42%),
-    radial-gradient(circle at 80% 78%, rgba(139, 126, 163, 0.10), transparent 48%),
-    linear-gradient(140deg, #f5f4ef 0%, #ecedef 60%, #e6e8ec 100%);
+  background: var(--page-bg);
+  border-right: 1px solid var(--line);
   display: flex; align-items: center; justify-content: center;
   overflow: hidden;
 }
-.starfield { position: absolute; inset: 0; width: 100%; height: 100%; }
-.stars circle, .stars-emphasis circle { animation: x-twinkle 4.5s ease-in-out infinite; }
-.stars circle:nth-child(2n), .stars-emphasis circle:nth-child(2n) { animation-delay: 0.8s; }
-.stars circle:nth-child(3n), .stars-emphasis circle:nth-child(3n) { animation-delay: 1.6s; }
-.stars circle:nth-child(5n), .stars-emphasis circle:nth-child(5n) { animation-delay: 2.4s; }
 
 .left-content {
   position: relative; z-index: 2;
@@ -190,7 +130,16 @@ async function submit() {
   display: flex; align-items: center; gap: 12px;
   margin-bottom: 64px;
 }
-.brand-mark { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; }
+.brand-mark {
+  width: 38px; height: 38px;
+  background: var(--brand);
+  color: #fff;
+  border-radius: var(--r-md);
+  font-family: var(--font-serif);
+  font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  letter-spacing: 0.04em;
+}
 .brand-name {
   font-family: var(--font-serif);
   font-size: 18px; font-weight: 500; color: var(--ink);

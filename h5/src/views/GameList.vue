@@ -100,10 +100,10 @@ onMounted(load)
   overflow: hidden;
   color: #fff;
 }
-.game-card.type-WHEEL .gc-cover { background: #5a7d9f; }
-.game-card.type-SCRATCH .gc-cover { background: #a88366; }
-.game-card.type-EGG .gc-cover { background: #a89466; }
-.game-card.type-SHAKE .gc-cover { background: #8b7ea3; }
+.game-card.type-WHEEL .gc-cover { background: var(--brand); }
+.game-card.type-SCRATCH .gc-cover { background: var(--accent-clay); }
+.game-card.type-EGG .gc-cover { background: var(--warning); }
+.game-card.type-SHAKE .gc-cover { background: var(--accent-twilight); }
 .gc-cover img { width: 100%; height: 100%; object-fit: cover; }
 .gc-body { flex: 1; min-width: 0; }
 .gc-name {

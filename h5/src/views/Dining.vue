@@ -4,7 +4,6 @@
 
     <!-- 桌台信息 -->
     <div v-if="table" class="table-card">
-      <div class="tc-bg"></div>
       <div class="tc-content">
         <div class="tc-top">
           <div class="tc-brand">
@@ -22,7 +21,6 @@
     </div>
     <!-- 门店信息（无桌台时） -->
     <div v-else-if="selectedStoreId" class="table-card">
-      <div class="tc-bg"></div>
       <div class="tc-content">
         <div class="tc-top">
           <div class="tc-brand">
@@ -406,15 +404,8 @@ onActivated(() => {
   margin: 12px 16px 12px;
   border-radius: var(--r-lg);
   overflow: hidden;
-  background: linear-gradient(135deg, #6f94b8 0%, #5a7d9f 55%, #4a6a87 100%);
+  background: var(--brand);
   color: #fff;
-  box-shadow: 0 6px 22px rgba(74, 106, 135, 0.20);
-}
-.tc-bg {
-  position: absolute; top: -60px; right: -40px;
-  width: 160px; height: 160px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(255,255,255,0.14), transparent 60%);
-  pointer-events: none;
 }
 .tc-content { position: relative; z-index: 1; padding: 14px 18px; }
 .tc-top { display: flex; align-items: center; justify-content: space-between; }
@@ -453,7 +444,7 @@ onActivated(() => {
 .sp-cover {
   width: 36px; height: 36px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #5a7d9f, #4a6a87);
+  background: var(--brand);
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
@@ -556,8 +547,8 @@ onActivated(() => {
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
-.pc-cover.tone-goods { background: linear-gradient(135deg, #5a7d9f, #4a6a87); }
-.pc-cover.tone-service { background: linear-gradient(135deg, #c89d96, #a8736a); }
+.pc-cover.tone-goods { background: var(--brand); }
+.pc-cover.tone-service { background: var(--accent-rose); }
 .pc-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .pc-name {
   font-size: 13px; font-weight: 500; color: var(--ink);

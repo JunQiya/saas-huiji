@@ -121,10 +121,10 @@ onActivated(load)
   background-size: 8px 100%;
   background-repeat: repeat-x;
 }
-.grid-top.type-FULL_CUT { background: linear-gradient(135deg, #5a7d9f, #4a6a87); }
-.grid-top.type-PERCENT { background: linear-gradient(135deg, #b8a16a, #9b8550); }
-.grid-top.type-EXPERIENCE { background: linear-gradient(135deg, #7e9a8a, #5b7868); }
-.grid-top.type-BIRTHDAY { background: linear-gradient(135deg, #c89d96, #a8736a); }
+.grid-top.type-FULL_CUT { background: var(--brand); }
+.grid-top.type-PERCENT { background: var(--warning); }
+.grid-top.type-EXPERIENCE { background: var(--success); }
+.grid-top.type-BIRTHDAY { background: var(--accent-rose); }
 .top-amount { font-size: 30px; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
 .top-amount .unit { font-size: 12px; font-weight: 400; margin-left: 2px; }
 .top-amount .unit.gift { font-size: 18px; }

@@ -363,7 +363,7 @@ onUnmounted(() => {
   cursor: pointer;
   transition: all var(--dur) var(--ease-out);
 }
-.submit-btn:hover:not(:disabled) { transform: scale(1.01); background: #2e4863; }
+.submit-btn:hover:not(:disabled) { transform: scale(1.01); background: var(--brand-deep); }
 .submit-btn:active:not(:disabled) { transform: scale(0.99); }
 .submit-btn:disabled { background: var(--muted-2); cursor: not-allowed; }
 

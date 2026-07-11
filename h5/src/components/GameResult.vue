@@ -92,7 +92,8 @@ function onContinue() {
   overflow: hidden;
 }
 .result-box.win {
-  background: linear-gradient(180deg, rgba(184, 154, 90, 0.08), #fff 60%);
+  background: var(--surface);
+  border: 1px solid var(--accent-clay);
 }
 .result-box.miss {
   background: var(--surface);

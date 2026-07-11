@@ -223,8 +223,8 @@ onActivated(() => { load(); loadCartCount() })
   border-radius: var(--r-lg);
   overflow: hidden;
 }
-.hero.tone-GOODS { background: linear-gradient(135deg, #6f94b8, #4a6a87); }
-.hero.tone-SERVICE { background: linear-gradient(135deg, #c89d96, #a8736a); }
+.hero.tone-GOODS { background: var(--brand); }
+.hero.tone-SERVICE { background: var(--accent-rose); }
 .hero img { width: 100%; height: 100%; object-fit: cover; }
 .sold-out-mask {
   position: absolute;

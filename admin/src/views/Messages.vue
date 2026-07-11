@@ -449,8 +449,8 @@ onBeforeUnmount(() => {
   display: inline-block; width: 8px; height: 8px; border-radius: 50%;
   margin-right: 4px; vertical-align: middle;
 }
-.trend-legend .dot-s { background: #6f94b8; }
-.trend-legend .dot-c { background: #b8a16a; }
+.trend-legend .dot-s { background: var(--brand); }
+.trend-legend .dot-c { background: var(--warning); }
 .trend-body {
   display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px;
   height: 110px; align-items: end;
@@ -460,7 +460,7 @@ onBeforeUnmount(() => {
 .bar {
   width: 18px; border-radius: 4px 4px 0 0; transition: height 0.3s ease-out;
 }
-.bar-sent { background: linear-gradient(180deg, #6f94b8, #4a6a87); }
+.bar-sent { background: var(--brand); }
 .col-label { font-size: 11px; color: var(--muted); }
 
 .msg-title { font-size: 13px; color: var(--ink); font-weight: 500; }

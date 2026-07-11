@@ -213,7 +213,7 @@ onMounted(loadAll)
 .week-cell { padding: 6px 8px; color: var(--muted); font-size: 12px; text-align: center; }
 .day-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; padding-top: 4px; }
 .day-cell { min-height: 96px; padding: 6px 8px; cursor: pointer; display: flex; flex-direction: column; }
-.day-cell.other { background: #faf9f6; opacity: 0.5; }
+.day-cell.other { background: var(--surface-2); opacity: 0.5; }
 .day-cell.today .d-num { background: var(--primary-action); color: #fff; }
 .day-cell.selected { border-color: var(--primary-action); }
 .d-head { display: flex; align-items: center; justify-content: space-between; }

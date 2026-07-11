@@ -221,8 +221,8 @@ onActivated(load)
   flex-shrink: 0;
   cursor: pointer;
 }
-.cc-cover.tone-GOODS { background: linear-gradient(135deg, #6f94b8, #4a6a87); }
-.cc-cover.tone-SERVICE { background: linear-gradient(135deg, #c89d96, #a8736a); }
+.cc-cover.tone-GOODS { background: var(--brand); }
+.cc-cover.tone-SERVICE { background: var(--accent-rose); }
 .cc-info { flex: 1; min-width: 0; cursor: pointer; }
 .cc-name {
   font-size: 13.5px; color: var(--ink); font-weight: 500;

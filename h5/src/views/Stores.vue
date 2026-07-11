@@ -128,9 +128,9 @@ onActivated(load)
   color: #fff;
   flex-shrink: 0;
 }
-.store-cover.tone-OPEN { background: linear-gradient(135deg, #5a7d9f, #4a6a87); }
-.store-cover.tone-CLOSED { background: linear-gradient(135deg, #8a8e85, #6c7066); }
-.store-cover.tone-RENOVATING { background: linear-gradient(135deg, #c98a5b, #9c6a45); }
+.store-cover.tone-OPEN { background: var(--brand); }
+.store-cover.tone-CLOSED { background: var(--muted); }
+.store-cover.tone-RENOVATING { background: var(--accent-clay); }
 .store-meta { flex: 1; min-width: 0; }
 .store-name {
   font-size: 14.5px; font-weight: 600; color: var(--ink);
@@ -142,14 +142,14 @@ onActivated(load)
   margin-top: 4px;
   padding: 2px 8px;
   border-radius: 999px;
-  background: var(--success-soft); color: #5b7868;
+  background: var(--success-soft); color: var(--success-deep);
   letter-spacing: 0.04em;
 }
-.store-status .dot { width: 5px; height: 5px; border-radius: 50%; background: #5b7868; }
-.store-status.s-CLOSED { background: rgba(138, 142, 133, 0.12); color: var(--muted); }
+.store-status .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--success); }
+.store-status.s-CLOSED { background: var(--surface-3); color: var(--muted); }
 .store-status.s-CLOSED .dot { background: var(--muted); }
-.store-status.s-RENOVATING { background: var(--warning-soft); color: #8a6f3a; }
-.store-status.s-RENOVATING .dot { background: #8a6f3a; }
+.store-status.s-RENOVATING { background: var(--warning-soft); color: var(--warning-deep); }
+.store-status.s-RENOVATING .dot { background: var(--warning); }
 
 .store-info { padding: 10px 0; border-top: 1px dashed var(--line); }
 .info-row {

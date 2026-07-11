@@ -443,7 +443,7 @@ onBeforeUnmount(() => {
 .rm-chip:active { transform: scale(0.98); }
 .rm-name { font-family: var(--font-serif); font-size: 12px; color: var(--ink); letter-spacing: 0.04em; }
 .rm-phone { font-family: var(--font-num); font-size: 11px; color: var(--muted); letter-spacing: 0.04em; }
-.member-card { margin-top: 8px; padding: 10px 12px; background: #faf9f6; border-radius: 10px; display: flex; flex-direction: column; gap: 4px; }
+.member-card { margin-top: 8px; padding: 10px 12px; background: var(--surface-2); border-radius: 10px; display: flex; flex-direction: column; gap: 4px; }
 .m-row { display: flex; align-items: center; justify-content: space-between; }
 .m-name { font-weight: 600; color: var(--ink); }
 .m-phone { color: var(--muted); font-size: 12px; }

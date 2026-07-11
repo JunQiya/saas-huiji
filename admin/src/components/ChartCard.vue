@@ -65,9 +65,8 @@ const bodyHeight = computed(() => height.value - 64)
   padding: 12px 0;
 }
 .sk-bar {
-  background: linear-gradient(90deg, var(--surface-3) 0%, var(--surface-dim) 50%, var(--surface-3) 100%);
-  background-size: 200% 100%;
+  background: var(--surface-3);
   border-radius: 3px;
-  animation: x-shimmer 1.6s linear infinite;
+  height: 8px;
 }
 </style>

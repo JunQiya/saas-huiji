@@ -8,12 +8,6 @@
     <div v-else>
       <!-- 状态卡 -->
       <div class="status-card" :class="statusClass(order.status)">
-        <svg class="st-stars" viewBox="0 0 200 80" aria-hidden="true">
-          <circle cx="170" cy="20" r="0.8" fill="#fff" opacity="0.4" />
-          <circle cx="180" cy="50" r="0.7" fill="#fff" opacity="0.3" />
-          <circle cx="150" cy="65" r="0.6" fill="#fff" opacity="0.25" />
-          <circle cx="20" cy="20" r="0.7" fill="#fff" opacity="0.3" />
-        </svg>
         <div class="st-content">
           <div class="st-name">{{ statusLabel(order.status) }}</div>
           <div class="st-sub">订单号 {{ order.orderNo }}</div>
@@ -259,15 +253,15 @@ onActivated(load)
   padding: 22px 22px;
   border-radius: var(--r-lg);
   color: #fff;
-  background: #4a6583;
-  box-shadow: 0 6px 20px rgba(74, 101, 131, 0.18);
+  background: var(--brand-deep);
+  box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
-.status-card.success { background: #6a8273; }
-.status-card.warning { background: #a08558; }
-.status-card.danger { background: #a06b5a; }
-.status-card.info { background: #767570; }
-.st-stars { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.status-card.success { background: var(--success); }
+.status-card.warning { background: var(--warning); }
+.status-card.danger { background: var(--danger); }
+.status-card.info { background: var(--muted); }
+.st-stars { display: none; }
 .st-content { position: relative; z-index: 1; }
 .st-name {
   font-family: var(--font-serif);
@@ -374,7 +368,7 @@ onActivated(load)
   color: #fff;
   border-color: transparent;
 }
-.action-btn.primary:active { background: #2e4863; }
+.action-btn.primary:active { background: var(--brand-deep); }
 
 /* 打印专用区（屏幕隐藏） */
 .print-receipt { display: none; }

@@ -222,7 +222,7 @@ onMounted(async () => {
   margin-bottom: 14px;
 }
 .sum-item {
-  background: #faf9f6;
+  background: var(--surface-2);
   border: 1px solid var(--card-border);
   border-radius: 8px;
   padding: 10px 12px;

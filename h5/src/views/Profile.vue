@@ -292,15 +292,14 @@ onActivated(() => {
 .user-wrap { padding: 0 16px 12px; }
 .user-card {
   position: relative;
-  background: #5a7d9f;
+  background: var(--brand);
   color: #fff;
   border-radius: var(--r-lg);
   padding: 18px 20px 16px;
   overflow: hidden;
-  box-shadow: 0 4px 18px rgba(74, 106, 135, 0.14);
 }
 .user-card.lv-1 { background: #8a8e85; }
-.user-card.lv-2 { background: #5a7d9f; }
+.user-card.lv-2 { background: var(--brand); }
 .user-card.lv-3 { background: #4a6a87; }
 .user-card.lv-4 { background: #3a5a76; }
 

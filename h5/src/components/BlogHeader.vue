@@ -3,29 +3,10 @@
     <div v-if="slogan" class="header-slogan">{{ slogan }}</div>
     <div class="header-main">
       <div class="header-left">
-        <div class="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 36 36" width="34" height="34">
-            <!-- 背景小圆点（远星） -->
-            <circle cx="9" cy="9" r="0.8" fill="var(--brand-ink)" opacity="0.35" />
-            <circle cx="27" cy="6" r="0.7" fill="var(--brand-ink)" opacity="0.28" />
-            <circle cx="30" cy="22" r="0.8" fill="var(--brand-ink)" opacity="0.32" />
-            <circle cx="7" cy="28" r="0.7" fill="var(--brand-ink)" opacity="0.25" />
-            <!-- 星座连线 -->
-            <g stroke="var(--brand-ink)" stroke-width="0.6" opacity="0.45" fill="none">
-              <line x1="13" y1="14" x2="18" y2="20" />
-              <line x1="18" y1="20" x2="23" y2="14" />
-              <line x1="18" y1="20" x2="18" y2="26" />
-            </g>
-            <!-- 主星 -->
-            <circle cx="13" cy="14" r="1.6" fill="var(--brand-deep)" />
-            <circle cx="23" cy="14" r="1.6" fill="var(--brand-deep)" />
-            <circle cx="18" cy="20" r="2.2" fill="var(--brand-deep)" />
-            <circle cx="18" cy="26" r="1.2" fill="var(--brand-deep)" opacity="0.7" />
-          </svg>
-        </div>
+        <div class="brand-mark" aria-hidden="true">星</div>
         <div class="brand-text">
           <div class="brand-name">星河·会记</div>
-          <div class="brand-tag">HUIJI · 夜读手记</div>
+          <div class="brand-tag">HUIJI · 会员经营</div>
         </div>
       </div>
       <div class="header-right">
@@ -86,9 +67,15 @@ const today = computed(() => {
   animation: x-fade-in 0.5s var(--ease-out) 0.08s both;
 }
 .brand-mark {
-  width: 34px; height: 34px;
+  width: 36px; height: 36px;
+  background: var(--brand);
+  color: #fff;
+  font-family: var(--font-serif);
+  font-size: 17px;
+  border-radius: var(--r-md);
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
+  letter-spacing: 0.04em;
 }
 .brand-text {
   display: flex; flex-direction: column;

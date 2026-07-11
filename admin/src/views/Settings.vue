@@ -424,7 +424,7 @@ onMounted(() => { loadBasic(); loadPlan(); loadStores(); loadFeatures() })
 .pc-name { font-size: 28px; font-weight: 600; color: var(--primary-action); }
 .pc-meta { color: var(--muted); font-size: 13px; display: flex; gap: 6px; align-items: center; }
 .pc-limits { display: flex; flex-wrap: wrap; gap: 6px; }
-.limit-pill { display: inline-flex; gap: 4px; align-items: center; padding: 4px 10px; background: #faf9f6; border-radius: 999px; font-size: 12px; }
+.limit-pill { display: inline-flex; gap: 4px; align-items: center; padding: 4px 10px; background: var(--surface-2); border-radius: 999px; font-size: 12px; }
 .limit-pill .lp-k { color: var(--muted); }
 .limit-pill .lp-v { color: var(--ink); font-weight: 600; }
 

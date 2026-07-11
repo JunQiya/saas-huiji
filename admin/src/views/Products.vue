@@ -35,7 +35,7 @@
 
     <div v-if="view === 'card'" v-loading="loading" class="product-grid">
       <div v-for="p in list" :key="p.id" class="x-card hoverable product-card">
-        <div class="cover" :style="{ background: coverColor(p.category) }">
+        <div class="cover" :class="`cover-${p.category}`">
           <el-icon class="cover-icon"><component :is="p.category === 'GOODS' ? Box : MagicStick" /></el-icon>
         </div>
         <div class="card-body">
@@ -330,9 +330,7 @@ function yuan(fen: any) {
 }
 
 function coverColor(cat: string) {
-  return cat === 'GOODS'
-    ? 'linear-gradient(135deg, #e7e4dd 0%, #d4cfc4 100%)'
-    : 'linear-gradient(135deg, #dde4ec 0%, #b8c4d2 100%)'
+  return cat === 'GOODS' ? 'var(--accent-clay)' : 'var(--brand)'
 }
 
 onMounted(() => {
@@ -353,8 +351,10 @@ onMounted(() => {
 .cover {
   height: 96px;
   display: flex; align-items: center; justify-content: center;
-  color: rgba(255,255,255,0.85);
+  color: rgba(255,255,255,0.92);
 }
+.cover-GOODS { background: var(--accent-clay); }
+.cover-SERVICE { background: var(--brand); }
 .cover-icon { font-size: 36px; }
 .card-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px; }
 .row-1 { display: flex; align-items: center; justify-content: space-between; }

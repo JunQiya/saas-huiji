@@ -6,13 +6,11 @@
     <div v-else class="ref-page">
       <!-- 推荐码卡 -->
       <div class="code-card">
-        <div class="cc-decor cc-decor-1"></div>
-        <div class="cc-decor cc-decor-2"></div>
         <div class="cc-content">
           <div class="cc-label">我的专属邀请码</div>
           <div class="cc-code">{{ info.code || '—' }}</div>
           <button class="cc-copy" @click="onCopy">复制邀请码</button>
-          <div class="cc-tip">分享给朋友，朋友注册后双向各得 30 元券</div>
+          <div class="cc-tip">分享给朋友，注册后双向各得 30 元券</div>
         </div>
       </div>
 
@@ -181,12 +179,9 @@ onMounted(async () => {
   border-radius: var(--r-lg);
   overflow: hidden;
   margin-bottom: 14px;
-  background: linear-gradient(135deg, #f8f5ec 0%, #efe8d8 100%);
+  background: var(--surface);
   border: 1px solid var(--line);
 }
-.cc-decor { position: absolute; border-radius: 50%; pointer-events: none; }
-.cc-decor-1 { width: 160px; height: 160px; top: -60px; right: -40px; background: radial-gradient(circle, rgba(111, 148, 184, 0.18), transparent 60%); }
-.cc-decor-2 { width: 100px; height: 100px; bottom: -40px; left: -30px; background: radial-gradient(circle, rgba(200, 157, 150, 0.16), transparent 60%); }
 .cc-content { position: relative; padding: 22px 20px 20px; text-align: center; }
 .cc-label { font-size: 11.5px; color: var(--brand-ink); letter-spacing: 0.16em; font-weight: 500; }
 .cc-code {
@@ -205,10 +200,7 @@ onMounted(async () => {
   cursor: pointer;
   font-family: inherit;
   letter-spacing: 0.12em;
-  box-shadow: 0 4px 14px rgba(74, 106, 135, 0.22);
-  transition: all var(--dur) var(--ease);
 }
-.cc-copy:active { transform: scale(0.98); }
 .cc-tip { font-size: 11.5px; color: var(--muted); margin-top: 12px; letter-spacing: 0.04em; }
 
 /* 二维码 */
@@ -260,7 +252,6 @@ onMounted(async () => {
   transition: all var(--dur) var(--ease);
 }
 .bind-btn:disabled { background: var(--muted-2); cursor: not-allowed; }
-.bind-btn:not(:disabled):active { transform: scale(0.99); }
 .bind-tip { font-size: 11px; color: var(--muted); text-align: center; margin-top: 8px; letter-spacing: 0.04em; }
 
 /* 列表 */

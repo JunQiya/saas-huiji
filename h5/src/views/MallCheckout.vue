@@ -446,8 +446,8 @@ onMounted(() => {
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
-.gc-cover.tone-GOODS { background: linear-gradient(135deg, #6f94b8, #4a6a87); }
-.gc-cover.tone-SERVICE { background: linear-gradient(135deg, #c89d96, #a8736a); }
+.gc-cover.tone-GOODS { background: var(--brand); }
+.gc-cover.tone-SERVICE { background: var(--accent-rose); }
 .gc-info { flex: 1; min-width: 0; }
 .gc-name {
   font-size: 13px; color: var(--ink);

@@ -385,10 +385,10 @@ onActivated(() => {
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   gap: 10px;
-  background: linear-gradient(135deg, #faf3e8, #f0e6d6);
+  background: var(--accent-clay-soft);
 }
 .scratch-prize.revealed {
-  background: linear-gradient(135deg, rgba(184, 154, 90, 0.10), rgba(184, 132, 92, 0.08));
+  background: var(--warning-soft);
 }
 .prize-icon {
   color: var(--warning-deep);

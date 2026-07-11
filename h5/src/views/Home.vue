@@ -17,7 +17,7 @@
     </div>
 
     <!-- 4 宫格快捷 -->
-    <div class="grid-card ui-card x-stagger">
+    <div class="grid-card ui-card">
       <div class="grid-item" v-for="(g, i) in grids" :key="i" @click="router.push(g.path)">
         <div class="grid-icon" :class="`ic-${g.tone}`">
           <van-icon :name="g.icon" size="20" />
@@ -128,17 +128,13 @@ const memberStore = useMemberStore()
 const slogans = [
   '慢慢来，会员值得被认真对待',
   '把每一次到店，妥帖安放',
-  '记得星河，也记得你',
-  '细水长流，是最好的生意',
-  '今天的小心意，明天的大回响'
+  '细水长流，是最好的生意'
 ]
 const slogan = slogans[Math.floor(Math.random() * slogans.length)]
 
 const quotes = [
-  { text: '所有温柔的事物，都在缓慢地生长。', from: '今日小语' },
-  { text: '愿你到店时的心情，如你钟爱的那杯茶。', from: '星河·会记' },
-  { text: '细碎日子里的小惊喜，是被记得的证据。', from: '今日小语' },
-  { text: '一束光落在卡面上，正好是你今天的样子。', from: '星河·会记' }
+  { text: '所有温柔的事物，都在缓慢地生长。', from: '今日' },
+  { text: '细碎日子里的小惊喜，是被记得的证据。', from: '今日' }
 ]
 const quote = quotes[Math.floor(Math.random() * quotes.length)]
 
@@ -278,25 +274,10 @@ onMounted(() => {
   transition: transform var(--dur) var(--ease-out);
   min-height: 88px;
 }
-.banner-item:active { transform: scale(0.99); }
-.banner-item::before {
-  content: '';
-  position: absolute; right: -30px; top: -30px;
-  width: 120px; height: 120px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
-}
-.banner-item::after {
-  content: '';
-  position: absolute; left: -40px; bottom: -40px;
-  width: 100px; height: 100px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.04);
-}
 /* 去除高饱和渐变，使用低饱和纯色 */
-.banner-rose { background: #a88580; }
-.banner-brand { background: #5a7d9f; }
-.banner-clay { background: #a88366; }
+.banner-rose { background: var(--accent-rose); }
+.banner-brand { background: var(--brand); }
+.banner-clay { background: var(--accent-clay); }
 .b-tag {
   display: inline-block;
   font-family: var(--font-serif);

@@ -135,10 +135,10 @@ onActivated(load)
   content: ''; position: absolute; right: 0; top: 0; bottom: 0;
   border-right: 2px dashed rgba(255, 255, 255, 0.5);
 }
-.left-stripe.type-FULL_CUT { background: linear-gradient(160deg, #5a7d9f, #4a6a87); }
-.left-stripe.type-PERCENT { background: linear-gradient(160deg, #b8a16a, #9b8550); }
-.left-stripe.type-EXPERIENCE { background: linear-gradient(160deg, #7e9a8a, #5b7868); }
-.left-stripe.type-BIRTHDAY { background: linear-gradient(160deg, #c89d96, #a8736a); }
+.left-stripe.type-FULL_CUT { background: var(--brand); }
+.left-stripe.type-PERCENT { background: var(--warning); }
+.left-stripe.type-EXPERIENCE { background: var(--success); }
+.left-stripe.type-BIRTHDAY { background: var(--accent-rose); }
 .stripe-val { font-size: 26px; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
 .stripe-val .small { font-size: 12px; font-weight: 400; margin-left: 2px; }
 .stripe-val .small.gift { font-size: 16px; }
@@ -162,7 +162,7 @@ onActivated(load)
 .c-status.chip-info { background: rgba(138, 142, 133, 0.14); color: var(--muted); }
 .c-status.chip-danger { background: var(--danger-soft); color: #8a4d3f; }
 .dot { width: 5px; height: 5px; border-radius: 50%; }
-.dot.success { background: #7e9a8a; }
-.dot.info { background: #8a8e85; }
-.dot.danger { background: #c08574; }
+.dot.success { background: var(--success); }
+.dot.info { background: var(--muted); }
+.dot.danger { background: var(--danger); }
 </style>

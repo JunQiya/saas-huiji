@@ -432,7 +432,7 @@ onMounted(() => loadList())
 .sop-meta {
   display: grid; grid-template-columns: repeat(4, 1fr);
   gap: 10px;
-  background: #faf9f6;
+  background: var(--surface-2);
   border-radius: var(--radius-md);
   padding: 14px;
 }
@@ -446,7 +446,7 @@ onMounted(() => loadList())
 .bd-item { display: flex; align-items: center; gap: 10px; font-size: 12px; }
 .bd-key { color: var(--ink-2); width: 80px; flex-shrink: 0; }
 .bd-bar { flex: 1; height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
-.bd-fill { height: 100%; background: linear-gradient(90deg, var(--primary-action), #9bb6d0); border-radius: 3px; }
+.bd-fill { height: 100%; background: var(--brand); border-radius: 3px; }
 .bd-count { color: var(--ink); font-weight: 500; min-width: 36px; text-align: right; }
 
 .sop-flow { display: flex; align-items: stretch; gap: 6px; flex-wrap: wrap; }
@@ -455,7 +455,7 @@ onMounted(() => loadList())
   padding: 10px 14px;
   border: 1px dashed var(--card-border-hover);
   border-radius: var(--radius);
-  background: #faf9f6;
+  background: var(--surface-2);
   flex: 1 1 30%;
   min-width: 180px;
 }
@@ -483,7 +483,7 @@ onMounted(() => loadList())
 .sop-row.type-action { border-color: rgba(111,148,184,0.4); }
 .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
 .stat-item {
-  background: #faf9f6; border: 1px solid var(--card-border);
+  background: var(--surface-2); border: 1px solid var(--card-border);
   border-radius: 8px; padding: 16px; text-align: center;
 }
 .stat-val { font-size: 24px; font-weight: 600; color: var(--ink); }
