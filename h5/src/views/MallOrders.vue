@@ -222,6 +222,7 @@ const tabs = [
   { label: '全部', value: '' },
   { label: '待付款', value: 'PENDING' },
   { label: '已付款', value: 'PAID' },
+  { label: '已发货', value: 'SHIPPED' },
   { label: '已退款', value: 'REFUNDED' },
   { label: '已作废', value: 'VOID' }
 ]
@@ -346,7 +347,13 @@ async function onConfirmReceipt(o: MallOrder) {
 
 function onCopyTracking(o: MallOrder) {
   const no = o.extend?.trackingNo || o.trackingNo || ''
-  if (no) showToast(`物流单号：${no}`)
+  if (!no) { showToast('暂无物流单号'); return }
+  try {
+    navigator.clipboard.writeText(no)
+    showSuccessToast('已复制物流单号：' + no)
+  } catch {
+    showToast('物流单号：' + no)
+  }
 }
 
 function statusText(s: string) {

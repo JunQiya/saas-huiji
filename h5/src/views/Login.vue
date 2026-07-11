@@ -102,8 +102,8 @@
 
         <div class="agreement">
           登录即代表同意
-          <span class="agree-link">《服务协议》</span>
-          <span class="agree-link">《隐私条款》</span>
+          <span class="agree-link" @click="showTerms">《服务协议》</span>
+          <span class="agree-link" @click="showPrivacy">《隐私条款》</span>
         </div>
       </div>
     </div>
@@ -115,7 +115,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { showToast } from 'vant'
+import { showToast, showDialog } from 'vant'
 import { h5Api } from '@/api/h5'
 import { useMemberStore } from '@/stores/member'
 
@@ -198,6 +198,22 @@ function onWxLogin() {
   const state = (route.query.redirect as string) || '/home'
   const oauthUrl = `/api/wx/oauth/${tenantId}?redirect=${encodeURIComponent(redirect)}&state=${encodeURIComponent(state)}`
   window.location.href = oauthUrl
+}
+
+function showTerms() {
+  showDialog({
+    title: '服务协议',
+    message: '欢迎使用星河·会记会员服务。使用本服务即代表您同意以下条款：\n\n1. 本平台提供的会员积分、储值、优惠券等服务仅限本人使用\n2. 储值余额不可提现，不可转让\n3. 积分有效期为 24 个月，过期自动清零\n4. 优惠券请在有效期内使用，过期作废\n5. 我们将保护您的个人隐私信息',
+    confirmButtonText: '我知道了'
+  })
+}
+
+function showPrivacy() {
+  showDialog({
+    title: '隐私条款',
+    message: '我们重视您的隐私：\n\n1. 收集的信息仅用于会员服务（手机号、消费记录）\n2. 未经您同意，不会向第三方共享个人信息\n3. 您有权查看、更正、删除个人信息\n4. 联系方式：xinghe@mail.lxxno.cn',
+    confirmButtonText: '我知道了'
+  })
 }
 
 onMounted(() => {

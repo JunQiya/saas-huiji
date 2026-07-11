@@ -120,12 +120,11 @@ export const h5Api = {
     type?: string
     page?: number
     size?: number
-  }): Promise<TransactionRecord[]> {
-    const data = await request.get<TransactionRecord[] | PageData<TransactionRecord>>(
+  }): Promise<PageData<TransactionRecord>> {
+    return request.get<PageData<TransactionRecord>>(
       '/api/h5/transactions',
       params
     )
-    return pickList(data)
   },
   async stores(): Promise<Store[]> {
     const data = await request.get<Store[] | PageData<Store>>('/api/h5/stores')
@@ -136,6 +135,12 @@ export const h5Api = {
   },
   orderDetail(id: number | string) {
     return request.get<OrderInfo>(`/api/h5/orders/${id}`)
+  },
+  payOrder(id: number | string) {
+    return request.post<any>(`/api/h5/orders/${id}/pay`)
+  },
+  cancelOrder(id: number | string) {
+    return request.post<any>(`/api/h5/orders/${id}/cancel`)
   },
   async activeProducts(category?: string): Promise<Product[]> {
     const data = await request.get<Product[] | PageData<Product>>('/api/h5/products/active', { category })

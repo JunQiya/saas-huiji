@@ -73,10 +73,12 @@ async function load() {
   pending = true
   loading.value = true
   try {
-    const items = await h5Api.transactions({ type: currentType.value || undefined, page: page.value, size: 20 })
+    const res = await h5Api.transactions({ type: currentType.value || undefined, page: page.value, size: 20 })
+    const items = (res as any)?.list || (res as any)?.records || (Array.isArray(res) ? res : [])
+    const total = (res as any)?.total
     list.value.push(...items)
     page.value++
-    if (items.length < 20) {
+    if (items.length < 20 || (total != null && list.value.length >= total)) {
       finished.value = true
     }
   } catch {

@@ -91,7 +91,7 @@ const filtered = computed(() => {
 function pad(n: number) { return n.toString().padStart(2, '0') }
 function toggle(i: number) { active.value = active.value === i ? null : i }
 function callPhone() { window.location.href = 'tel:02163008888' }
-function onlineChat() { showToast('在线客服暂未开放，请电话联系') }
+function onlineChat() { window.location.href = 'mailto:xinghe@mail.lxxno.cn?subject=在线咨询' }
 </script>
 
 <style scoped>

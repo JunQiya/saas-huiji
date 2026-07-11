@@ -80,6 +80,12 @@
 
       <!-- 联系客服 -->
       <div class="footer-actions">
+        <button v-if="order.status === 'PENDING'" class="action-btn primary" @click="onPay">
+          <van-icon name="gold-coin-o" size="14" /> 去支付
+        </button>
+        <button v-if="order.status === 'PENDING'" class="action-btn" @click="onCancel">
+          <van-icon name="cross-o" size="14" /> 取消订单
+        </button>
         <button class="action-btn primary" @click="onContact">
           <van-icon name="service-o" size="14" /> 联系门店
         </button>
@@ -123,7 +129,7 @@
 <script setup lang="ts">
 import { computed, onActivated, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { showToast } from 'vant'
+import { showToast, showSuccessToast, showFailToast, showLoadingToast, showConfirmDialog } from 'vant'
 import { h5Api } from '@/api/h5'
 import NavBar from '@/components/NavBar.vue'
 import EmptyState from '@/components/EmptyState.vue'
@@ -169,6 +175,32 @@ async function load() {
     order.value = await h5Api.orderDetail(id)
   } catch { order.value = null }
   finally { loading.value = false }
+}
+
+async function onPay() {
+  if (!order.value) return
+  try {
+    showLoadingToast({ message: '支付中...', duration: 0 })
+    const res: any = await h5Api.payOrder(order.value.id)
+    order.value = res
+    showSuccessToast('支付成功')
+  } catch {
+    showFailToast('支付失败，请稍后重试')
+  }
+}
+
+async function onCancel() {
+  if (!order.value) return
+  try {
+    await showConfirmDialog({ title: '取消订单', message: '确认取消此订单？' })
+  } catch { return }
+  try {
+    const res: any = await h5Api.cancelOrder(order.value.id)
+    order.value = res
+    showSuccessToast('订单已取消')
+  } catch {
+    showFailToast('取消失败，请稍后重试')
+  }
 }
 
 async function onContact() {

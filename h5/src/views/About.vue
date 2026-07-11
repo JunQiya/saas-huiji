@@ -68,6 +68,7 @@
               <div class="contact-key">服务邮箱</div>
               <div class="contact-val">xinghe@mail.lxxno.cn</div>
             </div>
+            <a :href="`mailto:xinghe@mail.lxxno.cn`" class="contact-action">写信</a>
           </div>
           <div class="contact-row">
             <div class="contact-ic"><van-icon name="location-o" /></div>

@@ -11,6 +11,7 @@ import com.huiji.security.LoginUser;
 import com.huiji.security.LoginUserHolder;
 import com.huiji.security.MemberTokenUtil;
 import com.huiji.service.H5Service;
+import com.huiji.service.MallService;
 import com.huiji.service.OrderService;
 import com.huiji.service.ProductService;
 import io.jsonwebtoken.Claims;
@@ -41,6 +42,7 @@ public class H5Controller {
     private final MemberTokenUtil memberTokenUtil;
     private final OrderService orderService;
     private final ProductService productService;
+    private final MallService mallService;
     private final CampaignRepository campaignRepository;
 
     @PostMapping("/login")
@@ -114,6 +116,30 @@ public class H5Controller {
         bindAsMember(ctx[0], ctx[1]);
         try {
             return Result.success(orderService.memberDetail(id, ctx[0]));
+        } finally {
+            LoginUserHolder.clear();
+        }
+    }
+
+    /** 会员端订单支付(PENDING -> PAID) */
+    @PostMapping("/orders/{id}/pay")
+    public Result<Map<String, Object>> payOrder(HttpServletRequest req, @PathVariable Long id) {
+        long[] ctx = currentMember(req);
+        bindAsMember(ctx[0], ctx[1]);
+        try {
+            return Result.success(mallService.payOrder(ctx[1], ctx[0], id));
+        } finally {
+            LoginUserHolder.clear();
+        }
+    }
+
+    /** 会员端订单取消(仅 PENDING 可取消) */
+    @PostMapping("/orders/{id}/cancel")
+    public Result<Map<String, Object>> cancelOrder(HttpServletRequest req, @PathVariable Long id) {
+        long[] ctx = currentMember(req);
+        bindAsMember(ctx[0], ctx[1]);
+        try {
+            return Result.success(mallService.cancelOrder(ctx[1], ctx[0], id));
         } finally {
             LoginUserHolder.clear();
         }
