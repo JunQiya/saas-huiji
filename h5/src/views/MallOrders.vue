@@ -136,6 +136,19 @@
             <div class="section-title">备注</div>
             <div class="dp-remark muted">{{ detail.remark }}</div>
           </div>
+
+          <div class="dp-actions">
+            <template v-if="detail.status === 'PENDING'">
+              <van-button plain round size="small" class="dp-btn" @click="onCancelOrder(detail)">取消订单</van-button>
+              <van-button type="primary" round size="small" color="var(--brand-deep)" class="dp-btn" @click="onPayOrder(detail)">去支付</van-button>
+            </template>
+            <template v-else-if="detail.status === 'PAID' && (detail.extend?.trackingNo || detail.trackingNo)">
+              <van-button plain round size="small" class="dp-btn" @click="onCopyTracking(detail)">查看物流</van-button>
+            </template>
+            <template v-else-if="detail.status === 'SHIPPED'">
+              <van-button type="primary" round size="small" color="var(--brand-deep)" class="dp-btn" @click="onConfirmReceipt(detail)">确认收货</van-button>
+            </template>
+          </div>
         </template>
       </div>
     </van-popup>
@@ -143,8 +156,9 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onActivated, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { showConfirmDialog, showToast, showSuccessToast } from 'vant'
 import { mallApi } from '@/api/h5'
 import NavBar from '@/components/NavBar.vue'
 import EmptyState from '@/components/EmptyState.vue'
@@ -244,10 +258,72 @@ async function openDetail(o: MallOrder) {
 
 function goMall() { router.push('/mall') }
 
+async function onPayOrder(o: MallOrder) {
+  try {
+    const res: any = await mallApi.payOrder(o.id)
+    if (res?.timeStamp && res?.paySign && typeof (window as any).WeixinJSBridge !== 'undefined') {
+      ;(window as any).WeixinJSBridge.invoke(
+        'getBrandWCPayRequest',
+        {
+          appId: res.appId,
+          timeStamp: res.timeStamp,
+          nonceStr: res.nonceStr,
+          package: res.package,
+          signType: res.signType,
+          paySign: res.paySign
+        },
+        (r: any) => {
+          if (r.err_msg === 'get_brand_wcpay_request:ok') {
+            showSuccessToast('支付成功')
+            detailVisible.value = false
+            load()
+          } else {
+            showToast('支付未完成')
+          }
+        }
+      )
+    } else {
+      showToast({ message: '支付已发起', position: 'top' })
+      detailVisible.value = false
+      load()
+    }
+  } catch {/* */}
+}
+
+async function onCancelOrder(o: MallOrder) {
+  try {
+    await showConfirmDialog({ title: '取消订单', message: '确定要取消该订单吗？' })
+  } catch { return }
+  try {
+    await mallApi.cancelOrder(o.id)
+    showSuccessToast('已取消')
+    detailVisible.value = false
+    load()
+  } catch {/* */}
+}
+
+async function onConfirmReceipt(o: MallOrder) {
+  try {
+    await showConfirmDialog({ title: '确认收货', message: '确认已收到商品吗？' })
+  } catch { return }
+  try {
+    await mallApi.confirmOrder(o.id)
+    showSuccessToast('已确认收货')
+    detailVisible.value = false
+    load()
+  } catch {/* */}
+}
+
+function onCopyTracking(o: MallOrder) {
+  const no = o.extend?.trackingNo || o.trackingNo || ''
+  if (no) showToast(`物流单号：${no}`)
+}
+
 function statusText(s: string) {
   return ({
     PENDING: '待付款',
     PAID: '已付款',
+    SHIPPED: '已发货',
     REFUNDED: '已退款',
     VOID: '已作废'
   } as any)[s] || s || '-'
@@ -256,6 +332,7 @@ function statusChipClass(s: string) {
   return ({
     PENDING: 'warning',
     PAID: 'success',
+    SHIPPED: 'info',
     REFUNDED: 'danger',
     VOID: 'muted'
   } as any)[s] || 'mist'
@@ -272,6 +349,10 @@ function fmt(t: any) {
 
 onMounted(() => {
   if (route.query.highlight) highlightId.value = String(route.query.highlight)
+  load()
+})
+
+onActivated(() => {
   load()
 })
 </script>
@@ -410,4 +491,10 @@ onMounted(() => {
 .di-name { flex: 1; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dp-paid { color: var(--brand-deep); font-size: 16px; font-weight: 600; }
 .dp-remark { font-size: 12.5px; line-height: 1.7; }
+
+.dp-actions {
+  display: flex; justify-content: flex-end; gap: 10px;
+  padding-top: 14px;
+}
+.dp-btn { min-width: 84px; }
 </style>

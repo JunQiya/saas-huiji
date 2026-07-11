@@ -132,7 +132,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import * as echarts from 'echarts'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Plus, RefreshRight, ArrowDown, DataAnalysis } from '@element-plus/icons-vue'
@@ -209,14 +209,20 @@ function drawCharts() {
   // 会员 RFM 分布
   if (rfmEl.value) {
     const c = getChart(rfmEl.value)
+    const emptyOption = { title: { text: '暂无数据', left: 'center', top: 'middle', textStyle: { color: '#b3ad9f', fontSize: 12, fontFamily: 'serif' } }, grid: { show: false }, xAxis: { show: false }, yAxis: { show: false }, series: [] }
     statsApi.rfm().then((d: any) => {
       // 用 RfmStats 的 high/mid/low/dormant 字段构造饼图数据
-      const data = (d && (d.high !== undefined || d.mid !== undefined || d.low !== undefined || d.dormant !== undefined)) ? [
+      const hasData = d && (d.high !== undefined || d.mid !== undefined || d.low !== undefined || d.dormant !== undefined)
+      if (!hasData) {
+        c.setOption(emptyOption)
+        return
+      }
+      const data = [
         { name: '高价值', value: d.high || 0 },
         { name: '活跃', value: d.mid || 0 },
         { name: '沉睡', value: d.low || 0 },
         { name: '流失', value: d.dormant || 0 }
-      ] : [{ name: '高价值', value: 4 }, { name: '活跃', value: 3 }, { name: '沉睡', value: 2 }, { name: '流失', value: 1 }]
+      ]
       c.setOption({
         tooltip: { trigger: 'item', backgroundColor: 'rgba(31,29,24,0.92)', borderWidth: 0, textStyle: { color: '#fff' } },
         legend: { bottom: 0, textStyle: { color: '#6a655c', fontSize: 10, fontFamily: 'serif' } },
@@ -230,11 +236,22 @@ function drawCharts() {
           color: ['#5a7a9c', '#8b7ea3', '#b89692', '#b8845c']
         }]
       })
+    }).catch(() => {
+      c.setOption(emptyOption)
     })
   }
 }
 
 onMounted(loadAll)
+
+onBeforeUnmount(() => {
+  [trendEl.value, topEl.value, rfmEl.value].forEach(el => {
+    if (el) {
+      const inst = echarts.getInstanceByDom(el)
+      if (inst) inst.dispose()
+    }
+  })
+})
 
 async function loadList() {
   loading.value = true

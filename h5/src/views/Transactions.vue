@@ -41,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onActivated, onMounted, ref } from 'vue'
 import { h5Api, type TransactionRecord } from '@/api/h5'
 import { formatDateTime } from '@/utils/format'
 import NavBar from '@/components/NavBar.vue'
@@ -74,6 +74,7 @@ function icon(t: string) {
 }
 
 onMounted(load)
+onActivated(load)
 </script>
 
 <style scoped>

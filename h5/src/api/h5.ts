@@ -139,6 +139,9 @@ export const h5Api = {
   async activeProducts(category?: string): Promise<Product[]> {
     const data = await request.get<Product[] | PageData<Product>>('/api/h5/products/active', { category })
     return pickList(data)
+  },
+  campaignDetail(id: number | string) {
+    return request.get<CampaignDetail>(`/api/h5/campaigns/${id}`)
   }
 }
 
@@ -180,6 +183,21 @@ export interface Product {
   stock?: number
   status?: string
   description?: string
+}
+
+// 活动/营销详情
+export interface CampaignDetail {
+  id: number | string
+  name: string
+  tag?: string
+  subtitle?: string
+  rules?: string
+  startTime?: string
+  endTime?: string
+  timeText?: string
+  couponId?: number | string | null
+  link?: string
+  status?: string
 }
 
 
@@ -283,5 +301,11 @@ export const mallApi = {
   // 我的商城订单
   myOrders: (params: any) => request.get<any>('/api/h5/mall/my-orders', params),
   // 商城订单详情
-  orderDetail: (id: number | string) => request.get<any>(`/api/h5/mall/orders/${id}`)
+  orderDetail: (id: number | string) => request.get<any>(`/api/h5/mall/orders/${id}`),
+  // 商城订单支付
+  payOrder: (id: number | string) => request.post<any>(`/api/h5/mall/orders/${id}/pay`),
+  // 取消商城订单
+  cancelOrder: (id: number | string) => request.post<any>(`/api/h5/mall/orders/${id}/cancel`),
+  // 确认收货
+  confirmOrder: (id: number | string) => request.post<any>(`/api/h5/mall/orders/${id}/confirm`)
 }

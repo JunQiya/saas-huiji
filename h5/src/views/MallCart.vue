@@ -71,7 +71,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onActivated, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { showConfirmDialog, showToast } from 'vant'
 import { mallApi } from '@/api/h5'
@@ -193,6 +193,7 @@ function yuan(f: any) {
 }
 
 onMounted(load)
+onActivated(load)
 </script>
 
 <style scoped>

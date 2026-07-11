@@ -23,6 +23,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -318,6 +319,59 @@ public class MallService {
             throw new BizException(ErrorCode.FORBIDDEN, "订单不属于该会员");
         }
         return toOrderVO(order, true);
+    }
+
+    /** 商城订单支付(演示环境直接成功: PENDING -> PAID) */
+    @Transactional
+    public Map<String, Object> payOrder(Long tenantId, Long memberId, Long orderId) {
+        Order order = orderRepository.findByIdAndTenantIdAndDeletedFalse(orderId, tenantId)
+                .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "订单不存在"));
+        if (order.getMemberId() == null || !order.getMemberId().equals(memberId)) {
+            throw new BizException(ErrorCode.FORBIDDEN, "订单不属于该会员");
+        }
+        if (!"PENDING".equals(order.getStatus())) {
+            throw new BizException(ErrorCode.BIZ_ERROR, "当前订单状态不可支付: " + order.getStatus());
+        }
+        long payable = order.getTotalAmount()
+                - (order.getDiscountAmount() == null ? 0L : order.getDiscountAmount());
+        order.setPayMethod("WECHAT");
+        order.setPaidAmount(payable);
+        order.setStatus("PAID");
+        order.setPaidAt(LocalDateTime.now());
+        orderRepository.save(order);
+        return orderDetail(tenantId, memberId, orderId);
+    }
+
+    /** 取消订单(仅 PENDING 可取消) */
+    @Transactional
+    public Map<String, Object> cancelOrder(Long tenantId, Long memberId, Long orderId) {
+        Order order = orderRepository.findByIdAndTenantIdAndDeletedFalse(orderId, tenantId)
+                .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "订单不存在"));
+        if (order.getMemberId() == null || !order.getMemberId().equals(memberId)) {
+            throw new BizException(ErrorCode.FORBIDDEN, "订单不属于该会员");
+        }
+        if (!"PENDING".equals(order.getStatus())) {
+            throw new BizException(ErrorCode.BIZ_ERROR, "当前订单状态不可取消: " + order.getStatus());
+        }
+        order.setStatus("CANCELLED");
+        orderRepository.save(order);
+        return orderDetail(tenantId, memberId, orderId);
+    }
+
+    /** 确认收货(仅 SHIPPED 可确认, 确认后 -> COMPLETED) */
+    @Transactional
+    public Map<String, Object> confirmOrder(Long tenantId, Long memberId, Long orderId) {
+        Order order = orderRepository.findByIdAndTenantIdAndDeletedFalse(orderId, tenantId)
+                .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "订单不存在"));
+        if (order.getMemberId() == null || !order.getMemberId().equals(memberId)) {
+            throw new BizException(ErrorCode.FORBIDDEN, "订单不属于该会员");
+        }
+        if (!"SHIPPED".equals(order.getStatus())) {
+            throw new BizException(ErrorCode.BIZ_ERROR, "当前订单状态不可确认收货: " + order.getStatus());
+        }
+        order.setStatus("COMPLETED");
+        orderRepository.save(order);
+        return orderDetail(tenantId, memberId, orderId);
     }
 
     /** 更新物流信息(admin) */

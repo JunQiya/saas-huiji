@@ -121,7 +121,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onActivated, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { showToast } from 'vant'
 import { h5Api } from '@/api/h5'
@@ -149,18 +149,15 @@ const progress = computed<Node[]>(() => {
   if (o.status === 'PENDING') {
     list.push({ state: 'current', title: '等待支付', time: '请尽快完成支付', desc: '超时将自动取消' })
     list.push({ state: 'pending', title: '支付完成', time: '-' })
-    if (o.status === 'REFUNDED' || o.status === 'VOID') {
-      list.push({ state: 'done', title: '订单关闭', time: fmt(o.refundedAt), desc: o.refundReason || '已关闭' })
-    }
+  } else if (o.status === 'REFUNDED') {
+    list.push({ state: 'done', title: '支付完成', time: fmt(o.paidAt || o.createdAt), desc: o.payMethod ? `支付方式：${payLabel(o.payMethod)}` : '' })
+    list.push({ state: 'done', title: '已退款', time: fmt(o.refundedAt), desc: o.refundReason || '退款完成' })
+  } else if (o.status === 'VOID') {
+    list.push({ state: 'done', title: '支付完成', time: fmt(o.paidAt || o.createdAt), desc: o.payMethod ? `支付方式：${payLabel(o.payMethod)}` : '' })
+    list.push({ state: 'done', title: '订单作废', time: fmt(o.refundedAt), desc: o.refundReason || '已作废' })
   } else {
     list.push({ state: 'done', title: '支付完成', time: fmt(o.paidAt || o.createdAt), desc: o.payMethod ? `支付方式：${payLabel(o.payMethod)}` : '' })
-    if (o.status === 'REFUNDED') {
-      list.push({ state: 'done', title: '已退款', time: fmt(o.refundedAt), desc: o.refundReason || '退款完成' })
-    } else if (o.status === 'VOID') {
-      list.push({ state: 'done', title: '订单作废', time: fmt(o.refundedAt), desc: o.refundReason || '已作废' })
-    } else {
-      list.push({ state: 'done', title: '订单完成', time: fmt(o.paidAt || o.createdAt), desc: '感谢你的到店' })
-    }
+    list.push({ state: 'done', title: '订单完成', time: fmt(o.paidAt || o.createdAt), desc: '感谢你的到店' })
   }
   return list
 })
@@ -174,7 +171,23 @@ async function load() {
   finally { loading.value = false }
 }
 
-function onContact() { showToast('门店热线：详见门店页') }
+async function onContact() {
+  try {
+    const stores = await h5Api.stores()
+    const sid = order.value?.storeId
+    const store = sid
+      ? stores.find(s => String(s.id) === String(sid))
+      : stores[0]
+    const phone = store?.phone
+    if (phone) {
+      window.location.href = `tel:${phone}`
+    } else {
+      showToast('暂无门店电话')
+    }
+  } catch {
+    showToast('获取门店信息失败')
+  }
+}
 function onPrint() {
   // 唤起系统打印；只保留 print-receipt 区
   setTimeout(() => window.print(), 60)
@@ -200,6 +213,7 @@ function fallbackCopy(text: string) {
 }
 
 onMounted(load)
+onActivated(load)
 </script>
 
 <style scoped>

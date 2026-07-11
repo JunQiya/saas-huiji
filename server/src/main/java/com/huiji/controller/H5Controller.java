@@ -5,6 +5,8 @@ import com.huiji.common.ErrorCode;
 import com.huiji.common.PageData;
 import com.huiji.common.Result;
 import com.huiji.dto.H5Dto;
+import com.huiji.entity.Campaign;
+import com.huiji.repository.CampaignRepository;
 import com.huiji.security.LoginUser;
 import com.huiji.security.LoginUserHolder;
 import com.huiji.security.MemberTokenUtil;
@@ -23,6 +25,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -36,6 +41,7 @@ public class H5Controller {
     private final MemberTokenUtil memberTokenUtil;
     private final OrderService orderService;
     private final ProductService productService;
+    private final CampaignRepository campaignRepository;
 
     @PostMapping("/login")
     public Result<Map<String, Object>> login(@Valid @RequestBody H5Dto.LoginRequest req) {
@@ -124,6 +130,37 @@ public class H5Controller {
         } finally {
             LoginUserHolder.clear();
         }
+    }
+
+    /** 活动详情(公开, 无需 member token) */
+    @GetMapping("/campaigns/{id}")
+    public Result<Map<String, Object>> campaignDetail(@PathVariable Long id) {
+        Campaign c = campaignRepository.findById(id)
+                .filter(x -> Boolean.FALSE.equals(x.getDeleted()))
+                .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "活动不存在"));
+        Map<String, Object> vo = new LinkedHashMap<>();
+        vo.put("id", c.getId());
+        vo.put("name", c.getName());
+        vo.put("tag", c.getType());
+        vo.put("subtitle", c.getTrigger());
+        vo.put("rules", c.getContent());
+        vo.put("startTime", c.getStartAt());
+        vo.put("endTime", c.getEndAt());
+        vo.put("timeText", buildCampaignTimeText(c.getStartAt(), c.getEndAt()));
+        vo.put("couponId", null);
+        vo.put("link", null);
+        vo.put("status", Boolean.TRUE.equals(c.getEnabled()) ? "ENABLED" : "DISABLED");
+        return Result.success(vo);
+    }
+
+    private String buildCampaignTimeText(LocalDateTime start, LocalDateTime end) {
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy.MM.dd");
+        String s = start == null ? "" : start.format(fmt);
+        String e = end == null ? "" : end.format(fmt);
+        if (s.isEmpty() && e.isEmpty()) return "";
+        if (e.isEmpty()) return s + " 起";
+        if (s.isEmpty()) return "截至 " + e;
+        return s + " ~ " + e;
     }
 
     private void bindAsMember(long memberId, long tenantId) {

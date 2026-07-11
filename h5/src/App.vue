@@ -11,7 +11,7 @@ onMounted(() => {
 
 <template>
   <router-view v-slot="{ Component }">
-    <keep-alive :include="['Home', 'Profile']">
+    <keep-alive :include="['Home', 'Profile', 'MallOrders']">
       <component :is="Component" />
     </keep-alive>
   </router-view>

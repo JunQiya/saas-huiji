@@ -112,7 +112,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { List, Refresh, Plus, Search, Download } from '@element-plus/icons-vue'
 import { ordersApi, statsApi, storesApi } from '@/api'
@@ -293,7 +293,34 @@ async function voidOrder(row: any) {
   load()
 }
 
-onMounted(() => { load(); loadStores() })
+let pollTimer: number | null = null
+function startPolling() {
+  stopPolling()
+  pollTimer = window.setInterval(() => {
+    load()
+  }, 30000)
+}
+function stopPolling() {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
+}
+function onVisibilityChange() {
+  if (document.hidden) {
+    stopPolling()
+  } else {
+    load()
+    startPolling()
+  }
+}
+
+onMounted(() => { load(); loadStores(); document.addEventListener('visibilitychange', onVisibilityChange); startPolling() })
+
+onBeforeUnmount(() => {
+  stopPolling()
+  document.removeEventListener('visibilitychange', onVisibilityChange)
+})
 </script>
 
 <style scoped>

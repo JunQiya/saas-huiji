@@ -86,15 +86,24 @@
           <div v-if="!items.length" class="empty-mini muted">暂无结算商品</div>
         </div>
 
-        <!-- 优惠券（占位） -->
+        <!-- 优惠券 -->
         <div class="section-title">优惠券</div>
-        <div class="coupon-card ui-card" @click="onCouponTip">
+        <div class="coupon-card ui-card" @click="openCouponSheet">
           <div class="coup-left">
             <van-icon name="ticket-o" size="18" color="var(--brand-deep)" />
             <span>选择优惠券</span>
           </div>
-          <div class="coup-right muted">
-            <span>暂不可用</span>
+          <div class="coup-right">
+            <template v-if="selectedCoupon">
+              <span class="coup-name">{{ selectedCoupon.couponName }}</span>
+              <span class="coup-discount">-¥{{ yuan(couponDiscount) }}</span>
+            </template>
+            <template v-else-if="coupons.length">
+              <span class="muted">{{ coupons.length }} 张可用</span>
+            </template>
+            <template v-else>
+              <span class="muted">暂无可用</span>
+            </template>
             <van-icon name="arrow" size="14" />
           </div>
         </div>
@@ -127,14 +136,48 @@
 
       <!-- 底部提交栏 -->
       <van-submit-bar
-        :price="totalAmount"
+        :price="payable"
         button-text="提交订单"
         button-color="var(--brand-deep)"
         :disabled="submitting || !items.length"
         @submit="onSubmit"
       >
-        <span class="bar-tip">合计 <span class="val strong">¥{{ yuan(totalAmount) }}</span></span>
+        <span class="bar-tip">
+          <span v-if="couponDiscount > 0" class="bar-discount">已优惠 -¥{{ yuan(couponDiscount) }}</span>
+          合计 <span class="val strong">¥{{ yuan(payable) }}</span>
+        </span>
       </van-submit-bar>
+
+      <!-- 优惠券选择弹窗 -->
+      <van-popup v-model:show="couponVisible" position="bottom" round :style="{ maxHeight: '70%' }">
+        <div class="coupon-sheet">
+          <div class="cs-header">
+            <span class="cs-title">选择优惠券</span>
+            <van-icon name="cross" size="18" class="cs-close" @click="couponVisible = false" />
+          </div>
+          <div v-if="couponLoading" class="loading"><van-loading color="#6f94b8" /></div>
+          <div v-else-if="!coupons.length" class="empty-mini muted">暂无可用优惠券</div>
+          <div v-else class="cs-list">
+            <div
+              v-for="c in coupons"
+              :key="c.id"
+              class="cs-item"
+              :class="{ active: form.couponId == c.id, disabled: !isCouponUsable(c) }"
+              @click="onSelectCoupon(c)"
+            >
+              <div class="cs-val">
+                <span class="cs-amount">¥{{ yuan(c.faceValue) }}</span>
+                <span v-if="c.threshold" class="cs-thr muted">满¥{{ yuan(c.threshold) }}可用</span>
+              </div>
+              <div class="cs-info">
+                <div class="cs-name">{{ c.couponName }}</div>
+                <div class="cs-date muted">{{ c.expireAt ? '至 ' + fmtDate(c.expireAt) : '长期有效' }}</div>
+              </div>
+              <van-icon v-if="form.couponId == c.id" name="success" color="var(--brand-deep)" size="16" />
+            </div>
+          </div>
+        </div>
+      </van-popup>
     </template>
   </div>
 </template>
@@ -143,7 +186,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast } from 'vant'
-import { mallApi, h5Api } from '@/api/h5'
+import { mallApi, h5Api, type CouponRecord } from '@/api/h5'
 import NavBar from '@/components/NavBar.vue'
 
 const route = useRoute()
@@ -166,6 +209,10 @@ const submitting = ref(false)
 const items = ref<CheckItem[]>([])
 const stores = ref<any[]>([])
 
+const couponVisible = ref(false)
+const couponLoading = ref(false)
+const coupons = ref<CouponRecord[]>([])
+
 const form = reactive<any>({
   deliveryType: 'DELIVERY',
   receiverName: '',
@@ -183,6 +230,20 @@ const form = reactive<any>({
 const totalAmount = computed(() =>
   items.value.reduce((s, i) => s + (Number(i.unitPrice ?? i.price) || 0) * i.quantity, 0)
 )
+
+const selectedCoupon = computed(() =>
+  coupons.value.find(c => c.id == form.couponId) || null
+)
+
+const couponDiscount = computed(() => {
+  const c = selectedCoupon.value
+  if (!c) return 0
+  const total = totalAmount.value
+  if (c.threshold && total < c.threshold) return 0
+  return Math.min(c.faceValue || 0, total)
+})
+
+const payable = computed(() => Math.max(0, totalAmount.value - couponDiscount.value))
 
 async function loadCartItems() {
   loading.value = true
@@ -215,6 +276,49 @@ async function loadStores() {
     stores.value = Array.isArray(data) ? data : []
   } catch { stores.value = [] }
   finally { storeLoading.value = false }
+}
+
+async function loadCoupons() {
+  couponLoading.value = true
+  try {
+    const data = await h5Api.myCoupons('UNUSED')
+    const list = (data as any)?.list || (Array.isArray(data) ? data : [])
+    coupons.value = list
+  } catch { coupons.value = [] }
+  finally { couponLoading.value = false }
+}
+
+function isCouponUsable(c: CouponRecord): boolean {
+  if (c.threshold && totalAmount.value < c.threshold) return false
+  return true
+}
+
+function openCouponSheet() {
+  couponVisible.value = true
+  if (!coupons.value.length) loadCoupons()
+}
+
+function onSelectCoupon(c: CouponRecord) {
+  if (!isCouponUsable(c)) {
+    showToast('订单金额不满足该券使用条件')
+    return
+  }
+  if (form.couponId == c.id) {
+    form.couponId = null
+  } else {
+    form.couponId = c.id
+  }
+  couponVisible.value = false
+}
+
+function fmtDate(s: any) {
+  if (!s) return ''
+  try {
+    const d = new Date(s)
+    if (isNaN(d.getTime())) return String(s)
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+  } catch { return String(s) }
 }
 
 function validate(): boolean {
@@ -263,10 +367,6 @@ async function onSubmit() {
   finally { submitting.value = false }
 }
 
-function onCouponTip() {
-  showToast('优惠券功能即将上线')
-}
-
 function yuan(f: any) {
   if (f == null) return '0.00'
   return (Number(f) / 100).toFixed(2)
@@ -275,6 +375,7 @@ function yuan(f: any) {
 onMounted(() => {
   loadCartItems()
   loadStores()
+  loadCoupons()
 })
 </script>
 
@@ -363,16 +464,70 @@ onMounted(() => {
   cursor: pointer;
 }
 .coup-left { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--ink); }
-.coup-right { display: flex; align-items: center; gap: 4px; font-size: 12px; }
+.coup-right { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.coup-name { color: var(--brand-deep); font-size: 12.5px; max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.coup-discount { color: var(--brand-deep); font-weight: 500; }
+
+.bar-tip { font-size: 13px; color: var(--ink-2); }
+.bar-tip .strong { color: var(--brand-deep); font-size: 16px; margin-left: 4px; }
+.bar-discount { color: var(--muted); font-size: 11.5px; margin-right: 8px; }
+
+/* 优惠券选择弹窗 */
+.coupon-sheet {
+  padding: 16px 16px 24px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.cs-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--line-2);
+  margin-bottom: 8px;
+}
+.cs-title {
+  font-family: var(--font-serif);
+  font-size: 15px; font-weight: 500; color: var(--ink);
+  letter-spacing: 0.06em;
+}
+.cs-close { color: var(--muted); cursor: pointer; }
+.cs-list { display: flex; flex-direction: column; gap: 10px; }
+.cs-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  cursor: pointer;
+  transition: all var(--dur) var(--ease);
+  position: relative;
+}
+.cs-item.active {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+}
+.cs-item.disabled {
+  opacity: 0.45;
+}
+.cs-val {
+  display: flex; flex-direction: column; align-items: center;
+  min-width: 64px;
+  padding-right: 12px;
+  border-right: 1px dashed var(--line);
+}
+.cs-amount {
+  font-size: 17px; font-weight: 600;
+  color: var(--brand-deep);
+  font-family: var(--font-num);
+}
+.cs-thr { font-size: 10.5px; margin-top: 2px; }
+.cs-info { flex: 1; min-width: 0; }
+.cs-name { font-size: 13.5px; color: var(--ink); font-weight: 500; }
+.cs-date { font-size: 11.5px; margin-top: 3px; }
 
 .remark-card { padding: 4px 12px; }
 
 .pay-card { padding: 14px 16px; }
 .pay-card :deep(.van-radio-group) { gap: 18px; }
 .pay-card :deep(.van-radio__label) { font-size: 13px; color: var(--ink-2); }
-
-.bar-tip { font-size: 13px; color: var(--ink-2); }
-.bar-tip .strong { color: var(--brand-deep); font-size: 16px; margin-left: 4px; }
 
 :deep(.van-submit-bar) {
   position: fixed;

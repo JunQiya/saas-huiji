@@ -40,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onActivated, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { h5Api, type OrderInfo as Order } from '@/api/h5'
 import NavBar from '@/components/NavBar.vue'
@@ -79,6 +79,7 @@ function yuan(f: any) { if (f == null) return '0.00'; return (Number(f) / 100).t
 function fmt(t: any) { if (!t) return '-'; try { return new Date(t).toLocaleString('zh-CN', { hour12: false }) } catch { return String(t) } }
 
 onMounted(load)
+onActivated(load)
 </script>
 
 <style scoped>

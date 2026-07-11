@@ -9,6 +9,10 @@
         </div>
       </div>
       <div class="header-actions">
+        <div v-if="todayStats" class="today-stat">
+          <span class="ts-label">今日</span>
+          <span class="ts-val">{{ todayStats.count }} 单 / ¥{{ yuan(todayStats.amount) }}</span>
+        </div>
         <el-button :icon="Refresh" @click="loadAll">刷新</el-button>
         <el-button :icon="Printer" @click="printReceipt" class="btn-scale">打印小票</el-button>
       </div>
@@ -96,6 +100,10 @@
               <el-input-number v-model="discountYuan" :min="0" :max="subtotalAmountYuan" :precision="2" :step="1" size="small" style="width: 140px" />
             </span>
           </div>
+          <div v-if="selectedCouponObj" class="t-row coupon-row">
+            <span>券抵扣 {{ selectedCouponObj.couponName || '' }}</span>
+            <span class="val">-¥{{ yuan(couponDiscountFen) }}</span>
+          </div>
           <div class="t-row total"><span>应付</span><span class="val">¥ {{ yuan(payable) }}</span></div>
         </div>
 
@@ -145,10 +153,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, onBeforeUnmount, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Refresh, Search, User, Delete, Printer, Money } from '@element-plus/icons-vue'
-import { productsApi, ordersApi, membersApi, settingsPlanApi } from '@/api'
+import { productsApi, ordersApi, membersApi, settingsPlanApi, statsApi } from '@/api'
 import { fenToYuan, yuanToFen } from '@/utils/format'
 
 const posSlogan = [
@@ -181,6 +189,8 @@ const storeName = ref('星河·会记')
 
 const lastReceipt = ref<any>(null)
 
+const todayStats = ref<{ count: number; amount: number } | null>(null)
+
 const filteredProducts = computed(() => {
   let list = products.value
   if (cat.value) list = list.filter(p => p.category === cat.value)
@@ -194,7 +204,9 @@ const filteredProducts = computed(() => {
 const subtotalAmount = computed(() => cart.value.reduce((s, c) => s + (c.subtotal || 0), 0))
 const subtotalAmountYuan = computed(() => Number(fenToYuan(subtotalAmount.value)))
 const discountFen = computed(() => yuanToFen(discountYuan.value || 0))
-const payable = computed(() => Math.max(0, subtotalAmount.value - discountFen.value))
+const selectedCouponObj = computed(() => memberCoupons.value.find((c: any) => c.code === selectedCoupon.value) || null)
+const couponDiscountFen = computed(() => selectedCouponObj.value?.amount || 0)
+const payable = computed(() => Math.max(0, subtotalAmount.value - discountFen.value - couponDiscountFen.value))
 
 function yuan(f: any) { if (f == null) return '0.00'; return Number(fenToYuan(f)).toFixed(2) }
 function payMethodLabel(m: string) {
@@ -202,7 +214,7 @@ function payMethodLabel(m: string) {
 }
 function fmtDate(t: any) { if (!t) return '-'; try { return new Date(t).toLocaleString() } catch { return String(t) } }
 
-async function loadAll() {
+async function loadProducts() {
   loadingProducts.value = true
   try {
     const data: any = await productsApi.active()
@@ -210,10 +222,20 @@ async function loadAll() {
   } finally {
     loadingProducts.value = false
   }
+}
+async function loadTodayStats() {
+  try {
+    todayStats.value = await statsApi.ordersToday()
+  } catch {}
+}
+async function loadAll() {
+  await loadProducts()
   try {
     const cur: any = await settingsPlanApi.currentStore()
     if (cur?.name) storeName.value = cur.name
   } catch {}
+  loadRecent()
+  loadTodayStats()
 }
 
 function addToCart(p: any) {
@@ -312,6 +334,7 @@ async function checkout() {
     ElMessage.success(`结算成功: ${order.orderNo}`)
     lastReceipt.value = order
     clearCart()
+    loadTodayStats()
   } finally {
     submitting.value = false
   }
@@ -323,7 +346,27 @@ function printReceipt() {
   setTimeout(() => window.print(), 80)
 }
 
-onMounted(loadAll)
+let refreshTimer: ReturnType<typeof setInterval> | undefined
+function handleVisibilityChange() {
+  if (!document.hidden) {
+    loadProducts()
+    loadTodayStats()
+  }
+}
+onMounted(() => {
+  loadAll()
+  refreshTimer = setInterval(() => {
+    // 仅在用户未编辑购物车/优惠时静默刷新，避免打断操作
+    if (cart.value.length === 0) {
+      loadProducts()
+    }
+  }, 30000)
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+})
+onBeforeUnmount(() => {
+  if (refreshTimer) clearInterval(refreshTimer)
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
+})
 </script>
 
 <style scoped>
@@ -375,6 +418,11 @@ onMounted(loadAll)
 .total-bar { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
 .t-row { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; font-size: 13px; color: var(--ink-2); }
 .t-row.total { font-size: 16px; font-weight: 600; color: var(--primary-action); }
+.coupon-row { font-size: 12px; color: var(--primary-action); }
+.coupon-row .val { color: var(--primary-action); font-weight: 500; }
+.today-stat { display: inline-flex; align-items: baseline; gap: 6px; margin-right: 8px; padding: 4px 12px; background: var(--surface-2); border: 1px solid var(--line-2); border-radius: var(--r); }
+.ts-label { font-family: var(--font-serif); font-size: 11px; color: var(--muted); letter-spacing: 0.08em; }
+.ts-val { font-family: var(--font-num); font-size: 12px; color: var(--ink); }
 .pay-block { margin-top: 10px; }
 .footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
 

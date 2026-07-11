@@ -292,7 +292,7 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import {
   Plus, RefreshRight, Ticket, Clock, DocumentRemove,
@@ -605,6 +605,22 @@ async function refreshDisplay(code?: string) {
     displayData.value = { code: c, couponName: '券码查询', memberName: '——', status: 'EXPIRED', expireAt: '' } as any
   }
 }
+function startDisplayTimer() {
+  stopDisplayTimer()
+  displayTimer = window.setInterval(() => {
+    refreshDisplay()
+  }, 5000)
+}
+function stopDisplayTimer() {
+  if (displayTimer) {
+    clearInterval(displayTimer)
+    displayTimer = null
+  }
+}
+watch(displayVisible, (v) => {
+  if (v) startDisplayTimer()
+  else stopDisplayTimer()
+})
 function displayStatusText(s?: string) {
   return ({ UNUSED: '待核销', USED: '已核销', EXPIRED: '已过期' } as any)[s || 'UNUSED'] || '待核销'
 }
@@ -655,7 +671,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-  if (displayTimer) clearInterval(displayTimer)
+  stopDisplayTimer()
 })
 </script>
 

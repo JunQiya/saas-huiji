@@ -162,7 +162,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Plus, Location, User, Rank, Loading } from '@element-plus/icons-vue'
 import { diningApi, storesApi, productsApi } from '@/api'
@@ -364,6 +364,29 @@ function onStoreChange() {
   loadCategories()
 }
 
+let pollTimer: number | null = null
+function startPolling() {
+  stopPolling()
+  pollTimer = window.setInterval(() => {
+    // 仅在桌台管理 tab 下刷新桌台状态
+    if (activeTab.value === 'tables') loadList()
+  }, 20000)
+}
+function stopPolling() {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
+}
+function onVisibilityChange() {
+  if (document.hidden) {
+    stopPolling()
+  } else {
+    if (activeTab.value === 'tables') loadList()
+    startPolling()
+  }
+}
+
 onMounted(async () => {
   await loadStores()
   if (stores.value.length && !storeId.value) {
@@ -371,6 +394,13 @@ onMounted(async () => {
     loadList()
     loadCategories()
   }
+  document.addEventListener('visibilitychange', onVisibilityChange)
+  startPolling()
+})
+
+onBeforeUnmount(() => {
+  stopPolling()
+  document.removeEventListener('visibilitychange', onVisibilityChange)
 })
 </script>
 

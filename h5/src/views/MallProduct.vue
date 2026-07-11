@@ -206,7 +206,8 @@ watch(() => route.params.id, () => {
 })
 
 onMounted(() => { load(); loadCartCount() })
-onActivated(() => { loadCartCount() })
+// 返回时刷新商品详情（库存可能变化）和购物车件数
+onActivated(() => { load(); loadCartCount() })
 </script>
 
 <style scoped>

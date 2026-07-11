@@ -55,7 +55,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onActivated, onMounted, ref } from 'vue'
 import { showToast } from 'vant'
 import { h5Api, type AvailableCoupon } from '@/api/h5'
 import { formatDate } from '@/utils/format'
@@ -80,12 +80,13 @@ async function onClaim(c: AvailableCoupon) {
   if (c.claimed || c.remain === 0) return
   try {
     await h5Api.claimCoupon(c.id)
-    c.claimed = true
     showToast('领取成功')
+    await load()
   } catch { showToast('领取失败') }
 }
 
 onMounted(load)
+onActivated(load)
 </script>
 
 <style scoped>

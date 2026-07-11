@@ -190,7 +190,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Plus, RefreshRight, RefreshLeft, Search, ChatLineRound } from '@element-plus/icons-vue'
 import { messagesApi } from '@/api'
@@ -374,7 +374,38 @@ async function openDetail(row: any) {
   finally { detailLoading.value = false }
 }
 
-onMounted(loadAll)
+let pollTimer: number | null = null
+function startPolling() {
+  stopPolling()
+  pollTimer = window.setInterval(() => {
+    loadList()
+  }, 20000)
+}
+function stopPolling() {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
+}
+function onVisibilityChange() {
+  if (document.hidden) {
+    stopPolling()
+  } else {
+    loadList()
+    startPolling()
+  }
+}
+
+onMounted(() => {
+  loadAll()
+  document.addEventListener('visibilitychange', onVisibilityChange)
+  startPolling()
+})
+
+onBeforeUnmount(() => {
+  stopPolling()
+  document.removeEventListener('visibilitychange', onVisibilityChange)
+})
 </script>
 
 <style scoped>

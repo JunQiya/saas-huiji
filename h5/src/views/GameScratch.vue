@@ -78,7 +78,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onActivated, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { showToast } from 'vant'
 import { gameApi } from '@/api/h5'
@@ -315,6 +315,10 @@ onMounted(async () => {
   loadRecords()
   await nextTick()
   initCanvas()
+})
+// 从其他页面返回时重新拉取剩余次数
+onActivated(() => {
+  loadDetail()
 })
 </script>
 

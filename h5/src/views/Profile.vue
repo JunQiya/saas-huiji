@@ -127,7 +127,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onActivated, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { showConfirmDialog, showToast } from 'vant'
 import { useMemberStore } from '@/stores/member'
@@ -165,8 +165,6 @@ const gapToNext = computed(() => {
   const v = (memberInfo.value?.totalAmount || 0) / 100
   return Math.max(0, 10000 - v).toFixed(0)
 })
-
-const stats = null
 
 const mineMenus: { label: string; icon: string; tone: string; path: string; badge?: string }[] = [
   { label: '我的券', icon: 'coupon-o', tone: 'brand', path: '/my-coupons' },
@@ -213,6 +211,13 @@ async function loadRecentTx() {
     const list = (r?.list || r?.data?.list || []) as any[]
     recentTx.value = list
   } catch {/* ignore */}
+}
+
+async function loadProfile() {
+  try {
+    const p = await h5Api.profile()
+    memberStore.setMember(p)
+  } catch {/* */}
 }
 
 function txTone(type: string) {
@@ -262,7 +267,8 @@ function formatTime(s: any) {
   return `${d.getMonth() + 1}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-onMounted(() => {
+onActivated(() => {
+  loadProfile()
   loadRecentTx()
 })
 </script>

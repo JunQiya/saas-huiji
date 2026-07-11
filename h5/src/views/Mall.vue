@@ -198,8 +198,8 @@ onMounted(() => {
   loadProducts()
   loadCartCount()
 })
-// 从详情/购物车返回时刷新件数
-onActivated(() => { loadCartCount() })
+// 从详情/购物车返回时刷新件数和商品列表
+onActivated(() => { loadCartCount(); loadProducts() })
 </script>
 
 <style scoped>

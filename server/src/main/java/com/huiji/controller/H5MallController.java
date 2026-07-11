@@ -170,6 +170,27 @@ public class H5MallController {
         return Result.success(mallService.orderDetail(ctx[1], ctx[0], id));
     }
 
+    /** 订单支付(演示环境直接成功) */
+    @PostMapping("/orders/{id}/pay")
+    public Result<Map<String, Object>> payOrder(HttpServletRequest req, @PathVariable Long id) {
+        long[] ctx = currentMember(req);
+        return Result.success(mallService.payOrder(ctx[1], ctx[0], id));
+    }
+
+    /** 取消订单 */
+    @PostMapping("/orders/{id}/cancel")
+    public Result<Map<String, Object>> cancelOrder(HttpServletRequest req, @PathVariable Long id) {
+        long[] ctx = currentMember(req);
+        return Result.success(mallService.cancelOrder(ctx[1], ctx[0], id));
+    }
+
+    /** 确认收货 */
+    @PostMapping("/orders/{id}/confirm")
+    public Result<Map<String, Object>> confirmOrder(HttpServletRequest req, @PathVariable Long id) {
+        long[] ctx = currentMember(req);
+        return Result.success(mallService.confirmOrder(ctx[1], ctx[0], id));
+    }
+
     // ============ 内部方法 ============
 
     /** 从 query 参数或 member token 推断 tenantId */

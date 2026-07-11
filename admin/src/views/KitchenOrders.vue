@@ -5,7 +5,13 @@
         <h2 class="page-title">厨房工单</h2>
         <div class="page-sub">每一道菜都值得被认真对待，从下单到出餐</div>
       </div>
-      <el-button :icon="Refresh" @click="loadList" class="btn-scale">刷新</el-button>
+      <div class="header-actions">
+        <span class="refresh-tip">
+          <span v-if="loading">自动刷新中...</span>
+          <span v-else-if="lastRefresh">最后刷新：{{ lastRefresh }}</span>
+        </span>
+        <el-button :icon="Refresh" @click="loadList" class="btn-scale">刷新</el-button>
+      </div>
     </div>
 
     <div class="filter-bar">
@@ -83,7 +89,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import { diningApi, storesApi } from '@/api'
@@ -96,6 +102,9 @@ const list = ref<any[]>([])
 const stores = ref<any[]>([])
 const storeId = ref<number | undefined>(undefined)
 const statusFilter = ref('')
+const lastRefresh = ref('')
+
+let pollTimer: number | null = null
 
 async function loadStores() {
   try { stores.value = (await storesApi.list()) || [] } catch {}
@@ -105,6 +114,7 @@ async function loadList() {
   loading.value = true
   try {
     list.value = (await diningApi.kitchenOrders(storeId.value, statusFilter.value || undefined)) || []
+    lastRefresh.value = new Date().toLocaleTimeString('zh-CN', { hour12: false })
   } catch {
     list.value = []
   } finally {
@@ -144,16 +154,50 @@ async function onUpdateStatus(o: any, status: string) {
   }
 }
 
+function startPolling() {
+  stopPolling()
+  pollTimer = window.setInterval(() => {
+    loadList()
+  }, 15000)
+}
+function stopPolling() {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
+}
+function onVisibilityChange() {
+  if (document.hidden) {
+    stopPolling()
+  } else {
+    loadList()
+    startPolling()
+  }
+}
+
 onMounted(async () => {
   await loadStores()
   if (stores.value.length && !storeId.value) {
     storeId.value = stores.value[0].id
     loadList()
   }
+  document.addEventListener('visibilitychange', onVisibilityChange)
+  startPolling()
+})
+
+onBeforeUnmount(() => {
+  stopPolling()
+  document.removeEventListener('visibilitychange', onVisibilityChange)
 })
 </script>
 
 <style scoped>
+.header-actions { display: flex; gap: 10px; align-items: center; }
+.refresh-tip {
+  font-size: 12px; color: var(--muted);
+  font-family: var(--font-serif); letter-spacing: 0.04em;
+  min-width: 120px; text-align: right;
+}
 .stat-text {
   font-size: 12.5px; color: var(--muted);
   font-family: var(--font-serif); letter-spacing: 0.04em;

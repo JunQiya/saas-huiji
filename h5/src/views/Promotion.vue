@@ -2,7 +2,10 @@
   <div class="page promotion">
     <NavBar title="活动详情" back />
 
-    <div class="page-padding">
+    <div v-if="loading" class="loading"><van-loading color="#5a7a9c" /></div>
+    <EmptyState v-else-if="!detail" title="活动不存在" sub="活动可能已结束或链接有误" art="box" />
+
+    <div v-else class="page-padding">
       <div class="hero" :class="`hero-${id}`">
         <div class="hero-decor decor-1"></div>
         <div class="hero-decor decor-2"></div>
@@ -44,38 +47,73 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { showToast } from 'vant'
+import { h5Api, type CampaignDetail } from '@/api/h5'
 import NavBar from '@/components/NavBar.vue'
+import EmptyState from '@/components/EmptyState.vue'
 
 const route = useRoute()
-const id = computed(() => String(route.params.id || '1'))
-const name = computed(() => {
-  const map: Record<string, string> = {
-    '1': '生日月专属礼',
-    '2': '新人见面礼 30 元',
-    '3': '沉睡唤醒礼 50 元'
-  }
-  return map[id.value] || '限时活动'
-})
-const tagText = computed(() => {
-  const map: Record<string, string> = {
-    '1': '生日月',
-    '2': '新人专享',
-    '3': '沉睡唤醒'
-  }
-  return map[id.value] || '活动'
-})
-const subText = computed(() => '星河·会记祝你消费愉快')
-const ruleText = '活动期间，满足条件的会员可在「我的券」中查看并使用。活动不与其他优惠同享，特殊商品除外。'
-const timeText = '2026.01.01 ~ 2026.12.31'
+const router = useRouter()
+const id = computed(() => String(route.params.id || ''))
+const loading = ref(false)
+const detail = ref<CampaignDetail | null>(null)
 
-function onJoin() { showToast('请前往「我的券」查看') }
+const name = computed(() => detail.value?.name || '限时活动')
+const tagText = computed(() => detail.value?.tag || '活动')
+const subText = computed(() => detail.value?.subtitle || '星河·会记祝你消费愉快')
+const ruleText = computed(() => detail.value?.rules || '')
+const timeText = computed(() => {
+  const d = detail.value
+  if (!d) return ''
+  if (d.timeText) return d.timeText
+  if (d.startTime && d.endTime) return `${fmtDate(d.startTime)} ~ ${fmtDate(d.endTime)}`
+  return ''
+})
+
+function fmtDate(t: string) {
+  try {
+    const d = new Date(t)
+    return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
+  } catch { return String(t) }
+}
+
+async function load() {
+  if (!id.value) return
+  loading.value = true
+  try {
+    detail.value = await h5Api.campaignDetail(id.value)
+  } catch {
+    detail.value = null
+  } finally {
+    loading.value = false
+  }
+}
+
+async function onJoin() {
+  const d = detail.value
+  if (!d) return
+  if (d.couponId) {
+    try {
+      await h5Api.claimCoupon(d.couponId)
+      showToast('领取成功，请到「我的券」查看')
+    } catch {
+      showToast('领取失败，请稍后再试')
+    }
+  } else if (d.link) {
+    router.push(d.link)
+  } else {
+    showToast('请前往「我的券」查看')
+  }
+}
+
+onMounted(load)
 </script>
 
 <style scoped>
 .promotion { padding-bottom: 60px; }
+.loading { display: flex; justify-content: center; padding: 50px 0; }
 
 .hero {
   position: relative;

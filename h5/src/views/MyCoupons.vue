@@ -56,7 +56,7 @@
 </template>
 
 <script setup lang="ts">
-import { onActivated, ref } from 'vue'
+import { onActivated, onMounted, ref } from 'vue'
 import { showToast } from 'vant'
 import { h5Api, type CouponRecord } from '@/api/h5'
 import { formatDateTime } from '@/utils/format'
@@ -90,8 +90,8 @@ function dotClass(s: string) {
   return ({ UNUSED: 'success', USED: 'info', EXPIRED: 'danger' } as any)[s] || 'info'
 }
 
+onMounted(load)
 onActivated(load)
-load()
 </script>
 
 <style scoped>

@@ -66,7 +66,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onActivated, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { showToast } from 'vant'
 import { gameApi } from '@/api/h5'
@@ -210,6 +210,10 @@ onMounted(async () => {
   loadRecords()
   // 尝试启用摇动监听（非微信环境会降级为点击）
   await enableMotion()
+})
+// 从其他页面返回时重新拉取剩余次数
+onActivated(() => {
+  loadDetail()
 })
 
 onUnmounted(() => {

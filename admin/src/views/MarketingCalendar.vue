@@ -90,11 +90,6 @@ const festivals: Record<string, string> = {
   '12-25': '圣诞节'
 }
 
-const calSlogan = [
-  '把一整月的营销，铺成一张看得见的地图',
-  '好的节奏，是知道哪天该温柔地提醒一下'
-][Math.floor(Math.random() * 2)]
-
 async function loadAll() {
   try {
     const data: any = await membersApi.list({ page: 1, size: 200 })
@@ -184,6 +179,7 @@ function shift(delta: number) {
   if (m < 1) { m = 12; y-- }
   month.value = m
   year.value = y
+  loadAll()
 }
 
 function goToday() {
