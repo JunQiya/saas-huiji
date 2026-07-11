@@ -151,8 +151,24 @@
           <el-input v-model="form.content" type="textarea" :rows="4" placeholder="消息正文" />
         </el-form-item>
         <el-form-item label="目标会员" prop="memberIds">
-          <el-input v-model="memberIdsText" type="textarea" :rows="2" placeholder="会员 id, 用英文逗号分隔" />
-          <div class="form-hint">已填 {{ form.memberIds.length }} 位; 可调用会员接口选择后填入</div>
+          <el-select
+            v-model="form.memberIds"
+            multiple
+            filterable
+            remote
+            :remote-method="searchMembers"
+            :loading="memberLoading"
+            placeholder="搜索会员姓名或手机号"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="m in memberOptions"
+              :key="m.id"
+              :label="`${m.name} (${m.phone})`"
+              :value="m.id"
+            />
+          </el-select>
+          <div class="form-hint">已选 {{ form.memberIds.length }} 位；可搜索姓名或手机号添加</div>
         </el-form-item>
         <el-form-item label="定时发送">
           <el-date-picker v-model="form.scheduledAt" type="datetime" placeholder="立即发送" value-format="YYYY-MM-DDTHH:mm:ss" style="width: 100%" />
@@ -193,7 +209,7 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Plus, RefreshRight, RefreshLeft, Search, ChatLineRound } from '@element-plus/icons-vue'
-import { messagesApi } from '@/api'
+import { messagesApi, membersApi } from '@/api'
 import KpiCard from '@/components/KpiCard.vue'
 import { formatDateTime, formatMoney } from '@/utils/format'
 
@@ -279,7 +295,8 @@ function barHeight(v: number, key: 'sent') {
 const formVisible = ref(false)
 const saving = ref(false)
 const formRef = ref<FormInstance>()
-const memberIdsText = ref('')
+const memberOptions = ref<any[]>([])
+const memberLoading = ref(false)
 const form = reactive({
   channel: 'IN_APP' as 'SMS' | 'WECHAT' | 'IN_APP',
   templateType: 'MANUAL' as 'BIRTHDAY' | 'COUPON_EXPIRE' | 'CAMPAIGN' | 'MANUAL',
@@ -314,20 +331,29 @@ function openCreate() {
   form.content = ''
   form.memberIds = []
   form.scheduledAt = ''
-  memberIdsText.value = ''
+  memberOptions.value = []
   formVisible.value = true
+  // 预加载前 20 个会员
+  searchMembers('')
+}
+
+async function searchMembers(keyword: string) {
+  memberLoading.value = true
+  try {
+    const r: any = await membersApi.list({ keyword, page: 1, size: 30 })
+    const list = (r?.list || r?.data?.list || []) as any[]
+    // 合并已选但不在搜索结果中的会员
+    const existing = new Map(memberOptions.value.map((m: any) => [m.id, m]))
+    list.forEach((m: any) => existing.set(m.id, m))
+    memberOptions.value = Array.from(existing.values())
+  } catch {/* 拦截器处理 */}
+  finally { memberLoading.value = false }
 }
 
 async function submitForm() {
-  // 解析 ids
-  const ids = memberIdsText.value
-    .split(/[,，\s]+/)
-    .map(s => parseInt(s.trim()))
-    .filter(n => !isNaN(n) && n > 0)
-  form.memberIds = ids
   await formRef.value?.validate()
   if (form.memberIds.length === 0) {
-    ElMessage.error('请填写至少 1 位会员 id')
+    ElMessage.error('请选择至少 1 位会员')
     return
   }
   saving.value = true

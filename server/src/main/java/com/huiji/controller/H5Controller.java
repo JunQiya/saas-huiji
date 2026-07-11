@@ -88,8 +88,8 @@ public class H5Controller {
 
     @GetMapping("/stores")
     public Result<List<Map<String, Object>>> stores(HttpServletRequest req) {
-        long[] ctx = currentMember(req);
-        return Result.success(h5Service.stores(ctx[1]));
+        Long tenantId = tryTenantId(req);
+        return Result.success(h5Service.stores(tenantId));
     }
 
     // ============ 新增: 我的订单 ============
@@ -136,7 +136,7 @@ public class H5Controller {
     @GetMapping("/campaigns/{id}")
     public Result<Map<String, Object>> campaignDetail(@PathVariable Long id) {
         Campaign c = campaignRepository.findById(id)
-                .filter(x -> Boolean.FALSE.equals(x.getDeleted()))
+                .filter(x -> !Boolean.TRUE.equals(x.getDeleted()))
                 .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "活动不存在"));
         Map<String, Object> vo = new LinkedHashMap<>();
         vo.put("id", c.getId());
@@ -195,6 +195,16 @@ public class H5Controller {
             throw e;
         } catch (Exception e) {
             throw new BizException(ErrorCode.SESSION_EXPIRED, "登录已过期");
+        }
+    }
+
+    /** 尝试从 memberToken 解析 tenantId，失败则返回默认 1L（用于公开接口） */
+    private Long tryTenantId(HttpServletRequest req) {
+        try {
+            long[] ctx = currentMember(req);
+            return ctx[1];
+        } catch (Exception e) {
+            return 1L;
         }
     }
 }

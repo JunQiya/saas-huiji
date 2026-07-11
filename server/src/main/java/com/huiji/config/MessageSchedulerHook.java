@@ -28,7 +28,7 @@ public class MessageSchedulerHook {
     public void scanPendingTasks() {
         try {
             List<MessageTask> pending = messageTaskRepository.findAll().stream()
-                    .filter(t -> Boolean.FALSE.equals(t.getDeleted()))
+                    .filter(t -> !Boolean.TRUE.equals(t.getDeleted()))
                     .filter(t -> "PENDING".equals(t.getStatus()))
                     .filter(t -> t.getScheduledAt() == null || t.getScheduledAt().isBefore(LocalDateTime.now()))
                     .toList();

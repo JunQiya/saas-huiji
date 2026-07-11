@@ -235,7 +235,7 @@ public class ReportService {
         LocalDateTime todayStart = today.atStartOfDay();
         LocalDateTime tomorrowStart = today.plusDays(1).atStartOfDay();
         long todayRuns = reportTaskRepository.findAll().stream()
-                .filter(r -> Boolean.FALSE.equals(r.getDeleted()))
+                .filter(r -> !Boolean.TRUE.equals(r.getDeleted()))
                 .filter(r -> tenantId.equals(r.getTenantId()))
                 .filter(r -> r.getLastRunAt() != null && r.getLastRunAt().isAfter(todayStart) && r.getLastRunAt().isBefore(tomorrowStart))
                 .count();

@@ -65,7 +65,7 @@ public class MallService {
         MallCategory cat;
         if (req.getId() != null) {
             cat = categoryRepository.findById(req.getId())
-                    .filter(c -> tenantId.equals(c.getTenantId()) && Boolean.FALSE.equals(c.getDeleted()))
+                    .filter(c -> tenantId.equals(c.getTenantId()) && !Boolean.TRUE.equals(c.getDeleted()))
                     .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "分类不存在"));
         } else {
             cat = new MallCategory();
@@ -85,7 +85,7 @@ public class MallService {
     @Transactional
     public void removeCategory(Long tenantId, Long id) {
         MallCategory cat = categoryRepository.findById(id)
-                .filter(c -> tenantId.equals(c.getTenantId()) && Boolean.FALSE.equals(c.getDeleted()))
+                .filter(c -> tenantId.equals(c.getTenantId()) && !Boolean.TRUE.equals(c.getDeleted()))
                 .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "分类不存在"));
         cat.setDeleted(true);
         categoryRepository.save(cat);
@@ -98,7 +98,7 @@ public class MallService {
             return;
         }
         MallCategory cat = categoryRepository.findById(categoryId)
-                .filter(c -> tenantId.equals(c.getTenantId()) && Boolean.FALSE.equals(c.getDeleted()))
+                .filter(c -> tenantId.equals(c.getTenantId()) && !Boolean.TRUE.equals(c.getDeleted()))
                 .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "分类不存在"));
         List<Product> products = productRepository.findByIdInAndTenantIdAndDeletedFalse(productIds, tenantId);
         for (Product p : products) {
@@ -164,7 +164,7 @@ public class MallService {
         Cart cart = cartRepository.findById(cartId)
                 .filter(c -> tenantId.equals(c.getTenantId())
                         && memberId.equals(c.getMemberId())
-                        && Boolean.FALSE.equals(c.getDeleted()))
+                        && !Boolean.TRUE.equals(c.getDeleted()))
                 .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "购物车项不存在"));
         if (req.getQuantity() != null) {
             if (req.getQuantity() <= 0) {

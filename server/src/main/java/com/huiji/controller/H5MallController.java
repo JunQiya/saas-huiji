@@ -238,7 +238,7 @@ public class H5MallController {
             }
             if (tenantId == null) {
                 Member m = memberRepository.findById(memberId)
-                        .filter(x -> Boolean.FALSE.equals(x.getDeleted()))
+                        .filter(x -> !Boolean.TRUE.equals(x.getDeleted()))
                         .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "会员不存在"));
                 tenantId = m.getTenantId();
             }

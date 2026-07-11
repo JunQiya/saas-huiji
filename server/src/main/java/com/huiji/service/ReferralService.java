@@ -110,7 +110,7 @@ public class ReferralService {
             throw new BizException(ErrorCode.BIZ_ERROR, "不可绑定自己");
         }
         Member me = memberRepository.findById(memberId)
-                .filter(m -> Boolean.FALSE.equals(m.getDeleted()))
+                .filter(m -> !Boolean.TRUE.equals(m.getDeleted()))
                 .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "会员不存在"));
         Member referrer = memberRepository.findByIdAndTenantIdAndDeletedFalse(referrerId, me.getTenantId())
                 .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "推荐人不存在或非同租户"));
@@ -175,7 +175,7 @@ public class ReferralService {
         List<Map<String, Object>> rows = p.getContent().stream().map(r -> {
             Map<String, Object> vo = toVO(r);
             memberRepository.findById(r.getReferrerId())
-                    .filter(m -> Boolean.FALSE.equals(m.getDeleted()))
+                    .filter(m -> !Boolean.TRUE.equals(m.getDeleted()))
                     .ifPresent(m -> vo.put("referrerName", m.getName()));
             return vo;
         }).toList();
@@ -213,7 +213,7 @@ public class ReferralService {
         Long referrerId = r.getReferrerId();
         if (referrerId == null || referrerId.equals(refereeId)) return;
         Member referrer = memberRepository.findById(referrerId)
-                .filter(m -> Boolean.FALSE.equals(m.getDeleted())).orElse(null);
+                .filter(m -> !Boolean.TRUE.equals(m.getDeleted())).orElse(null);
         if (referrer == null) return;
         // 找一个 BIRTHDAY/EXPERIENCE 类型的券, 不限租户
         List<Coupon> coupons = couponRepository.listByTenant(referrer.getTenantId(), "ACTIVE", null);

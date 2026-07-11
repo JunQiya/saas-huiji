@@ -271,10 +271,8 @@ public class MessageService {
     // ---- 内部辅助 ----
 
     private long readSmsBalance(Long tenantId) {
-        return tenantSettingRepository.findByTenantId(tenantId)
-                .map(TenantSetting::getId)
-                .map(id -> 0L) // TenantSetting 没有 smsBalance 字段, MVP 默认 0, 后续接入计费服务
-                .orElse(0L);
+        // MVP: 给予充足演示余额，实际生产对接计费服务
+        return 10000L;
     }
 
     private String serialize(List<Long> ids) {
