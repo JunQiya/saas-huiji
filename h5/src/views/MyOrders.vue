@@ -12,29 +12,35 @@
         </div>
       </div>
 
-      <div v-if="loading" class="loading"><van-loading color="#6f94b8" /></div>
-      <EmptyState v-else-if="!list.length" title="暂无该状态订单" sub="到店消费后会自动出现在这里" art="box" />
-
-      <div v-else class="order-list">
-        <div v-for="o in list" :key="o.id" class="order-card ui-card hoverable" @click="open(o)">
-          <div class="o-head">
-            <span class="o-no">订单号 {{ o.orderNo }}</span>
-            <div class="chip" :class="`chip-${statusClass(o.status)}`">{{ statusLabel(o.status) }}</div>
-          </div>
-          <div v-if="o.items?.length" class="o-items">
-            <div class="o-item" v-for="(it, i) in o.items.slice(0, 2)" :key="i">
-              <span class="o-item-name">{{ it.productName }}</span>
-              <span class="o-item-qty">x{{ it.quantity }}</span>
-              <span class="o-item-sub val">¥{{ yuan(it.subtotal) }}</span>
+      <van-list
+        v-model:loading="loading"
+        :finished="finished"
+        :finished-text="list.length ? '没有更多了' : ''"
+        @load="load"
+      >
+        <div v-if="loading && !list.length" class="loading"><van-loading color="#6f94b8" /></div>
+        <EmptyState v-else-if="!list.length && finished" title="暂无该状态订单" sub="到店消费后会自动出现在这里" art="box" />
+        <div v-else class="order-list">
+          <div v-for="o in list" :key="o.id" class="order-card ui-card hoverable" @click="open(o)">
+            <div class="o-head">
+              <span class="o-no">订单号 {{ o.orderNo }}</span>
+              <div class="chip" :class="`chip-${statusClass(o.status)}`">{{ statusLabel(o.status) }}</div>
             </div>
-            <div v-if="o.items.length > 2" class="o-more">还有 {{ o.items.length - 2 }} 项...</div>
-          </div>
-          <div class="o-foot">
-            <div class="o-time">{{ fmt(o.createdAt) }}</div>
-            <div class="o-amount">实付 <span class="val strong">¥{{ yuan(o.paidAmount) }}</span></div>
+            <div v-if="o.items?.length" class="o-items">
+              <div class="o-item" v-for="(it, i) in o.items.slice(0, 2)" :key="i">
+                <span class="o-item-name">{{ it.productName }}</span>
+                <span class="o-item-qty">x{{ it.quantity }}</span>
+                <span class="o-item-sub val">¥{{ yuan(it.subtotal) }}</span>
+              </div>
+              <div v-if="o.items.length > 2" class="o-more">还有 {{ o.items.length - 2 }} 项...</div>
+            </div>
+            <div class="o-foot">
+              <div class="o-time">{{ fmt(o.createdAt) }}</div>
+              <div class="o-amount">实付 <span class="val strong">¥{{ yuan(o.paidAmount) }}</span></div>
+            </div>
           </div>
         </div>
-      </div>
+      </van-list>
     </div>
   </div>
 </template>
@@ -48,6 +54,8 @@ import EmptyState from '@/components/EmptyState.vue'
 
 const router = useRouter()
 const loading = ref(false)
+const finished = ref(false)
+const page = ref(1)
 const list = ref<Order[]>([])
 const status = ref('')
 const tabs = [
@@ -58,16 +66,36 @@ const tabs = [
   { label: '已作废', value: 'VOID' }
 ]
 
+let pending = false
 async function load() {
+  if (pending) return
+  pending = true
   loading.value = true
   try {
-    const r: any = await h5Api.myOrders(status.value || undefined)
-    list.value = Array.isArray(r) ? r : (r?.list || r?.records || [])
-  } catch {/* */}
-  finally { loading.value = false }
+    const r: any = await h5Api.myOrders(status.value || undefined, page.value, 20)
+    const items = Array.isArray(r) ? r : (r?.list || r?.records || [])
+    list.value.push(...items)
+    page.value++
+    const total = r?.total
+    if (items.length < 20 || (total != null && list.value.length >= total)) {
+      finished.value = true
+    }
+  } catch {
+    finished.value = true
+  } finally {
+    pending = false
+    loading.value = false
+  }
 }
 
-function onTab(v: string) { status.value = v; load() }
+function reset() {
+  page.value = 1
+  list.value = []
+  finished.value = false
+  loading.value = false
+}
+
+function onTab(v: string) { status.value = v; reset(); load() }
 function open(o: any) { router.push(`/order/${o.id}`) }
 function statusLabel(s: string) {
   return ({ PENDING: '待支付', PAID: '已支付', REFUNDED: '已退款', VOID: '已作废' } as any)[s] || s
@@ -79,7 +107,7 @@ function yuan(f: any) { if (f == null) return '0.00'; return (Number(f) / 100).t
 function fmt(t: any) { if (!t) return '-'; try { return new Date(t).toLocaleString('zh-CN', { hour12: false }) } catch { return String(t) } }
 
 onMounted(load)
-onActivated(load)
+onActivated(() => { reset(); load() })
 </script>
 
 <style scoped>

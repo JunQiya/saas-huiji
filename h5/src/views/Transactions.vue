@@ -12,30 +12,36 @@
         </div>
       </div>
 
-      <div v-if="loading" class="loading"><van-loading color="#6f94b8" /></div>
-      <EmptyState v-else-if="!list.length" title="暂无流水" sub="下一次到店，会出现在这里" art="leaf" />
-
-      <div v-else class="tx-list">
-        <div v-for="tx in list" :key="tx.id" class="tx-item">
-          <div class="tx-icon" :class="`t-${tx.type}`">
-            <van-icon :name="icon(tx.type)" size="20" />
-          </div>
-          <div class="tx-content">
-            <div class="tx-top">
-              <span class="tx-type">{{ typeText(tx.type) }}</span>
-              <span v-if="tx.type === 'POINT'" class="tx-amount pos">+{{ tx.amount }} 分</span>
-              <span v-else class="tx-amount" :class="tx.amount >= 0 ? 'pos' : 'neg'">
-                {{ tx.amount >= 0 ? '+' : '' }}¥{{ Math.abs(tx.amount / 100).toFixed(2) }}
-              </span>
+      <van-list
+        v-model:loading="loading"
+        :finished="finished"
+        :finished-text="list.length ? '没有更多了' : ''"
+        @load="load"
+      >
+        <div v-if="loading && !list.length" class="loading"><van-loading color="#6f94b8" /></div>
+        <EmptyState v-else-if="!list.length && finished" title="暂无流水" sub="下一次到店，会出现在这里" art="leaf" />
+        <div v-else class="tx-list">
+          <div v-for="tx in list" :key="tx.id" class="tx-item">
+            <div class="tx-icon" :class="`t-${tx.type}`">
+              <van-icon :name="icon(tx.type)" size="20" />
             </div>
-            <div class="tx-meta">
-              <span>{{ formatDateTime(tx.createdAt) }}</span>
-              <span v-if="tx.storeName">· {{ tx.storeName }}</span>
+            <div class="tx-content">
+              <div class="tx-top">
+                <span class="tx-type">{{ typeText(tx.type) }}</span>
+                <span v-if="tx.type === 'POINT'" class="tx-amount pos">+{{ tx.amount }} 分</span>
+                <span v-else class="tx-amount" :class="tx.amount >= 0 ? 'pos' : 'neg'">
+                  {{ tx.amount >= 0 ? '+' : '' }}¥{{ Math.abs(tx.amount / 100).toFixed(2) }}
+                </span>
+              </div>
+              <div class="tx-meta">
+                <span>{{ formatDateTime(tx.createdAt) }}</span>
+                <span v-if="tx.storeName">· {{ tx.storeName }}</span>
+              </div>
+              <div v-if="tx.remark" class="tx-remark">{{ tx.remark }}</div>
             </div>
-            <div v-if="tx.remark" class="tx-remark">{{ tx.remark }}</div>
           </div>
         </div>
-      </div>
+      </van-list>
     </div>
   </div>
 </template>
@@ -48,6 +54,8 @@ import NavBar from '@/components/NavBar.vue'
 import EmptyState from '@/components/EmptyState.vue'
 
 const loading = ref(false)
+const finished = ref(false)
+const page = ref(1)
 const list = ref<TransactionRecord[]>([])
 const currentType = ref('')
 const typeTabs = [
@@ -59,13 +67,34 @@ const typeTabs = [
   { label: '退款', value: 'REFUND' }
 ]
 
+let pending = false
 async function load() {
+  if (pending) return
+  pending = true
   loading.value = true
-  try { list.value = await h5Api.transactions({ type: currentType.value || undefined }) } catch {/* */}
-  finally { loading.value = false }
+  try {
+    const items = await h5Api.transactions({ type: currentType.value || undefined, page: page.value, size: 20 })
+    list.value.push(...items)
+    page.value++
+    if (items.length < 20) {
+      finished.value = true
+    }
+  } catch {
+    finished.value = true
+  } finally {
+    pending = false
+    loading.value = false
+  }
 }
 
-function onTab(t: string) { currentType.value = t; load() }
+function reset() {
+  page.value = 1
+  list.value = []
+  finished.value = false
+  loading.value = false
+}
+
+function onTab(t: string) { currentType.value = t; reset(); load() }
 function typeText(t: string) {
   return ({ RECHARGE: '充值', CONSUME: '消费', GIFT: '赠送', POINT: '积分', REFUND: '退款' } as any)[t] || t
 }
@@ -74,7 +103,7 @@ function icon(t: string) {
 }
 
 onMounted(load)
-onActivated(load)
+onActivated(() => { reset(); load() })
 </script>
 
 <style scoped>

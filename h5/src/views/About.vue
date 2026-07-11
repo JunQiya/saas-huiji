@@ -58,22 +58,22 @@
             <div class="contact-ic"><van-icon name="phone-o" /></div>
             <div class="contact-text">
               <div class="contact-key">客服电话</div>
-              <div class="contact-val">400-xxx-xxxx</div>
+              <div class="contact-val">021-63008888</div>
             </div>
-            <a :href="`tel:400-xxxx-xxxx`" class="contact-action">拨号</a>
+            <a :href="`tel:02163008888`" class="contact-action">拨号</a>
           </div>
           <div class="contact-row">
             <div class="contact-ic"><van-icon name="envelop-o" /></div>
             <div class="contact-text">
               <div class="contact-key">服务邮箱</div>
-              <div class="contact-val">service@xhmember.cn</div>
+              <div class="contact-val">xinghe@mail.lxxno.cn</div>
             </div>
           </div>
           <div class="contact-row">
             <div class="contact-ic"><van-icon name="location-o" /></div>
             <div class="contact-text">
               <div class="contact-key">星河坐标</div>
-              <div class="contact-val">上海 · 浦东</div>
+              <div class="contact-val">上海市黄浦区南京东路 100 号</div>
             </div>
           </div>
           <div class="contact-row">

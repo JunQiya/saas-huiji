@@ -18,50 +18,56 @@
         </div>
       </div>
 
-      <div v-if="loading" class="loading"><van-loading color="#6f94b8" /></div>
-      <EmptyState
-        v-else-if="!list.length"
-        title="暂无订单"
-        sub="下单后会在这里显示"
-        art="box"
+      <van-list
+        v-model:loading="loading"
+        :finished="finished"
+        :finished-text="list.length ? '没有更多了' : ''"
+        @load="load"
       >
-        <van-button round type="primary" size="small" class="go-btn" @click="goMall">去逛逛</van-button>
-      </EmptyState>
-
-      <div v-else class="order-list">
-        <div
-          v-for="o in list"
-          :key="o.id"
-          class="order-card ui-card hoverable"
-          :class="{ highlight: String(highlightId) === String(o.id) }"
-          @click="openDetail(o)"
+        <div v-if="loading && !list.length" class="loading"><van-loading color="#6f94b8" /></div>
+        <EmptyState
+          v-else-if="!list.length && finished"
+          title="暂无订单"
+          sub="下单后会在这里显示"
+          art="box"
         >
-          <div class="o-head">
-            <span class="o-no val">{{ o.orderNo }}</span>
-            <span class="chip" :class="statusChipClass(o.status)">{{ statusText(o.status) }}</span>
-          </div>
-          <div v-if="o.items?.length" class="o-items">
-            <div v-for="(it, i) in o.items.slice(0, 3)" :key="i" class="o-item">
-              <span class="o-item-name">{{ it.productName }}</span>
-              <span class="o-item-qty muted">x{{ it.quantity }}</span>
-              <span class="o-item-sub val">¥{{ yuan(it.subtotal) }}</span>
+          <van-button round type="primary" size="small" class="go-btn" @click="goMall">去逛逛</van-button>
+        </EmptyState>
+        <div v-else class="order-list">
+          <div
+            v-for="o in list"
+            :key="o.id"
+            class="order-card ui-card hoverable"
+            :class="{ highlight: String(highlightId) === String(o.id) }"
+            @click="openDetail(o)"
+          >
+            <div class="o-head">
+              <span class="o-no val">{{ o.orderNo }}</span>
+              <span class="chip" :class="statusChipClass(o.status)">{{ statusText(o.status) }}</span>
             </div>
-            <div v-if="o.items.length > 3" class="o-more muted">还有 {{ o.items.length - 3 }} 件...</div>
-          </div>
-          <div v-if="o.trackingNo" class="o-tracking">
-            <van-icon name="logistics" size="14" />
-            <span class="val">{{ o.trackingNo }}</span>
-            <span v-if="o.trackingCompany" class="muted">（{{ o.trackingCompany }}）</span>
-          </div>
-          <div class="o-foot">
-            <div class="o-time muted">{{ fmt(o.createdAt) }}</div>
-            <div class="o-amount">
-              <span class="muted">合计</span>
-              <span class="val strong">¥{{ yuan(o.totalAmount) }}</span>
+            <div v-if="o.items?.length" class="o-items">
+              <div v-for="(it, i) in o.items.slice(0, 3)" :key="i" class="o-item">
+                <span class="o-item-name">{{ it.productName }}</span>
+                <span class="o-item-qty muted">x{{ it.quantity }}</span>
+                <span class="o-item-sub val">¥{{ yuan(it.subtotal) }}</span>
+              </div>
+              <div v-if="o.items.length > 3" class="o-more muted">还有 {{ o.items.length - 3 }} 件...</div>
+            </div>
+            <div v-if="o.trackingNo" class="o-tracking">
+              <van-icon name="logistics" size="14" />
+              <span class="val">{{ o.trackingNo }}</span>
+              <span v-if="o.trackingCompany" class="muted">（{{ o.trackingCompany }}）</span>
+            </div>
+            <div class="o-foot">
+              <div class="o-time muted">{{ fmt(o.createdAt) }}</div>
+              <div class="o-amount">
+                <span class="muted">合计</span>
+                <span class="val strong">¥{{ yuan(o.totalAmount) }}</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </van-list>
     </div>
 
     <!-- 订单详情弹层 -->
@@ -206,6 +212,8 @@ interface MallOrder {
 }
 
 const loading = ref(false)
+const finished = ref(false)
+const page = ref(1)
 const list = ref<MallOrder[]>([])
 const status = ref('')
 const highlightId = ref<number | string>('')
@@ -218,25 +226,47 @@ const tabs = [
   { label: '已作废', value: 'VOID' }
 ]
 
+let pending = false
 async function load() {
+  if (pending) return
+  pending = true
   loading.value = true
+  const isFirstPage = page.value === 1
   try {
     const data: any = await mallApi.myOrders({
       status: status.value || undefined,
-      page: 1,
-      size: 30
+      page: page.value,
+      size: 20
     })
-    list.value = data?.records || data?.list || (Array.isArray(data) ? data : [])
-    // 高亮刚下单的订单
-    if (highlightId.value) {
+    const items = data?.records || data?.list || (Array.isArray(data) ? data : [])
+    list.value.push(...items)
+    page.value++
+    const total = data?.total
+    if (items.length < 20 || (total != null && list.value.length >= total)) {
+      finished.value = true
+    }
+    // 高亮刚下单的订单（仅在首页加载时）
+    if (isFirstPage && highlightId.value) {
       setTimeout(() => { highlightId.value = '' }, 2000)
     }
-  } catch { list.value = [] }
-  finally { loading.value = false }
+  } catch {
+    finished.value = true
+  } finally {
+    pending = false
+    loading.value = false
+  }
+}
+
+function reset() {
+  page.value = 1
+  list.value = []
+  finished.value = false
+  loading.value = false
 }
 
 function onTab(v: string) {
   status.value = v
+  reset()
   load()
 }
 
@@ -276,7 +306,7 @@ async function onPayOrder(o: MallOrder) {
           if (r.err_msg === 'get_brand_wcpay_request:ok') {
             showSuccessToast('支付成功')
             detailVisible.value = false
-            load()
+            reset(); load()
           } else {
             showToast('支付未完成')
           }
@@ -285,7 +315,7 @@ async function onPayOrder(o: MallOrder) {
     } else {
       showToast({ message: '支付已发起', position: 'top' })
       detailVisible.value = false
-      load()
+      reset(); load()
     }
   } catch {/* */}
 }
@@ -298,7 +328,7 @@ async function onCancelOrder(o: MallOrder) {
     await mallApi.cancelOrder(o.id)
     showSuccessToast('已取消')
     detailVisible.value = false
-    load()
+    reset(); load()
   } catch {/* */}
 }
 
@@ -310,7 +340,7 @@ async function onConfirmReceipt(o: MallOrder) {
     await mallApi.confirmOrder(o.id)
     showSuccessToast('已确认收货')
     detailVisible.value = false
-    load()
+    reset(); load()
   } catch {/* */}
 }
 
@@ -353,7 +383,7 @@ onMounted(() => {
 })
 
 onActivated(() => {
-  load()
+  reset(); load()
 })
 </script>
 

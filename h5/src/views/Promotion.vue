@@ -104,7 +104,7 @@ async function onJoin() {
   } else if (d.link) {
     router.push(d.link)
   } else {
-    showToast('请前往「我的券」查看')
+    router.push('/coupon-center')
   }
 }
 

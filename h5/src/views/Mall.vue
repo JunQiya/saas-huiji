@@ -29,45 +29,51 @@
     <div class="page-tip">把好物放进购物车，把心意交给收件人。</div>
 
     <!-- 商品网格 -->
-    <div v-if="loading" class="loading"><van-loading color="#6f94b8" /></div>
-    <EmptyState
-      v-else-if="!list.length"
-      :title="emptyTitle"
-      sub="更多好物正在上架中"
-      art="box"
-    />
-
-    <div v-else class="grid">
-      <div
-        v-for="p in list"
-        :key="p.id"
-        class="card ui-card hoverable"
-        @click="openDetail(p)"
-      >
-        <div class="cover" :class="`tone-${p.category || 'GOODS'}`">
-          <van-icon :name="p.category === 'SERVICE' ? 'gem-o' : 'gift-o'" size="32" color="rgba(255,255,255,0.92)" />
-          <div v-if="p.stock != null && p.stock <= 5 && p.stock > 0" class="stock-flag">仅剩 {{ p.stock }}</div>
-          <div v-else-if="p.stock === 0" class="stock-flag sold-out">已售罄</div>
-        </div>
-        <div class="info">
-          <div class="name">{{ p.name }}</div>
-          <div class="desc">{{ p.description || (p.category === 'SERVICE' ? '到店体验服务' : '实物商品') }}</div>
-          <div class="meta">
-            <div class="price">
-              <span class="unit">¥</span><span class="num val">{{ yuan(p.price) }}</span>
+    <van-list
+      v-model:loading="loading"
+      :finished="finished"
+      :finished-text="list.length ? '没有更多了' : ''"
+      @load="load"
+    >
+      <div v-if="loading && !list.length" class="loading"><van-loading color="#6f94b8" /></div>
+      <EmptyState
+        v-else-if="!list.length && finished"
+        :title="emptyTitle"
+        sub="更多好物正在上架中"
+        art="box"
+      />
+      <div v-else class="grid">
+        <div
+          v-for="p in list"
+          :key="p.id"
+          class="card ui-card hoverable"
+          @click="openDetail(p)"
+        >
+          <div class="cover" :class="`tone-${p.category || 'GOODS'}`">
+            <van-icon :name="p.category === 'SERVICE' ? 'gem-o' : 'gift-o'" size="32" color="rgba(255,255,255,0.92)" />
+            <div v-if="p.stock != null && p.stock <= 5 && p.stock > 0" class="stock-flag">仅剩 {{ p.stock }}</div>
+            <div v-else-if="p.stock === 0" class="stock-flag sold-out">已售罄</div>
+          </div>
+          <div class="info">
+            <div class="name">{{ p.name }}</div>
+            <div class="desc">{{ p.description || (p.category === 'SERVICE' ? '到店体验服务' : '实物商品') }}</div>
+            <div class="meta">
+              <div class="price">
+                <span class="unit">¥</span><span class="num val">{{ yuan(p.price) }}</span>
+              </div>
+              <button
+                class="add-btn"
+                :class="{ disabled: p.stock === 0 }"
+                :disabled="p.stock === 0"
+                @click.stop="onAddCart(p)"
+              >
+                <van-icon name="cart-circle-o" size="16" />
+              </button>
             </div>
-            <button
-              class="add-btn"
-              :class="{ disabled: p.stock === 0 }"
-              :disabled="p.stock === 0"
-              @click.stop="onAddCart(p)"
-            >
-              <van-icon name="cart-circle-o" size="16" />
-            </button>
           </div>
         </div>
       </div>
-    </div>
+    </van-list>
 
     <!-- 浮动购物车入口 -->
     <div class="cart-fab" @click="goCart">
@@ -108,6 +114,8 @@ interface MallProduct {
 }
 
 const loading = ref(false)
+const finished = ref(false)
+const page = ref(1)
 const list = ref<MallProduct[]>([])
 const keyword = ref('')
 const activeCat = ref<number | string>('')
@@ -123,25 +131,46 @@ async function loadCategories() {
   } catch {/* */}
 }
 
-async function loadProducts() {
+let pending = false
+async function load() {
+  if (pending) return
+  pending = true
   loading.value = true
   try {
     const data: any = await mallApi.products({
       categoryId: activeCat.value || undefined,
       keyword: keyword.value || undefined,
-      page: 1,
-      size: 50
+      page: page.value,
+      size: 20
     })
-    list.value = data?.records || data?.list || (Array.isArray(data) ? data : [])
-  } catch { list.value = [] }
-  finally { loading.value = false }
+    const items = data?.records || data?.list || (Array.isArray(data) ? data : [])
+    list.value.push(...items)
+    page.value++
+    const total = data?.total
+    if (items.length < 20 || (total != null && list.value.length >= total)) {
+      finished.value = true
+    }
+  } catch {
+    finished.value = true
+  } finally {
+    pending = false
+    loading.value = false
+  }
+}
+
+function reset() {
+  page.value = 1
+  list.value = []
+  finished.value = false
+  loading.value = false
 }
 
 function onCat(id: number | string) {
   activeCat.value = id
-  loadProducts()
+  reset()
+  load()
 }
-function onSearch() { loadProducts() }
+function onSearch() { reset(); load() }
 
 function openDetail(p: MallProduct) {
   router.push(`/mall/product/${p.id}`)
@@ -195,11 +224,11 @@ function yuan(f: any) {
 
 onMounted(() => {
   loadCategories()
-  loadProducts()
   loadCartCount()
+  load()
 })
 // 从详情/购物车返回时刷新件数和商品列表
-onActivated(() => { loadCartCount(); loadProducts() })
+onActivated(() => { loadCartCount(); reset(); load() })
 </script>
 
 <style scoped>

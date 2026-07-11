@@ -20,17 +20,7 @@
       <div class="ui-card qr-card">
         <div class="qr-title">扫码邀请</div>
         <div class="qr-box">
-          <div class="qr-inner">
-            <div v-for="(row, ri) in qrGrid" :key="ri" class="qr-row">
-              <div
-                v-for="(cell, ci) in row"
-                :key="ci"
-                class="qr-cell"
-                :class="{ on: cell }"
-              ></div>
-            </div>
-            <div class="qr-logo">请</div>
-          </div>
+          <canvas ref="qrCanvas" class="qr-canvas"></canvas>
         </div>
         <div class="qr-tip">长按识别 / 截图保存</div>
       </div>
@@ -101,8 +91,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { onMounted, ref, watch, nextTick } from 'vue'
 import { showSuccessToast, showFailToast, showToast } from 'vant'
+import QRCode from 'qrcode'
 import { referralApi } from '@/api/h5'
 import { formatDate, fenToYuan } from '@/utils/format'
 
@@ -113,6 +104,21 @@ const info = ref<any>({})
 const stats = ref<any>({ total: 0, active: 0, rewarded: 0, totalReward: 0 })
 const list = ref<any[]>([])
 const bindCode = ref('')
+const qrCanvas = ref<HTMLCanvasElement>()
+
+async function drawQr() {
+  if (!qrCanvas.value || !info.value.code) return
+  const url = `${window.location.origin}/#/login?ref=${info.value.code}`
+  try {
+    await QRCode.toCanvas(qrCanvas.value, url, {
+      width: 200,
+      margin: 1,
+      color: { dark: '#2a3a4a', light: '#ffffff' }
+    })
+  } catch {/* */}
+}
+
+watch(() => info.value.code, () => nextTick(drawQr))
 
 async function loadAll() {
   loading.value = true
@@ -159,31 +165,10 @@ function chipClass(s: string) {
   return ({ REGISTERED: 'mist', ACTIVE: 'warning', REWARDED: 'success' } as any)[s] || 'mist'
 }
 
-const qrGrid = computed(() => {
-  const n = 14
-  const grid: boolean[][] = []
-  const seed = (info.value.code || 'A').split('').reduce((s: number, c: string) => s + c.charCodeAt(0), 0)
-  for (let i = 0; i < n; i++) {
-    const row: boolean[] = []
-    for (let j = 0; j < n; j++) {
-      const inTL = i < 3 && j < 3
-      const inTR = i < 3 && j >= n - 3
-      const inBL = i >= n - 3 && j < 3
-      if (inTL || inTR || inBL) {
-        const ii = inTL ? i : (inTR ? i : i - (n - 3))
-        const jj = inTL ? j : (inTR ? j - (n - 3) : j)
-        const corner = (ii === 0 || ii === 2 || jj === 0 || jj === 2) || (ii === 1 && jj === 1)
-        row.push(corner)
-      } else {
-        row.push(((i * 31 + j * 17 + seed) % 5) < 2)
-      }
-    }
-    grid.push(row)
-  }
-  return grid
+onMounted(async () => {
+  await loadAll()
+  nextTick(drawQr)
 })
-
-onMounted(loadAll)
 </script>
 
 <style scoped>
@@ -230,18 +215,8 @@ onMounted(loadAll)
 .qr-card { padding: 18px; text-align: center; margin-bottom: 14px; }
 .qr-title { font-size: 13px; color: var(--ink-2); margin-bottom: 12px; letter-spacing: 0.04em; }
 .qr-box { display: inline-block; padding: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
-.qr-inner { position: relative; display: grid; grid-template-columns: repeat(14, 1fr); gap: 1px; width: 168px; height: 168px; }
-.qr-row { display: contents; }
-.qr-cell { aspect-ratio: 1; background: transparent; }
-.qr-cell.on { background: var(--ink); border-radius: 1px; }
-.qr-logo {
-  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-  width: 36px; height: 36px; background: var(--surface); border: 1px solid var(--line);
-  border-radius: 6px; display: flex; align-items: center; justify-content: center;
-  color: var(--brand-deep); font-weight: 500; font-size: 14px;
-  font-family: 'Songti SC', serif;
-}
-.qr-tip { font-size: 11px; color: var(--muted); margin-top: 10px; letter-spacing: 0.04em; }
+.qr-canvas { display: block; width: 200px; height: 200px; border-radius: 4px; }
+.qr-tip { font-size: 12px; color: var(--muted); margin-top: 12px; }
 
 /* 统计 */
 .stat-card { padding: 14px 0; margin-bottom: 14px; }

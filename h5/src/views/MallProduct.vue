@@ -176,7 +176,7 @@ async function onBuyNow() {
 }
 
 function onService() {
-  showToast('客服微信：xinghe-huiji')
+  router.push('/help')
 }
 
 const cartCount = ref(0)
