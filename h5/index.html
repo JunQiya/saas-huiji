@@ -9,6 +9,14 @@
     <title>星河·会记</title>
   </head>
   <body>
+    <script>
+      (function () {
+        if (localStorage.getItem('theme') === 'dark') {
+          document.documentElement.classList.add('dark')
+          document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#16151a')
+        }
+      })()
+    </script>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

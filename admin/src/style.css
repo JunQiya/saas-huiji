@@ -403,9 +403,83 @@ img { display: block; max-width: 100%; }
   --el-menu-item-active-bg-color: transparent;
 }
 
-/* ===== 暗色模式占位（完整实现留待后续） ===== */
-@media (prefers-color-scheme: dark) {
-  :root.theme-auto { /* 占位 */ }
+/* ===== 暗色模式 ===== */
+html.dark {
+  --page-bg: #16151a;
+  --page-bg-warm: #1a1920;
+  --page-bg-cool: #14151a;
+  --page-bg-paper: #1c1b22;
+  --surface: #1e1d24;
+  --surface-2: #24232b;
+  --surface-3: #2a2935;
+  --surface-dim: #131218;
+
+  --ink: #e8e6f0;
+  --ink-2: #b8b5c8;
+  --ink-3: #8a8898;
+  --muted: #6a6878;
+  --muted-2: #4a4858;
+
+  --line: rgba(255, 255, 255, 0.07);
+  --line-2: rgba(255, 255, 255, 0.12);
+  --line-strong: rgba(255, 255, 255, 0.20);
+  --line-soft: rgba(255, 255, 255, 0.04);
+
+  --brand: #7a9ec5;
+  --brand-deep: #5a82a8;
+  --brand-soft: rgba(122, 158, 197, 0.14);
+  --brand-softer: rgba(122, 158, 197, 0.07);
+  --brand-ink: #8aabd0;
+  --brand-glow: rgba(122, 158, 197, 0.20);
+
+  --success: #8aaa95;
+  --success-deep: #6a8a76;
+  --success-soft: rgba(138, 170, 149, 0.16);
+  --warning: #c4a868;
+  --warning-deep: #a48a4e;
+  --warning-soft: rgba(196, 168, 104, 0.16);
+  --danger: #c88878;
+  --danger-deep: #a86858;
+  --danger-soft: rgba(200, 136, 120, 0.16);
+  --info: #8a8898;
+
+  --accent-twilight: #a698bc;
+  --accent-twilight-soft: rgba(166, 152, 188, 0.16);
+  --accent-mist: #9aabb4;
+  --accent-mist-soft: rgba(154, 171, 180, 0.18);
+  --accent-clay: #c89878;
+  --accent-clay-soft: rgba(200, 152, 120, 0.16);
+  --accent-sage: #a4b8a8;
+  --accent-sage-soft: rgba(164, 184, 168, 0.18);
+  --accent-rose: #c4a4a0;
+  --accent-rose-soft: rgba(196, 164, 160, 0.18);
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.20);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.24);
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.32);
+  --shadow-lg: 0 14px 36px rgba(0, 0, 0, 0.36);
+  --shadow-card: 0 2px 14px rgba(0, 0, 0, 0.30);
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+html.dark body {
+  background:
+    radial-gradient(900px 480px at 8% -6%, rgba(122, 158, 197, 0.08), transparent 60%),
+    radial-gradient(700px 400px at 95% 100%, rgba(166, 152, 188, 0.06), transparent 55%),
+    var(--page-bg);
+}
+
+html.dark .el-card,
+html.dark .el-dialog,
+html.dark .el-drawer,
+html.dark .el-message-box {
+  box-shadow: var(--shadow-md);
+}
+
+html.dark .el-table tr.highlight-current-row > td,
+html.dark .el-table__body tr:hover > td {
+  background-color: var(--surface-2) !important;
 }
 
 /* =====================================================================

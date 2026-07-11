@@ -86,9 +86,9 @@
               </el-dropdown-menu>
             </template>
           </el-dropdown>
-          <el-tooltip content="暗色模式（即将开放）" placement="bottom">
+          <el-tooltip :content="isDark ? '切换亮色' : '切换暗色'" placement="bottom">
             <el-button text class="icon-btn" @click="toggleDark">
-              <el-icon><Moon /></el-icon>
+              <el-icon><Moon v-if="!isDark" /><Sunny v-else /></el-icon>
             </el-button>
           </el-tooltip>
           <el-dropdown @command="onUserCmd">
@@ -124,7 +124,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  ArrowDown, Expand, Fold, Moon, SwitchButton, Shop, Setting, QuestionFilled
+  ArrowDown, Expand, Fold, Moon, Sunny, SwitchButton, Shop, Setting, QuestionFilled
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { settingsPlanApi, storesApi } from '@/api'
@@ -133,7 +133,7 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const collapsed = ref(false)
-const isDark = ref(false)
+const isDark = ref(localStorage.getItem('theme') === 'dark')
 
 const menuGroups = [
   {
@@ -230,8 +230,8 @@ const asideQuote = computed(() => {
 
 function toggleDark() {
   isDark.value = !isDark.value
-  document.body.classList.toggle('theme-dark-mock', isDark.value)
-  ElMessage.info(isDark.value ? '已开启暗色占位（完整暗色模式即将上线）' : '已关闭暗色')
+  document.documentElement.classList.toggle('dark', isDark.value)
+  localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
 }
 
 const currentStore = reactive<any>({ storeId: null, name: '' })
@@ -300,6 +300,7 @@ onMounted(() => {
   onFirstLogin()
   const saved = localStorage.getItem('aside-collapsed')
   if (saved) collapsed.value = saved === '1'
+  if (isDark.value) document.documentElement.classList.add('dark')
 })
 </script>
 

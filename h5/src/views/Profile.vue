@@ -79,6 +79,20 @@
       </div>
     </div>
 
+    <!-- 外观 -->
+    <div class="section-title">
+      <span>外观</span>
+    </div>
+    <div class="menu-card ui-card">
+      <div class="menu-row dark-row">
+        <div class="m-icon" :class="isDark ? 'ic-twilight' : 'ic-clay'">
+          <van-icon :name="isDark ? 'bulb-o' : 'bulb-o'" size="18" />
+        </div>
+        <span class="m-text">暗色模式</span>
+        <van-switch :model-value="isDark" size="20px" @update:model-value="toggleDark" />
+      </div>
+    </div>
+
     <!-- 退出 -->
     <div class="logout-btn" @click="onLogout">
       <van-icon name="revoke" />
@@ -93,7 +107,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { showConfirmDialog, showToast } from 'vant'
 import { useMemberStore } from '@/stores/member'
@@ -103,6 +117,14 @@ import TabBar from '@/components/TabBar.vue'
 const router = useRouter()
 const memberStore = useMemberStore()
 const memberInfo = computed(() => memberStore.memberInfo)
+const isDark = ref(localStorage.getItem('theme') === 'dark')
+
+function toggleDark(val: boolean) {
+  isDark.value = val
+  document.documentElement.classList.toggle('dark', val)
+  localStorage.setItem('theme', val ? 'dark' : 'light')
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', val ? '#16151a' : '#f4f4f1')
+}
 
 const slogans = [
   '回到这里，就是回到日常',
@@ -260,6 +282,7 @@ async function onLogout() {
 .m-icon.ic-rose { background: var(--accent-rose-soft); color: #8a5a52; }
 .m-icon.ic-mist { background: rgba(168, 181, 184, 0.18); color: #5d6e72; }
 .m-icon.ic-clay { background: var(--accent-clay-soft); color: #8a5a32; }
+.m-icon.ic-twilight { background: var(--accent-twilight-soft); color: #6b6080; }
 .m-text { flex: 1; font-size: 13.5px; color: var(--ink-2); letter-spacing: 0.02em; }
 .m-badge {
   font-size: 10.5px;

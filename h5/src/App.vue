@@ -1,5 +1,12 @@
 <script setup lang="ts">
-// 根组件：仅承载路由出口
+import { onMounted } from 'vue'
+
+onMounted(() => {
+  if (localStorage.getItem('theme') === 'dark') {
+    document.documentElement.classList.add('dark')
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#16151a')
+  }
+})
 </script>
 
 <template>
