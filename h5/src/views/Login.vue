@@ -50,7 +50,7 @@
     <div class="login-card x-fade">
       <div class="card-head">
         <div class="head-title">欢迎回来</div>
-        <div class="head-sub">手机号验证码登录，演示验证码 8888</div>
+        <div class="head-sub">手机号验证码登录，演示验证码 {{ demoCode }}</div>
       </div>
 
       <div class="form">
@@ -113,7 +113,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { showToast } from 'vant'
 import { h5Api } from '@/api/h5'
@@ -127,6 +127,8 @@ const code = ref('')
 const loading = ref(false)
 const codeCountdown = ref(0)
 let timer: any
+// 演示验证码：生产环境可通过 .env 设置 VITE_SMS_CODE 为空来禁用
+const demoCode = import.meta.env.VITE_SMS_CODE || '8888'
 
 const phoneValid = computed(() => /^1\d{10}$/.test(phone.value))
 
@@ -144,8 +146,8 @@ function onSendCode() {
     showToast('请输入正确的手机号')
     return
   }
-  code.value = '8888'
-  showToast({ type: 'success', message: '验证码已发送（演示用 8888）' })
+  code.value = demoCode
+  showToast({ type: 'success', message: `验证码已发送（演示用 ${demoCode}）` })
   codeCountdown.value = 60
   timer = setInterval(() => {
     codeCountdown.value--
@@ -161,6 +163,13 @@ async function onLogin() {
     const res = await h5Api.login(phone.value, code.value)
     memberStore.setToken(res.memberToken)
     memberStore.setMember(res.member)
+    // 登录成功后从 member token 中解析 tenantId，覆盖 URL 中可能被篡改的值
+    try {
+      const payload = JSON.parse(atob(res.memberToken.split('.')[1]))
+      if (payload?.tenantId) {
+        localStorage.setItem('tenantId', String(payload.tenantId))
+      }
+    } catch {/* token 解析失败时忽略，沿用 URL/localStorage 中的值 */}
     showToast({ type: 'success', message: '登录成功' })
     setTimeout(() => router.replace('/'), 400)
   } catch (e: any) {
@@ -171,6 +180,7 @@ async function onLogin() {
 }
 
 // 获取租户 ID：优先 URL 参数，其次 localStorage，默认 1
+// 注意：URL 参数存在被篡改风险，登录成功后会用 member token 中的 tenantId 覆盖
 function getTenantId(): string {
   const fromUrl = new URLSearchParams(window.location.search).get('tenantId')
   if (fromUrl) {
@@ -192,6 +202,10 @@ function onWxLogin() {
 
 onMounted(() => {
   if (memberStore.memberToken) router.replace('/')
+})
+
+onUnmounted(() => {
+  if (timer) clearInterval(timer)
 })
 </script>
 

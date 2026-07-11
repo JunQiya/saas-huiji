@@ -208,7 +208,7 @@ export const referralsApi = {
   listByReferrer: (memberId: number) => request.get<any, any[]>(`/referrals/list?memberId=${memberId}`),
   adminAll: (params: any) => request.get<any, PageData<any>>('/referrals/admin/all', { params }),
   adminStats: (memberId: number) => request.get<any, any>(`/referrals/admin/stats?memberId=${memberId}`),
-  adminBind: (code: string) => request.post<any, any>('/referrals/admin/bind', { code })
+  adminBind: (memberId: number, code: string) => request.post<any, any>('/referrals/admin/bind', { memberId, code })
 }
 
 // ============ 微信公众号 ============

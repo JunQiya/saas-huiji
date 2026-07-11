@@ -196,6 +196,10 @@ async function loadCartItems() {
     } else if (route.query.buyNow === '1' && route.query.productId) {
       const pid = Number(route.query.productId)
       items.value = all.filter((it: any) => it.productId === pid)
+      if (!items.value.length) {
+        showToast('商品添加失败，请重试')
+        setTimeout(() => router.back(), 600)
+      }
       return
     } else {
       items.value = all.filter(i => i.selected)

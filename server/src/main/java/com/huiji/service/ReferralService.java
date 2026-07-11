@@ -109,11 +109,11 @@ public class ReferralService {
         if (referrerId.equals(memberId)) {
             throw new BizException(ErrorCode.BIZ_ERROR, "不可绑定自己");
         }
-        Member referrer = memberRepository.findById(referrerId)
-                .filter(m -> Boolean.FALSE.equals(m.getDeleted())).orElse(null);
         Member me = memberRepository.findById(memberId)
                 .filter(m -> Boolean.FALSE.equals(m.getDeleted()))
                 .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "会员不存在"));
+        Member referrer = memberRepository.findByIdAndTenantIdAndDeletedFalse(referrerId, me.getTenantId())
+                .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "推荐人不存在或非同租户"));
         // 创建关系
         Referral r = new Referral();
         r.setTenantId(me.getTenantId());

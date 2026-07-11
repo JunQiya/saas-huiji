@@ -22,6 +22,10 @@ public final class MemberHolder {
         return id;
     }
 
+    public static Long getOrNull() {
+        return HOLDER.get();
+    }
+
     public static void clear() {
         HOLDER.remove();
     }

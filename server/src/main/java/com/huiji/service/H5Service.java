@@ -15,6 +15,7 @@ import com.huiji.repository.StoreRepository;
 import com.huiji.repository.WalletTransactionRepository;
 import com.huiji.security.MemberTokenUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,12 +26,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/** H5 会员端服务: 手机号+验证码登录(固定 8888)、个人资料、余额、券、领券、消费记录、门店。 */
+/** H5 会员端服务: 手机号+验证码登录、个人资料、余额、券、领券、消费记录、门店。 */
 @Service
 @RequiredArgsConstructor
 public class H5Service {
 
-    private static final String FIXED_CODE = "8888";
+    @Value("${huiji.h5.sms-code:8888}")
+    private String smsCode;
 
     private final MemberRepository memberRepository;
     private final WalletTransactionRepository walletRepository;
@@ -45,7 +47,7 @@ public class H5Service {
     /** 登录: 校验验证码, 返回 memberToken 与会员资料 */
     @Transactional
     public Map<String, Object> login(H5Dto.LoginRequest req) {
-        if (!FIXED_CODE.equals(req.getCode())) {
+        if (smsCode == null || smsCode.isBlank() || !smsCode.equals(req.getCode())) {
             throw new BizException(ErrorCode.BIZ_ERROR, "验证码错误");
         }
         // 按手机号查找会员(演示单租户, 取首个匹配)

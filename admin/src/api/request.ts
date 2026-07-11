@@ -46,7 +46,14 @@ service.interceptors.response.use(
     // 非标准结构，原样返回
     return res
   },
-  (error) => {
+  async (error) => {
+    // blob 请求的错误响应是 Blob，需转为 JSON 才能解析错误信息
+    if (error.response?.config?.responseType === 'blob' && error.response.data instanceof Blob) {
+      try {
+        const text = await error.response.data.text()
+        error.response.data = JSON.parse(text)
+      } catch {/* 非 JSON 则保留原 Blob */}
+    }
     const status = error.response?.status
     const body = error.response?.data
     const code = body?.code

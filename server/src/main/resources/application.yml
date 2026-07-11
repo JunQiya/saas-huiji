@@ -14,11 +14,11 @@ spring:
       write-dates-as-timestamps: false
     default-property-inclusion: non_null
 
-  # 数据源(MySQL), dev/prod 均使用本地 MySQL
+  # 数据源(MySQL), 生产环境请通过环境变量 DB_URL/DB_USERNAME/DB_PASSWORD 注入
   datasource:
-    url: jdbc:mysql://localhost:3306/huiji?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: root
-    password: 123456
+    url: ${DB_URL:jdbc:mysql://localhost:3306/huiji?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -31,9 +31,9 @@ spring:
         # 自动给 SQL 标识符加反引号, 避免 type/status/trigger 等 MySQL 保留字冲突
         globally_quoted_identifiers: true
 
-# JWT
+# JWT (生产环境请通过环境变量 JWT_SECRET 注入, 密钥长度至少 32 字符)
 huiji-jwt:
-  secret: huiji-secret-key-for-jwt-signing-please-change-in-production-2024
+  secret: ${JWT_SECRET:huiji-secret-key-for-jwt-signing-please-change-in-production-2024}
   expire-minutes: 720
   member-expire-minutes: 1440
 

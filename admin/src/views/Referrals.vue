@@ -109,8 +109,11 @@
     <!-- 手动绑定弹窗 -->
     <el-dialog v-model="bindVisible" title="手动绑定推荐关系" width="420px">
       <el-form @submit.prevent="confirmBind">
-        <el-form-item label="推荐码">
-          <el-input v-model="bindCode" placeholder="请输入推荐码" clearable autofocus />
+        <el-form-item label="会员 ID" required>
+          <el-input-number v-model="bindMemberId" :min="1" placeholder="请输入被绑定的会员 ID" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="推荐码" required>
+          <el-input v-model="bindCode" placeholder="请输入推荐码" clearable />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -144,6 +147,7 @@ const detail = ref<any>(null)
 
 // 绑定弹窗状态
 const bindVisible = ref(false)
+const bindMemberId = ref<number | undefined>(undefined)
 const bindCode = ref('')
 const bindLoading = ref(false)
 
@@ -177,12 +181,17 @@ function openDetail(row: any) {
 
 // 打开绑定弹窗
 function openBindDialog() {
+  bindMemberId.value = undefined
   bindCode.value = ''
   bindVisible.value = true
 }
 
 // 确认绑定：调后端 adminBind
 async function confirmBind() {
+  if (!bindMemberId.value) {
+    ElMessage.warning('请输入会员 ID')
+    return
+  }
   const code = bindCode.value.trim()
   if (!code) {
     ElMessage.warning('请输入推荐码')
@@ -190,7 +199,7 @@ async function confirmBind() {
   }
   bindLoading.value = true
   try {
-    await referralsApi.adminBind(code)
+    await referralsApi.adminBind(bindMemberId.value, code)
     ElMessage.success('绑定成功')
     bindVisible.value = false
     loadList()

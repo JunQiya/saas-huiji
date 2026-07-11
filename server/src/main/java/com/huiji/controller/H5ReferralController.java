@@ -1,5 +1,7 @@
 package com.huiji.controller;
 
+import com.huiji.common.BizException;
+import com.huiji.common.ErrorCode;
 import com.huiji.common.Result;
 import com.huiji.dto.H5Dto;
 import com.huiji.security.MemberHolder;
@@ -27,13 +29,13 @@ public class H5ReferralController {
 
     @GetMapping("/me")
     public Result<Map<String, Object>> me() {
-        Long memberId = MemberHolder.get();
+        Long memberId = requireMember();
         return Result.success(referralService.myReferralInfo(memberId));
     }
 
     @GetMapping("/list")
     public Result<List<Map<String, Object>>> list() {
-        Long memberId = MemberHolder.get();
+        Long memberId = requireMember();
         return Result.success(referralService.myReferralList(memberId));
     }
 
@@ -44,7 +46,15 @@ public class H5ReferralController {
 
     @PostMapping("/bind")
     public Result<Map<String, Object>> bind(@RequestBody BindReq req) {
-        Long memberId = MemberHolder.get();
+        Long memberId = requireMember();
         return Result.success(referralService.bind(memberId, req == null ? null : req.getCode()));
+    }
+
+    private Long requireMember() {
+        Long memberId = MemberHolder.getOrNull();
+        if (memberId == null) {
+            throw new BizException(ErrorCode.SESSION_EXPIRED, "请先登录");
+        }
+        return memberId;
     }
 }
