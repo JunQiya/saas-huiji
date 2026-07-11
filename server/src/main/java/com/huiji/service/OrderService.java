@@ -158,6 +158,10 @@ public class OrderService {
             oi.setOrderId(order.getId());
         }
         orderItemRepository.saveAll(items);
+        // 已支付订单为会员累加积分
+        if ("PAID".equals(order.getStatus()) && order.getMemberId() != null) {
+            awardPoints(order.getMemberId(), order.getStoreId(), payable, order.getOrderNo());
+        }
         auditHelper.record("创建订单", "order:" + order.getOrderNo(), "金额 " + total);
         return detail(order.getId());
     }
@@ -210,6 +214,10 @@ public class OrderService {
         order.setStatus("PAID");
         order.setPaidAt(LocalDateTime.now());
         orderRepository.save(order);
+        // 已支付订单为会员累加积分
+        if (order.getMemberId() != null) {
+            awardPoints(order.getMemberId(), order.getStoreId(), payable, order.getOrderNo());
+        }
         auditHelper.record("订单支付", "order:" + order.getOrderNo(), method);
         return detail(id);
     }
@@ -381,6 +389,40 @@ public class OrderService {
         tx.setPayMethod("BALANCE");
         tx.setRemark(reason == null ? "订单退款" : reason);
         tx.setOperatorId(LoginUserHolder.currentUserId());
+        walletRepository.save(tx);
+    }
+
+    /**
+     * 消费赠送积分: 1 元 = 1 积分 (amount 单位为分, 转为元即为积分值)。
+     * 累加到 member.points, 并写入一条 WalletTransaction(type=POINT)流水。
+     */
+    @Transactional
+    public void awardPoints(Long memberId, Long storeId, Long amount, String orderNo) {
+        if (memberId == null) {
+            return;
+        }
+        if (amount == null || amount <= 0) {
+            return;
+        }
+        long points = amount / 100L;
+        if (points <= 0) {
+            return;
+        }
+        Member m = memberRepository.findById(memberId)
+                .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "会员不存在"));
+        long currentPoints = m.getPoints() == null ? 0L : m.getPoints();
+        m.setPoints(currentPoints + points);
+        memberRepository.save(m);
+
+        WalletTransaction tx = new WalletTransaction();
+        tx.setTenantId(m.getTenantId());
+        tx.setMemberId(memberId);
+        tx.setType("POINT");
+        tx.setAmount(points);
+        tx.setBalanceAfter(m.getPoints());
+        tx.setStoreId(storeId);
+        tx.setOrderNo(orderNo);
+        tx.setRemark("消费赠送积分");
         walletRepository.save(tx);
     }
 

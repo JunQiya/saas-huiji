@@ -53,6 +53,14 @@
       <KpiCard label="会员复购率" :value="kpi.repurchase" suffix="%" :precision="1" tone="twilight" />
     </div>
 
+    <!-- 第三行指标: 业务深度 -->
+    <div class="kpi-row kpi-row-2 x-stagger">
+      <KpiCard label="本月积分发放" :value="kpi.monthPoints" suffix="分" tone="brand" />
+      <KpiCard label="厨房待出" :value="kpi.kitchenPending" suffix="单" tone="clay" />
+      <KpiCard label="进行中活动" :value="kpi.activeCampaigns" suffix="个" tone="twilight" />
+      <KpiCard label="沉睡会员" :value="kpi.dormantMembers" suffix="人" tone="rose" />
+    </div>
+
     <!-- 图表区 -->
     <div class="chart-row">
       <ChartCard
@@ -71,6 +79,42 @@
       >
         <div ref="pieEl" class="chart-slot"></div>
       </ChartCard>
+    </div>
+
+    <!-- 第二图表行: 时段分布 + 实时动态 -->
+    <div class="chart-row chart-row-2">
+      <ChartCard
+        title="今日时段分布"
+        subtitle="按小时聚合到店数"
+        :height="220"
+        class="x-fade"
+      >
+        <div ref="hourEl" class="chart-slot"></div>
+      </ChartCard>
+
+      <div class="panel x-card x-fade">
+        <div class="panel-head">
+          <div class="panel-title">实时动态</div>
+          <span class="panel-tip">最近 5 条</span>
+        </div>
+        <div class="activity-list">
+          <div v-for="(a, i) in activity" :key="i" class="act-row">
+            <span class="act-dot" :class="a.tone"></span>
+            <div class="act-text">
+              <div class="act-title">
+                <span class="act-member">{{ a.member }}</span>
+                <span class="act-action">{{ a.action }}</span>
+              </div>
+              <div class="act-sub">{{ a.sub }}</div>
+            </div>
+            <span class="act-time">{{ a.time }}</span>
+          </div>
+          <div v-if="!activity.length" class="empty-state">
+            <div class="empty-text">暂无新动态</div>
+            <div class="empty-tip">— 安静也是一种美好 —</div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 热销商品 + 待办 -->
@@ -126,20 +170,23 @@ import * as echarts from 'echarts'
 import KpiCard from '@/components/KpiCard.vue'
 import ChartCard from '@/components/ChartCard.vue'
 import { useUserStore } from '@/stores/user'
-import { statsApi, productsApi, membersApi } from '@/api'
+import { statsApi, productsApi, membersApi, ordersApi, walletApi, diningApi, campaignsApi } from '@/api'
 
 const userStore = useUserStore()
 const loading = ref(false)
 const trendEl = ref<HTMLElement | null>(null)
 const pieEl = ref<HTMLElement | null>(null)
+const hourEl = ref<HTMLElement | null>(null)
 
 const kpi = ref<any>({
   todayRevenue: 0, todayOrders: 0, newMembers: 0, activeMembers: 0,
   revenueTrend: 0, orderTrend: 0, memberTrend: 0,
-  monthRecharge: 0, couponUseRate: 0, avgOrder: 0, repurchase: 0
+  monthRecharge: 0, couponUseRate: 0, avgOrder: 0, repurchase: 0,
+  monthPoints: 0, kitchenPending: 0, activeCampaigns: 0, dormantMembers: 0
 })
 const hotProducts = ref<any[]>([])
 const todos = ref<any[]>([])
+const activity = ref<any[]>([])
 
 const today = computed(() => {
   const d = new Date()
@@ -181,7 +228,11 @@ async function load() {
       monthRecharge: summary.monthRevenue || 0,
       couponUseRate: 0,
       avgOrder: overview?.avgPrice || 0,
-      repurchase: 0
+      repurchase: 0,
+      monthPoints: 0,
+      kitchenPending: 0,
+      activeCampaigns: 0,
+      dormantMembers: 0
     }
     // 2. 趋势
     try {
@@ -217,7 +268,16 @@ async function load() {
         id: t.id || i, name: t.name || '—', sold: t.count || 0, amount: t.amount || 0, category: t.category || '服务'
       }))
     } catch { hotProducts.value = [] }
-    // 5. 待办（基于实时数据估算）
+    // 5. 时段分布
+    try {
+      const hour = await statsApi.hour()
+      drawHour(hour || [])
+    } catch { drawHour([]) }
+    // 6. 第三行指标: 月度积分 / 厨房工单 / 活动 / 沉睡
+    loadExtendedKpi()
+    // 7. 实时动态: 从最近订单 + 流水
+    loadActivity()
+    // 8. 待办（基于实时数据估算）
     todos.value = []
     if (kpi.value.newMembers) {
       todos.value.push({ title: `今日新增 ${kpi.value.newMembers} 位会员`, sub: '建议下午 4 点前发送欢迎礼', tone: 'success' })
@@ -229,8 +289,91 @@ async function load() {
       todos.value.push({ title: '今天还没有到店', sub: '一束好的开场，从问候开始', tone: 'muted' })
     }
   } catch (e) {
-    drawTrend([]); drawPie([])
+    drawTrend([]); drawPie([]); drawHour([])
   } finally { loading.value = false }
+}
+
+async function loadExtendedKpi() {
+  // 月度积分发放: 累加本月 POINT 流水
+  try {
+    const tx: any = await walletApi.transactions({ type: 'POINT', page: 1, size: 200 })
+    const list = (tx?.list || tx?.data?.list || []) as any[]
+    const monthStart = new Date()
+    monthStart.setDate(1)
+    monthStart.setHours(0, 0, 0, 0)
+    kpi.value.monthPoints = list
+      .filter(t => new Date(t.createdAt) >= monthStart)
+      .reduce((s, t) => s + (t.amount || 0), 0)
+  } catch { kpi.value.monthPoints = 0 }
+
+  // 厨房待出工单
+  try {
+    const ko: any = await diningApi.kitchenOrders(1, 'PENDING')
+    kpi.value.kitchenPending = (ko || []).length
+  } catch { kpi.value.kitchenPending = 0 }
+
+  // 进行中活动
+  try {
+    const cps: any = await campaignsApi.list({ status: 'ENABLED' })
+    kpi.value.activeCampaigns = (cps || []).length
+  } catch { kpi.value.activeCampaigns = 0 }
+
+  // 沉睡会员: 90 天未消费
+  try {
+    const all: any = await membersApi.list({ page: 1, size: 200 })
+    const list = (all?.list || all?.data?.list || []) as any[]
+    const cutoff = Date.now() - 90 * 86400_000
+    kpi.value.dormantMembers = list.filter((m: any) => {
+      const t = m.lastConsumeAt ? new Date(m.lastConsumeAt).getTime() : 0
+      return t < cutoff
+    }).length
+  } catch { kpi.value.dormantMembers = 0 }
+}
+
+async function loadActivity() {
+  const items: any[] = []
+  try {
+    const o: any = await ordersApi.list({ page: 1, size: 5, status: 'PAID' })
+    const list = (o?.list || o?.data?.list || []) as any[]
+    list.slice(0, 5).forEach((od: any) => {
+      items.push({
+        member: od.memberName || '散客',
+        action: `完成了一笔 ${(od.totalAmount / 100).toFixed(0)} 元消费`,
+        sub: od.remark || od.payMethod || '到店',
+        time: formatTime(od.paidAt || od.createdAt),
+        tone: 'brand'
+      })
+    })
+  } catch {/* */}
+  try {
+    const tx: any = await walletApi.transactions({ type: 'RECHARGE', page: 1, size: 3 })
+    const list = (tx?.list || tx?.data?.list || []) as any[]
+    list.slice(0, 3).forEach((t: any) => {
+      items.push({
+        member: t.memberName || '会员',
+        action: `储值 ¥${(Math.abs(t.amount) / 100).toFixed(0)}`,
+        sub: t.remark || '微信支付',
+        time: formatTime(t.createdAt),
+        tone: 'twilight'
+      })
+    })
+  } catch {/* */}
+  // 按时间倒序, 取最近 5 条
+  activity.value = items
+    .filter(x => x.time !== '—')
+    .sort((a, b) => (a.time < b.time ? 1 : -1))
+    .slice(0, 5)
+}
+
+function formatTime(s: any) {
+  if (!s) return '—'
+  const d = new Date(s)
+  if (isNaN(d.getTime())) return '—'
+  const today = new Date()
+  const isToday = d.toDateString() === today.toDateString()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  if (isToday) return `${pad(d.getHours())}:${pad(d.getMinutes())}`
+  return `${d.getMonth() + 1}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 function drawTrend(data: any[]) {
@@ -320,6 +463,55 @@ function drawPie(data: any[]) {
   })
 }
 
+function drawHour(data: any[]) {
+  if (!hourEl.value) return
+  echarts.getInstanceByDom(hourEl.value)?.dispose()
+  const chart = echarts.init(hourEl.value)
+  // 只展示 8-22 营业时段
+  const filtered = (data || []).filter((d: any) => d.hour >= 8 && d.hour <= 22)
+  const labels = filtered.map((d: any) => `${d.hour}:00`)
+  const values = filtered.map((d: any) => d.count || 0)
+  chart.setOption({
+    grid: { left: 36, right: 18, top: 14, bottom: 26 },
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: 'rgba(31, 29, 24, 0.92)',
+      borderWidth: 0,
+      textStyle: { color: '#fff', fontSize: 12 },
+      padding: [6, 10]
+    },
+    xAxis: {
+      type: 'category',
+      data: labels,
+      axisLine: { lineStyle: { color: 'rgba(70, 64, 56, 0.18)' } },
+      axisTick: { show: false },
+      axisLabel: { color: '#8a8578', fontSize: 10, fontFamily: 'monospace' }
+    },
+    yAxis: {
+      type: 'value',
+      axisLine: { show: false }, axisTick: { show: false },
+      splitLine: { lineStyle: { color: 'rgba(70, 64, 56, 0.06)', type: 'dashed' } },
+      axisLabel: { color: '#8a8578', fontSize: 10, fontFamily: 'monospace' }
+    },
+    series: [{
+      type: 'bar',
+      data: values,
+      barWidth: 12,
+      itemStyle: {
+        color: {
+          type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+          colorStops: [
+            { offset: 0, color: '#5a7a9c' },
+            { offset: 1, color: '#8b7ea3' }
+          ]
+        },
+        borderRadius: [3, 3, 0, 0]
+      },
+      emphasis: { itemStyle: { color: '#5a7a9c' } }
+    }]
+  })
+}
+
 onMounted(load)
 </script>
 
@@ -397,25 +589,53 @@ onMounted(load)
 }
 .panel-tip { font-family: var(--font-serif); font-size: 11px; color: var(--muted); letter-spacing: 0.12em; }
 
-.hot-list, .todo-list { display: flex; flex-direction: column; gap: 4px; }
-.hot-row, .todo-row {
+.hot-list, .todo-list, .activity-list { display: flex; flex-direction: column; gap: 4px; }
+.hot-row, .todo-row, .act-row {
   display: flex; align-items: center; gap: 12px;
   padding: 10px 4px;
   border-bottom: 1px dashed var(--line);
   transition: background var(--dur) var(--ease-out);
 }
-.hot-row:hover, .todo-row:hover { background: var(--surface-2); padding-left: 8px; padding-right: 8px; }
-.hot-row:last-child, .todo-row:last-child { border-bottom: none; }
+.hot-row:hover, .todo-row:hover, .act-row:hover { background: var(--surface-2); padding-left: 8px; padding-right: 8px; }
+.hot-row:last-child, .todo-row:last-child, .act-row:last-child { border-bottom: none; }
 
-.hot-text, .todo-text { flex: 1; min-width: 0; }
+.hot-text, .todo-text, .act-text { flex: 1; min-width: 0; }
 .hot-name, .todo-title {
   font-family: var(--font-serif);
   font-size: 13.5px; color: var(--ink); font-weight: 500;
   letter-spacing: 0.04em;
 }
-.hot-sub, .todo-sub {
+.hot-sub, .todo-sub, .act-sub {
   font-size: 11.5px; color: var(--muted); margin-top: 3px;
   font-family: var(--font-num);
   letter-spacing: 0.02em;
 }
+
+/* 实时动态 */
+.act-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--brand);
+}
+.act-dot.tone-brand { background: #5a7a9c; }
+.act-dot.tone-twilight { background: #8b7ea3; }
+.act-dot.tone-rose { background: #b89692; }
+.act-title {
+  font-family: var(--font-serif);
+  font-size: 13px; color: var(--ink);
+  letter-spacing: 0.02em;
+}
+.act-member { color: var(--ink); font-weight: 500; }
+.act-action { color: var(--muted); margin-left: 4px; }
+.act-time {
+  font-family: var(--font-num);
+  font-size: 11px; color: var(--muted);
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+}
+
+/* 第二图表行 - 高度较小 */
+.chart-row-2 { margin-bottom: 14px; }
+.chart-row-2 .chart-slot { height: 160px; }
 </style>

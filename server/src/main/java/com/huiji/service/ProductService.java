@@ -44,10 +44,26 @@ public class ProductService {
                                               int page, int size) {
         Long tenantId = LoginUserHolder.currentTenantId();
         Pageable pageable = PageRequest.of(Math.max(0, page - 1), size <= 0 ? 20 : size);
-        Page<Product> p = productRepository.search(tenantId, trim(keyword), trim(category), trim(storeId),
-                trim(status), pageable);
-        List<Map<String, Object>> list = p.getContent().stream().map(this::toVO).toList();
-        return PageData.of(list, p.getTotalElements(), page, size);
+        Page<Product> p = productRepository.search(tenantId, trim(keyword), trim(category), trim(status),
+                pageable);
+        List<Map<String, Object>> list = p.getContent().stream()
+                .filter(prod -> storeId == null || storeId.isBlank() || storeIdMatch(prod, storeId))
+                .map(this::toVO)
+                .toList();
+        return PageData.of(list, (long) list.size(), page, size);
+    }
+
+    /** storeIds 是 List<Long>, 在内存里判断是否包含 */
+    private boolean storeIdMatch(Product p, String storeId) {
+        if (p.getStoreIds() == null || p.getStoreIds().isEmpty()) {
+            return true; // 空 = 全店可用
+        }
+        try {
+            long sid = Long.parseLong(storeId);
+            return p.getStoreIds().contains(sid);
+        } catch (NumberFormatException e) {
+            return true;
+        }
     }
 
     public Map<String, Object> detail(Long id) {

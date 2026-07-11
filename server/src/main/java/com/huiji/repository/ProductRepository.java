@@ -15,21 +15,19 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Optional<Product> findByIdAndTenantIdAndDeletedFalse(Long id, Long tenantId);
 
     /**
-     * 商品/服务列表搜索: 关键字/分类/门店/状态。
-     * storeId 为字符串形式, 使用 like 匹配逗号分隔的 storeIds。
+     * 商品/服务列表搜索: 关键字/分类/状态。
+     * storeId 过滤在 Service 层内存中处理(避开 List 类型 JPQL coalesce 限制)。
      * keyword 同时匹配 name 与 description。
      */
     @Query("select p from Product p where p.tenantId = :tenantId and p.deleted = false " +
             "and (:keyword is null or :keyword = '' or lower(p.name) like lower(concat('%', :keyword, '%')) " +
             "    or lower(coalesce(p.description, '')) like lower(concat('%', :keyword, '%'))) " +
             "and (:category is null or :category = '' or p.category = :category) " +
-            "and (:storeId is null or :storeId = '' or coalesce(p.storeIds, '') like concat('%', :storeId, '%')) " +
             "and (:status is null or :status = '' or p.status = :status) " +
             "order by p.id desc")
     Page<Product> search(@Param("tenantId") Long tenantId,
                          @Param("keyword") String keyword,
                          @Param("category") String category,
-                         @Param("storeId") String storeId,
                          @Param("status") String status,
                          Pageable pageable);
 

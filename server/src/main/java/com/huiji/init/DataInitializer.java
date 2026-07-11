@@ -1,35 +1,51 @@
 package com.huiji.init;
 
+import com.huiji.entity.Agent;
 import com.huiji.entity.Campaign;
+import com.huiji.entity.CampaignLog;
 import com.huiji.entity.Coupon;
 import com.huiji.entity.CouponRecord;
 import com.huiji.entity.DiningTable;
 import com.huiji.entity.Game;
+import com.huiji.entity.GamePlay;
 import com.huiji.entity.GamePrize;
+import com.huiji.entity.KitchenOrder;
 import com.huiji.entity.MallCategory;
 import com.huiji.entity.Member;
 import com.huiji.entity.MemberTag;
 import com.huiji.entity.MenuCategory;
+import com.huiji.entity.Order;
+import com.huiji.entity.OrderItem;
 import com.huiji.entity.Product;
+import com.huiji.entity.ReportTask;
 import com.huiji.entity.Store;
 import com.huiji.entity.Tenant;
 import com.huiji.entity.User;
 import com.huiji.entity.WalletTransaction;
+import com.huiji.entity.WxAccount;
+import com.huiji.repository.AgentRepository;
+import com.huiji.repository.CampaignLogRepository;
 import com.huiji.repository.CampaignRepository;
 import com.huiji.repository.CouponRecordRepository;
 import com.huiji.repository.CouponRepository;
 import com.huiji.repository.DiningTableRepository;
+import com.huiji.repository.GamePlayRepository;
 import com.huiji.repository.GamePrizeRepository;
 import com.huiji.repository.GameRepository;
+import com.huiji.repository.KitchenOrderRepository;
 import com.huiji.repository.MallCategoryRepository;
 import com.huiji.repository.MemberRepository;
 import com.huiji.repository.MemberTagRepository;
 import com.huiji.repository.MenuCategoryRepository;
+import com.huiji.repository.OrderItemRepository;
+import com.huiji.repository.OrderRepository;
 import com.huiji.repository.ProductRepository;
+import com.huiji.repository.ReportTaskRepository;
 import com.huiji.repository.StoreRepository;
 import com.huiji.repository.TenantRepository;
 import com.huiji.repository.UserRepository;
 import com.huiji.repository.WalletTransactionRepository;
+import com.huiji.repository.WxAccountRepository;
 import com.huiji.service.SettingsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +61,7 @@ import jakarta.persistence.EntityManager;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -68,12 +85,20 @@ public class DataInitializer {
     private final CouponRepository couponRepository;
     private final CouponRecordRepository couponRecordRepository;
     private final CampaignRepository campaignRepository;
+    private final CampaignLogRepository campaignLogRepository;
     private final DiningTableRepository diningTableRepository;
     private final MenuCategoryRepository menuCategoryRepository;
     private final MallCategoryRepository mallCategoryRepository;
     private final GameRepository gameRepository;
     private final GamePrizeRepository gamePrizeRepository;
+    private final GamePlayRepository gamePlayRepository;
     private final ProductRepository productRepository;
+    private final OrderRepository orderRepository;
+    private final OrderItemRepository orderItemRepository;
+    private final KitchenOrderRepository kitchenOrderRepository;
+    private final AgentRepository agentRepository;
+    private final WxAccountRepository wxAccountRepository;
+    private final ReportTaskRepository reportTaskRepository;
     private final SettingsService settingsService;
     private final PasswordEncoder passwordEncoder;
     private final EntityManager entityManager;
@@ -169,7 +194,6 @@ public class DataInitializer {
             m.setBirthday(LocalDate.parse(d[3]));
             m.setStoreIds(List.of((i % 2 == 0) ? s1.getId() : s2.getId()));
             m.setBalance(0L);
-            m.setPoints(0L);
             m.setConsumeCount(0);
             m.setTotalAmount(0L);
             // 注册时间: 分散在过去 60 天
@@ -224,6 +248,8 @@ public class DataInitializer {
                 m.setBalance(after);
                 m.setConsumeCount(m.getConsumeCount() + 1);
                 m.setTotalAmount(m.getTotalAmount() + price);
+                long earnedPoints = price / 100; // 1元 = 1积分
+                m.setPoints(m.getPoints() + earnedPoints);
                 m.setLastConsumeAt(when);
                 applyConsume(tid, m, price, when, opId, storeId, services[svcIdx]);
             }
@@ -417,11 +443,362 @@ public class DataInitializer {
             log.warn("游戏演示数据初始化失败: {}", e.getMessage());
         }
 
+        // 13. 商品演示数据: 6 个服务 + 4 个商品(部分商品有库存)
+        try {
+            Object[][] serviceProducts = {
+                    {"男士剪发", 6800L, 1500L, null, 0},
+                    {"女士烫染", 38800L, 12000L, null, 0},
+                    {"头皮护理", 12800L, 3000L, null, 0},
+                    {"造型设计", 9800L, 2500L, null, 0},
+                    {"染发", 26800L, 8000L, null, 0},
+                    {"洗发吹风", 3800L, 500L, null, 0},
+            };
+            for (Object[] row : serviceProducts) {
+                Product p = new Product();
+                p.setTenantId(tid);
+                p.setName((String) row[0]);
+                p.setCategory("SERVICE");
+                p.setPrice((Long) row[1]);
+                p.setCostPrice((Long) row[2]);
+                p.setStatus("ACTIVE");
+                p.setStoreIds(List.of(s1.getId()));
+                p.setSoldCount((Integer) row[4]);
+                productRepository.save(p);
+            }
+            Object[][] goodsProducts = {
+                    {"护理套装", 29800L, 12000L, 50, 12},
+                    {"洗发水 500ml", 8800L, 3500L, 100, 28},
+                    {"护发素 500ml", 8800L, 3500L, 80, 18},
+                    {"造型喷雾", 6800L, 2500L, 60, 8},
+            };
+            for (Object[] row : goodsProducts) {
+                Product p = new Product();
+                p.setTenantId(tid);
+                p.setName((String) row[0]);
+                p.setCategory("GOODS");
+                p.setPrice((Long) row[1]);
+                p.setCostPrice((Long) row[2]);
+                p.setStock((Integer) row[3]);
+                p.setStatus("ACTIVE");
+                p.setStoreIds(List.of(s1.getId()));
+                p.setSoldCount((Integer) row[4]);
+                productRepository.save(p);
+            }
+        } catch (Exception e) {
+            log.warn("商品演示数据初始化失败: {}", e.getMessage());
+        }
+
+        // 14. Agent 代理演示数据
+        try {
+            Agent a1 = new Agent();
+            a1.setName("张代理");
+            a1.setContactName("张代理");
+            a1.setContactPhone("13900000001");
+            a1.setCommissionRate(150);
+            a1.setStatus("ACTIVE");
+            agentRepository.save(a1);
+
+            Agent a2 = new Agent();
+            a2.setName("李代理");
+            a2.setContactName("李代理");
+            a2.setContactPhone("13900000002");
+            a2.setCommissionRate(80);
+            a2.setStatus("ACTIVE");
+            agentRepository.save(a2);
+        } catch (Exception e) {
+            log.warn("代理演示数据初始化失败: {}", e.getMessage());
+        }
+
+        // 15. 微信公众号配置演示数据
+        try {
+            WxAccount wx = new WxAccount();
+            wx.setTenantId(tid);
+            wx.setAppId("wx1234567890abcdef");
+            wx.setAppSecret("***");
+            wx.setMchId("1234567890");
+            wx.setMchKey("***");
+            wx.setTemplateIds("{}");
+            wx.setDomain("https://h5.lxxno.cn");
+            wx.setStatus("ACTIVE");
+            wxAccountRepository.save(wx);
+        } catch (Exception e) {
+            log.warn("微信公众号配置演示数据初始化失败: {}", e.getMessage());
+        }
+
+        // 16. 报表任务演示数据
+        try {
+            ReportTask r1 = new ReportTask();
+            r1.setTenantId(tid);
+            r1.setName("每日营业报表");
+            r1.setType("REVENUE");
+            r1.setSchedule("DAILY");
+            r1.setRecipients("admin@example.com");
+            r1.setEnabled(true);
+            reportTaskRepository.save(r1);
+
+            ReportTask r2 = new ReportTask();
+            r2.setTenantId(tid);
+            r2.setName("每周会员报表");
+            r2.setType("MEMBER");
+            r2.setSchedule("WEEKLY");
+            r2.setRecipients("admin@example.com");
+            r2.setEnabled(true);
+            reportTaskRepository.save(r2);
+        } catch (Exception e) {
+            log.warn("报表任务演示数据初始化失败: {}", e.getMessage());
+        }
+
+        // 17. 订单演示数据: 前 5 个会员每人 3 笔已支付订单(余额支付, 跨过去 30 天)
+        try {
+            List<Product> serviceList = new ArrayList<>();
+            for (Product p : productRepository.findAll()) {
+                if ("SERVICE".equals(p.getCategory()) && "ACTIVE".equals(p.getStatus())) {
+                    serviceList.add(p);
+                }
+            }
+            if (serviceList.size() >= 3) {
+                int memberCount = Math.min(5, members.size());
+                for (int mi = 0; mi < memberCount; mi++) {
+                    Member m = members.get(mi);
+                    // 余额不足则补充值
+                    if (m.getBalance() < 50000L) {
+                        m.setBalance(m.getBalance() + 200000L);
+                        memberRepository.save(m);
+                    }
+                    for (int oi = 0; oi < 3; oi++) {
+                        int svcCount = 1 + (oi % 3); // 1-3 个服务
+                        long total = 0L;
+                        List<OrderItem> oitems = new ArrayList<>();
+                        for (int si = 0; si < svcCount; si++) {
+                            Product p = serviceList.get((mi + oi + si) % serviceList.size());
+                            long subtotal = p.getPrice();
+                            total += subtotal;
+                            OrderItem item = new OrderItem();
+                            item.setTenantId(tid);
+                            item.setProductId(p.getId());
+                            item.setProductName(p.getName());
+                            item.setUnitPrice(p.getPrice());
+                            item.setQuantity(1);
+                            item.setSubtotal(subtotal);
+                            oitems.add(item);
+                        }
+                        LocalDateTime paidAt = now.minusDays((mi * 6) + (oi * 8) + 1)
+                                .withHour(10 + ((mi + oi) % 10))
+                                .withMinute(((mi * 7 + oi * 13) % 60))
+                                .withSecond(0).withNano(0);
+                        if (m.getBalance() < total) {
+                            m.setBalance(m.getBalance() + total + 50000L);
+                            memberRepository.save(m);
+                        }
+                        long afterBalance = m.getBalance() - total;
+                        m.setBalance(afterBalance);
+                        m.setConsumeCount((m.getConsumeCount() == null ? 0 : m.getConsumeCount()) + 1);
+                        m.setTotalAmount((m.getTotalAmount() == null ? 0L : m.getTotalAmount()) + total);
+                        m.setLastConsumeAt(paidAt);
+                        m.setPoints(m.getPoints() + total / 100L);
+                        memberRepository.save(m);
+
+                        Order order = new Order();
+                        order.setTenantId(tid);
+                        order.setOrderNo(genOrderNo());
+                        order.setStoreId((mi % 2 == 0) ? s1.getId() : s2.getId());
+                        order.setMemberId(m.getId());
+                        order.setCashierId((mi % 2 == 0) ? 3L : 4L);
+                        order.setTotalAmount(total);
+                        order.setDiscountAmount(0L);
+                        order.setPaidAmount(total);
+                        order.setPayMethod("BALANCE");
+                        order.setStatus("PAID");
+                        order.setPaidAt(paidAt);
+                        order.setCreatedAt(paidAt);
+                        order.setUpdatedAt(paidAt);
+                        order = orderRepository.save(order);
+
+                        for (OrderItem it : oitems) {
+                            it.setOrderId(order.getId());
+                            it.setCreatedAt(paidAt);
+                            it.setUpdatedAt(paidAt);
+                        }
+                        orderItemRepository.saveAll(oitems);
+
+                        // 消费流水
+                        WalletTransaction tx = new WalletTransaction();
+                        tx.setTenantId(tid);
+                        tx.setMemberId(m.getId());
+                        tx.setType("CONSUME");
+                        tx.setAmount(-total);
+                        tx.setBalanceAfter(afterBalance);
+                        tx.setStoreId(order.getStoreId());
+                        tx.setOperatorId(order.getCashierId());
+                        tx.setOrderNo(order.getOrderNo());
+                        tx.setPayMethod("BALANCE");
+                        tx.setRemark("订单消费");
+                        tx.setCreatedAt(paidAt);
+                        tx.setUpdatedAt(paidAt);
+                        walletRepository.save(tx);
+
+                        // 积分赠送流水
+                        long pts = total / 100L;
+                        if (pts > 0) {
+                            WalletTransaction ptx = new WalletTransaction();
+                            ptx.setTenantId(tid);
+                            ptx.setMemberId(m.getId());
+                            ptx.setType("POINT");
+                            ptx.setAmount(pts);
+                            ptx.setBalanceAfter(m.getPoints());
+                            ptx.setStoreId(order.getStoreId());
+                            ptx.setOrderNo(order.getOrderNo());
+                            ptx.setRemark("消费赠送积分");
+                            ptx.setCreatedAt(paidAt);
+                            ptx.setUpdatedAt(paidAt);
+                            walletRepository.save(ptx);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("订单演示数据初始化失败: {}", e.getMessage());
+        }
+
+        // 18. 厨房工单演示数据: 7 天内的 3-5 个订单生成厨房工单(SERVED)
+        try {
+            List<Order> recentOrders = new ArrayList<>();
+            for (Order o : orderRepository.findAll()) {
+                if ("PAID".equals(o.getStatus()) && o.getCreatedAt() != null
+                        && o.getCreatedAt().isAfter(now.minusDays(7))) {
+                    recentOrders.add(o);
+                }
+            }
+            int kCount = Math.min(5, recentOrders.size());
+            int kTake = Math.min(5, Math.max(3, kCount));
+            int processed = 0;
+            for (Order o : recentOrders) {
+                if (processed >= kTake) break;
+                List<OrderItem> items = orderItemRepository.findByOrderIdOrderByIdAsc(o.getId());
+                if (items.isEmpty()) continue;
+                StringBuilder sb = new StringBuilder("[");
+                for (int i = 0; i < items.size(); i++) {
+                    OrderItem it = items.get(i);
+                    if (i > 0) sb.append(",");
+                    sb.append("{\"productId\":").append(it.getProductId())
+                            .append(",\"name\":\"").append(it.getProductName()).append("\"")
+                            .append(",\"quantity\":").append(it.getQuantity())
+                            .append(",\"remark\":\"\"}");
+                }
+                sb.append("]");
+                KitchenOrder ko = new KitchenOrder();
+                ko.setTenantId(tid);
+                ko.setStoreId(o.getStoreId());
+                ko.setOrderId(o.getId());
+                ko.setOrderType("DINE_IN");
+                ko.setStatus("SERVED");
+                ko.setItems(sb.toString());
+                ko.setServedAt(o.getCreatedAt() == null ? now : o.getCreatedAt());
+                ko.setCreatedAt(o.getCreatedAt() == null ? now : o.getCreatedAt());
+                ko.setUpdatedAt(ko.getServedAt());
+                kitchenOrderRepository.save(ko);
+                processed++;
+            }
+        } catch (Exception e) {
+            log.warn("厨房工单演示数据初始化失败: {}", e.getMessage());
+        }
+
+        // 19. 游戏参与记录: 前 3 个会员各 2 条游戏参与记录(过去 14 天内)
+        try {
+            Game wheel = null;
+            for (Game g : gameRepository.findAll()) {
+                if ("WHEEL".equals(g.getType())) { wheel = g; break; }
+            }
+            if (wheel != null) {
+                int playMemberCount = Math.min(3, members.size());
+                for (int mi = 0; mi < playMemberCount; mi++) {
+                    Member m = members.get(mi);
+                    for (int pi = 0; pi < 2; pi++) {
+                        LocalDateTime playedAt = now.minusDays((mi * 5) + (pi * 3) + 1)
+                                .withHour(14 + ((mi + pi) % 6))
+                                .withMinute(((mi * 11 + pi * 7) % 60))
+                                .withSecond(0).withNano(0);
+                        int pick = (mi + pi) % 4;
+                        String prizeName;
+                        String prizeType;
+                        boolean isWin;
+                        Long prizeId = null;
+                        if (pick == 0) {
+                            prizeName = "5元优惠券";
+                            prizeType = "COUPON";
+                            isWin = true;
+                            prizeId = 1L;
+                        } else if (pick == 1) {
+                            prizeName = "50积分";
+                            prizeType = "POINTS";
+                            isWin = true;
+                            prizeId = 2L;
+                        } else if (pick == 2) {
+                            prizeName = "100积分";
+                            prizeType = "POINTS";
+                            isWin = true;
+                            prizeId = 3L;
+                        } else {
+                            prizeName = "谢谢参与";
+                            prizeType = "EMPTY";
+                            isWin = false;
+                            prizeId = 4L;
+                        }
+                        GamePlay play = new GamePlay();
+                        play.setTenantId(tid);
+                        play.setGameId(wheel.getId());
+                        play.setMemberId(m.getId());
+                        play.setPrizeId(prizeId);
+                        play.setPrizeName(prizeName);
+                        play.setPrizeType(prizeType);
+                        play.setIsWin(isWin);
+                        play.setPlayedAt(playedAt);
+                        play.setDayKey(playedAt.toLocalDate().toString());
+                        play.setCreatedAt(playedAt);
+                        play.setUpdatedAt(playedAt);
+                        gamePlayRepository.save(play);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("游戏参与记录初始化失败: {}", e.getMessage());
+        }
+
+        // 20. 营销活动触发日志(每个已启用活动造 3 条)
+        try {
+            for (Campaign c : campaignRepository.findAll()) {
+                if (Boolean.TRUE.equals(c.getEnabled())) {
+                    for (int i = 0; i < Math.min(3, members.size()); i++) {
+                        Member m = members.get(i);
+                        CampaignLog cl = new CampaignLog();
+                        cl.setTenantId(tid);
+                        cl.setCampaignId(c.getId());
+                        cl.setCampaignName(c.getName());
+                        cl.setMemberId(m.getId());
+                        cl.setMemberName(m.getName());
+                        cl.setAction(i == 0 ? "TRIGGERED" : (i == 1 ? "REACHED" : "CONVERTED"));
+                        cl.setDetail("自动化演示触发: " + c.getName());
+                        cl.setCreatedAt(now.minusDays((i + 1) * 2L));
+                        cl.setUpdatedAt(cl.getCreatedAt());
+                        campaignLogRepository.save(cl);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("营销活动触发日志初始化失败: {}", e.getMessage());
+        }
+
         log.info("演示数据初始化完成: 租户={}, 会员={}, 流水={}",
                 tid, members.size(), walletRepository.count());
     }
 
     // ---- 构造辅助 ----
+
+    private String genOrderNo() {
+        String ts = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        int rand = (int) (Math.random() * 9000) + 1000;
+        return "OD" + ts + rand;
+    }
 
     private Store store(String name, String addr, String phone, String hours, Long tid) {
         Store s = new Store();

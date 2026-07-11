@@ -35,17 +35,37 @@
 
     <!-- 数字三联 -->
     <div class="stat-row">
-      <div class="stat-cell">
+      <div class="stat-cell" @click="router.push('/transactions')">
         <div class="stat-val">¥{{ ((memberInfo?.balance || 0) / 100).toFixed(2) }}</div>
         <div class="stat-lbl">储值</div>
       </div>
-      <div class="stat-cell">
+      <div class="stat-cell" @click="router.push('/transactions')">
         <div class="stat-val">{{ memberInfo?.points || 0 }}</div>
         <div class="stat-lbl">积分</div>
       </div>
-      <div class="stat-cell">
+      <div class="stat-cell" @click="router.push('/my-orders')">
         <div class="stat-val">{{ memberInfo?.consumeCount || 0 }}</div>
         <div class="stat-lbl">到店</div>
+      </div>
+    </div>
+
+    <!-- 最近消费: 3 条最近流水 -->
+    <div class="section-title" v-if="recentTx.length">
+      <span>最近消费</span>
+      <span class="st-tip" @click="router.push('/transactions')">查看全部 ›</span>
+    </div>
+    <div class="ui-card recent-card" v-if="recentTx.length">
+      <div v-for="(t, i) in recentTx" :key="t.id" class="rx-row" :class="{ 'rx-last': i === recentTx.length - 1 }">
+        <div class="rx-icon" :class="`ic-${txTone(t.type)}`">
+          <van-icon :name="txIcon(t.type)" size="16" />
+        </div>
+        <div class="rx-text">
+          <div class="rx-title">{{ txTitle(t) }}</div>
+          <div class="rx-sub">{{ formatTime(t.createdAt) }}</div>
+        </div>
+        <div class="rx-amount" :class="txAmountClass(t)">
+          {{ txAmountText(t) }}
+        </div>
       </div>
     </div>
 
@@ -107,10 +127,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { showConfirmDialog, showToast } from 'vant'
 import { useMemberStore } from '@/stores/member'
+import { h5Api } from '@/api/h5'
 import BlogHeader from '@/components/BlogHeader.vue'
 import TabBar from '@/components/TabBar.vue'
 
@@ -118,6 +139,7 @@ const router = useRouter()
 const memberStore = useMemberStore()
 const memberInfo = computed(() => memberStore.memberInfo)
 const isDark = ref(localStorage.getItem('theme') === 'dark')
+const recentTx = ref<any[]>([])
 
 function toggleDark(val: boolean) {
   isDark.value = val
@@ -151,7 +173,8 @@ const mineMenus: { label: string; icon: string; tone: string; path: string; badg
   { label: '消费记录', icon: 'balance-list-o', tone: 'mist', path: '/transactions' },
   { label: '我的订单', icon: 'orders-o', tone: 'rose', path: '/my-orders' },
   { label: '商城订单', icon: 'gift-o', tone: 'brand', path: '/mall/orders' },
-  { label: '附近门店', icon: 'shop-o', tone: 'clay', path: '/stores' }
+  { label: '门店点餐', icon: 'shop-o', tone: 'clay', path: '/dining' },
+  { label: '附近门店', icon: 'location-o', tone: 'mist', path: '/stores' }
 ]
 
 const serviceMenus: { label: string; icon: string; tone: string; path: string; badge?: string }[] = [
@@ -181,6 +204,67 @@ async function onLogout() {
   showToast('已退出')
   router.replace('/login')
 }
+
+// 最近消费
+async function loadRecentTx() {
+  if (!memberInfo.value?.id) return
+  try {
+    const r: any = await h5Api.transactions({ page: 1, size: 3 })
+    const list = (r?.list || r?.data?.list || []) as any[]
+    recentTx.value = list
+  } catch {/* ignore */}
+}
+
+function txTone(type: string) {
+  switch (type) {
+    case 'RECHARGE': return 'brand'
+    case 'CONSUME': return 'rose'
+    case 'POINT': return 'twilight'
+    case 'REFUND': return 'mist'
+    default: return 'mist'
+  }
+}
+function txIcon(type: string) {
+  switch (type) {
+    case 'RECHARGE': return 'plus'
+    case 'CONSUME': return 'minus'
+    case 'POINT': return 'star-o'
+    case 'REFUND': return 'replay'
+    default: return 'records'
+  }
+}
+function txTitle(t: any) {
+  switch (t.type) {
+    case 'RECHARGE': return '储值入账'
+    case 'CONSUME': return t.remark || '到店消费'
+    case 'POINT': return t.remark || '积分奖励'
+    case 'REFUND': return '退款返还'
+    default: return t.remark || '账户变动'
+  }
+}
+function txAmountClass(t: any) {
+  if (t.type === 'RECHARGE' || t.type === 'REFUND' || t.type === 'POINT') return 'in'
+  return 'out'
+}
+function txAmountText(t: any) {
+  const sign = (t.type === 'RECHARGE' || t.type === 'REFUND' || t.type === 'POINT') ? '+' : '-'
+  if (t.type === 'POINT') return `${sign}${t.amount} 分`
+  return `${sign}¥${(Math.abs(t.amount || 0) / 100).toFixed(2)}`
+}
+function formatTime(s: any) {
+  if (!s) return ''
+  const d = new Date(s)
+  if (isNaN(d.getTime())) return ''
+  const today = new Date()
+  const isToday = d.toDateString() === today.toDateString()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  if (isToday) return `今天 ${pad(d.getHours())}:${pad(d.getMinutes())}`
+  return `${d.getMonth() + 1}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+onMounted(() => {
+  loadRecentTx()
+})
 </script>
 
 <style scoped>
@@ -257,10 +341,36 @@ async function onLogout() {
   padding: 14px 0;
   position: relative; z-index: 1;
 }
-.stat-cell { text-align: center; border-right: 1px solid var(--line); }
+.stat-cell { text-align: center; border-right: 1px solid var(--line); cursor: pointer; transition: opacity var(--dur) var(--ease); }
 .stat-cell:last-child { border-right: none; }
+.stat-cell:active { opacity: 0.6; }
 .stat-val { font-size: 17px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
 .stat-lbl { font-size: 11.5px; color: var(--muted); margin-top: 4px; letter-spacing: 0.08em; }
+
+/* 最近消费 */
+.recent-card { margin: 0 16px 0; padding: 4px 16px; }
+.rx-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px dashed var(--line);
+}
+.rx-row.rx-last { border-bottom: none; }
+.rx-icon {
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.rx-icon.ic-brand { background: var(--brand-soft); color: var(--brand-deep); }
+.rx-icon.ic-rose { background: var(--accent-rose-soft); color: #8a5a52; }
+.rx-icon.ic-mist { background: rgba(168, 181, 184, 0.18); color: #5d6e72; }
+.rx-icon.ic-twilight { background: var(--accent-twilight-soft); color: #6b6080; }
+.rx-text { flex: 1; min-width: 0; }
+.rx-title { font-size: 13.5px; color: var(--ink-2); font-weight: 500; letter-spacing: 0.02em; }
+.rx-sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; letter-spacing: 0.04em; }
+.rx-amount { font-size: 14px; font-weight: 600; font-family: var(--font-num); letter-spacing: 0.02em; }
+.rx-amount.in { color: #5a8a76; }
+.rx-amount.out { color: #8a5a52; }
 
 .menu-card { margin: 0 16px 0; }
 .menu-row {

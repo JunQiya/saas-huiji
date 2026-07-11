@@ -23,7 +23,8 @@
           <div class="tx-content">
             <div class="tx-top">
               <span class="tx-type">{{ typeText(tx.type) }}</span>
-              <span class="tx-amount" :class="tx.amount >= 0 ? 'pos' : 'neg'">
+              <span v-if="tx.type === 'POINT'" class="tx-amount pos">+{{ tx.amount }} 分</span>
+              <span v-else class="tx-amount" :class="tx.amount >= 0 ? 'pos' : 'neg'">
                 {{ tx.amount >= 0 ? '+' : '' }}¥{{ Math.abs(tx.amount / 100).toFixed(2) }}
               </span>
             </div>
@@ -54,6 +55,7 @@ const typeTabs = [
   { label: '充值', value: 'RECHARGE' },
   { label: '消费', value: 'CONSUME' },
   { label: '赠送', value: 'GIFT' },
+  { label: '积分', value: 'POINT' },
   { label: '退款', value: 'REFUND' }
 ]
 
@@ -65,10 +67,10 @@ async function load() {
 
 function onTab(t: string) { currentType.value = t; load() }
 function typeText(t: string) {
-  return ({ RECHARGE: '充值', CONSUME: '消费', GIFT: '赠送', REFUND: '退款' } as any)[t] || t
+  return ({ RECHARGE: '充值', CONSUME: '消费', GIFT: '赠送', POINT: '积分', REFUND: '退款' } as any)[t] || t
 }
 function icon(t: string) {
-  return ({ RECHARGE: 'plus', CONSUME: 'minus', GIFT: 'gift-card-o', REFUND: 'revoke' } as any)[t] || 'records'
+  return ({ RECHARGE: 'plus', CONSUME: 'minus', GIFT: 'gift-card-o', POINT: 'star-o', REFUND: 'revoke' } as any)[t] || 'records'
 }
 
 onMounted(load)
@@ -119,6 +121,7 @@ onMounted(load)
 .tx-icon.t-RECHARGE { background: var(--brand-soft); color: var(--brand-deep); }
 .tx-icon.t-CONSUME { background: var(--warning-soft); color: #8a6f3a; }
 .tx-icon.t-GIFT { background: var(--success-soft); color: #5b7868; }
+.tx-icon.t-POINT { background: var(--accent-twilight-soft); color: #6b6080; }
 .tx-icon.t-REFUND { background: var(--danger-soft); color: #8a4d3f; }
 .tx-content { flex: 1; min-width: 0; }
 .tx-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
