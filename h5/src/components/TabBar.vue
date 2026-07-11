@@ -1,7 +1,7 @@
 <template>
   <nav class="x-tabbar safe-bottom">
     <div
-      v-for="(item, i) in items"
+      v-for="item in items"
       :key="item.path"
       class="tab-item"
       :class="{ active: isActive(item.path) }"
@@ -11,6 +11,7 @@
         <van-icon :name="isActive(item.path) ? item.activeIcon || item.icon : item.icon" size="22" />
       </div>
       <div class="tab-label">{{ item.label }}</div>
+      <div v-if="isActive(item.path)" class="tab-dot" aria-hidden="true"></div>
     </div>
   </nav>
 </template>
@@ -39,31 +40,35 @@ function go(p: string) { router.push(p) }
   background: rgba(255, 255, 255, 0.96);
   backdrop-filter: saturate(160%) blur(12px);
   -webkit-backdrop-filter: saturate(160%) blur(12px);
-  border-top: 1px solid var(--line);
+  border-top: 1px dashed var(--line-2);
   display: flex;
-  padding: 6px 0 8px;
+  padding: 8px 0 6px;
   z-index: 100;
 }
 .tab-item {
   flex: 1;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  gap: 2px;
-  padding: 4px 0;
+  gap: 3px;
+  padding: 4px 0 2px;
   color: var(--muted);
   cursor: pointer;
-  transition: color var(--dur) var(--ease);
+  transition: color var(--dur) var(--ease-out);
   position: relative;
 }
 .tab-item.active { color: var(--brand-deep); }
-.tab-item.active::before {
-  content: '';
-  position: absolute; top: 0; left: 50%;
-  width: 18px; height: 2px;
-  background: var(--brand);
-  border-radius: 1px;
-  transform: translateX(-50%);
-}
 .tab-icon { line-height: 1; display: flex; }
-.tab-label { font-size: 10.5px; letter-spacing: 0.04em; }
+.tab-label {
+  font-family: var(--font-serif);
+  font-size: 10.5px; letter-spacing: 0.08em;
+  font-weight: 500;
+}
+.tab-dot {
+  position: absolute; top: 4px; left: 50%;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--brand);
+  transform: translateX(calc(-50% + 16px));
+  opacity: 0.7;
+}
 </style>

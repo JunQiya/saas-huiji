@@ -3,12 +3,29 @@
     <div v-if="slogan" class="header-slogan">{{ slogan }}</div>
     <div class="header-main">
       <div class="header-left">
-        <div class="brand-mark">
-          <span class="star"></span>
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 36 36" width="34" height="34">
+            <!-- 背景小圆点（远星） -->
+            <circle cx="9" cy="9" r="0.8" fill="var(--brand-ink)" opacity="0.35" />
+            <circle cx="27" cy="6" r="0.7" fill="var(--brand-ink)" opacity="0.28" />
+            <circle cx="30" cy="22" r="0.8" fill="var(--brand-ink)" opacity="0.32" />
+            <circle cx="7" cy="28" r="0.7" fill="var(--brand-ink)" opacity="0.25" />
+            <!-- 星座连线 -->
+            <g stroke="var(--brand-ink)" stroke-width="0.6" opacity="0.45" fill="none">
+              <line x1="13" y1="14" x2="18" y2="20" />
+              <line x1="18" y1="20" x2="23" y2="14" />
+              <line x1="18" y1="20" x2="18" y2="26" />
+            </g>
+            <!-- 主星 -->
+            <circle cx="13" cy="14" r="1.6" fill="var(--brand-deep)" />
+            <circle cx="23" cy="14" r="1.6" fill="var(--brand-deep)" />
+            <circle cx="18" cy="20" r="2.2" fill="var(--brand-deep)" />
+            <circle cx="18" cy="26" r="1.2" fill="var(--brand-deep)" opacity="0.7" />
+          </svg>
         </div>
         <div class="brand-text">
           <div class="brand-name">星河·会记</div>
-          <div class="brand-tag">HUIJI</div>
+          <div class="brand-tag">HUIJI · 夜读手记</div>
         </div>
       </div>
       <div class="header-right">
@@ -20,7 +37,7 @@
         </slot>
       </div>
     </div>
-    <div class="header-bottom"></div>
+    <div class="header-divider" aria-hidden="true"></div>
   </header>
 </template>
 
@@ -37,26 +54,25 @@ const today = computed(() => {
   const weekdays = ['日', '一', '二', '三', '四', '五', '六']
   return {
     day: `${d.getDate()}`,
-    detail: `${d.getMonth() + 1}月·周${weekdays[d.getDay()]}`
+    detail: `${d.getMonth() + 1}月 · 周${weekdays[d.getDay()]}`
   }
 })
 </script>
 
 <style scoped>
 .blog-header {
-  padding: 14px 16px 12px;
+  padding: 16px 16px 0;
   background: var(--surface);
   position: relative;
-  animation: fade-in 0.5s var(--ease);
 }
 .header-slogan {
+  font-family: var(--font-serif);
   font-size: 11.5px;
-  color: var(--muted);
-  letter-spacing: 0.12em;
-  margin-bottom: 10px;
+  color: var(--ink-3);
+  letter-spacing: 0.18em;
+  margin-bottom: 12px;
   padding-left: 2px;
-  font-weight: 400;
-  animation: fade-in 0.6s var(--ease) 0.1s both;
+  animation: x-fade-in 0.5s var(--ease-out) both;
 }
 .header-main {
   display: flex;
@@ -67,42 +83,35 @@ const today = computed(() => {
   display: flex;
   align-items: center;
   gap: 11px;
-  animation: fade-in 0.6s var(--ease) 0.2s both;
+  animation: x-fade-in 0.5s var(--ease-out) 0.08s both;
 }
 .brand-mark {
   width: 34px; height: 34px;
   display: flex; align-items: center; justify-content: center;
-  background: var(--brand-soft);
-  border-radius: 10px;
-  position: relative;
-}
-.brand-mark .star {
-  width: 16px; height: 16px;
-  background: var(--brand-deep);
-  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  flex-shrink: 0;
 }
 .brand-text {
   display: flex; flex-direction: column;
-  gap: 1px;
+  gap: 2px;
 }
 .brand-name {
-  font-size: 16px;
-  font-weight: 600;
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 500;
   color: var(--ink);
-  letter-spacing: 0.04em;
-  font-family: 'Songti SC', 'STSong', 'SimSun', serif;
+  letter-spacing: 0.08em;
   line-height: 1.2;
 }
 .brand-tag {
-  font-size: 10px;
+  font-family: var(--font-num);
+  font-size: 9.5px;
   color: var(--muted);
-  letter-spacing: 0.32em;
-  font-weight: 500;
-  margin-top: 1px;
+  letter-spacing: 0.28em;
+  font-weight: 400;
 }
 .header-right {
   display: flex; align-items: center; gap: 10px;
-  animation: fade-in 0.6s var(--ease) 0.3s both;
+  animation: x-fade-in 0.5s var(--ease-out) 0.16s both;
 }
 .header-time {
   text-align: right;
@@ -112,35 +121,36 @@ const today = computed(() => {
   line-height: 1.1;
 }
 .time-day {
-  font-size: 20px;
+  font-family: var(--font-num);
+  font-size: 22px;
   font-weight: 500;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.01em;
+  line-height: 1;
 }
 .time-detail {
+  font-family: var(--font-serif);
   font-size: 10.5px;
   color: var(--muted);
   letter-spacing: 0.08em;
+  margin-top: 4px;
 }
-.header-bottom {
+.header-divider {
   margin: 12px -16px 0;
   height: 1px;
   border-top: 1px dashed var(--line-2);
   position: relative;
 }
-.header-bottom::after {
+.header-divider::after {
   content: '';
   position: absolute;
   top: -1px;
   left: 16px;
-  width: 40px;
+  width: 36px;
   height: 1px;
   background: var(--brand);
   border-radius: 1px;
-}
-@keyframes fade-in {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
+  opacity: 0.8;
 }
 </style>

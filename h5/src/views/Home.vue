@@ -4,7 +4,7 @@
     <BlogHeader :slogan="slogan" />
 
     <!-- 会员卡 -->
-    <div class="card-wrap">
+    <div class="card-wrap x-fade">
       <MemberCard
         :name="memberStore.memberInfo?.name || '游客'"
         :phone="memberStore.memberInfo?.phone || ''"
@@ -17,7 +17,7 @@
     </div>
 
     <!-- 4 宫格快捷 -->
-    <div class="grid-card ui-card">
+    <div class="grid-card ui-card x-stagger">
       <div class="grid-item" v-for="(g, i) in grids" :key="i" @click="router.push(g.path)">
         <div class="grid-icon" :class="`ic-${g.tone}`">
           <van-icon :name="g.icon" size="20" />
@@ -27,14 +27,14 @@
     </div>
 
     <!-- 今日小语 -->
-    <div class="quote-card">
+    <div class="quote-card x-fade">
       <div class="quote-mark">「</div>
       <div class="quote-body">{{ quote.text }}</div>
       <div class="quote-author">— {{ quote.from }}</div>
     </div>
 
     <!-- 活动 banner -->
-    <div class="section-title">
+    <div class="section-title x-fade">
       <span>精彩活动</span>
       <span class="st-tip">轻触查看</span>
     </div>
@@ -52,17 +52,17 @@
           <div class="b-sub">{{ b.sub }}</div>
         </div>
         <div class="b-right">
-          <van-icon :name="b.icon" size="36" />
+          <van-icon :name="b.icon" size="34" />
         </div>
       </div>
     </div>
 
     <!-- 会员权益 -->
-    <div class="section-title">
+    <div class="section-title x-fade">
       <span>会员权益</span>
       <span class="st-tip">你的待解锁</span>
     </div>
-    <div class="ui-card benefits">
+    <div class="ui-card benefits x-fade">
       <div class="ben-row" v-for="(b, i) in benefits" :key="i" @click="b.path && router.push(b.path)">
         <div class="ben-icon" :class="`b-${b.tone}`">
           <van-icon :name="b.icon" size="18" />
@@ -71,37 +71,39 @@
           <div class="ben-title">{{ b.title }}</div>
           <div class="ben-sub">{{ b.sub }}</div>
         </div>
-        <van-icon name="arrow" class="ben-arrow" />
+        <span class="ben-arrow">›</span>
       </div>
     </div>
 
     <!-- 快捷链接 -->
-    <div class="section-title">
-      <span>关于我们</span>
+    <div class="section-title x-fade">
+      <span>关于与帮助</span>
     </div>
-    <div class="link-card ui-card">
+    <div class="link-card ui-card x-fade">
       <div class="link-row" @click="router.push('/about')">
         <div class="lk-left">
-          <van-icon name="info-o" />
+          <span class="lk-dot dot-mist"></span>
           <span>关于星河</span>
         </div>
         <span class="lk-arrow">›</span>
       </div>
       <div class="link-row" @click="router.push('/help')">
         <div class="lk-left">
-          <van-icon name="question-o" />
+          <span class="lk-dot dot-clay"></span>
           <span>帮助中心</span>
         </div>
         <span class="lk-arrow">›</span>
       </div>
       <div class="link-row" @click="router.push('/profile')">
         <div class="lk-left">
-          <van-icon name="setting-o" />
+          <span class="lk-dot dot-twilight"></span>
           <span>账号设置</span>
         </div>
         <span class="lk-arrow">›</span>
       </div>
     </div>
+
+    <div class="footnote">把每一位会员 都当作一段值得悉心维护的关系</div>
 
     <!-- 底部 tabbar -->
     <TabBar :items="tabItems" />
@@ -111,7 +113,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { h5Api } from '@/api/h5'
 import { useMemberStore } from '@/stores/member'
@@ -144,9 +146,9 @@ const grids = [
   { label: '领券中心', path: '/coupon-center', icon: 'gift-card-o', tone: 'rose' },
   { label: '消费记录', path: '/transactions', icon: 'balance-list-o', tone: 'mist' },
   { label: '附近门店', path: '/stores', icon: 'shop-o', tone: 'clay' },
-  { label: '我的订单', path: '/my-orders', icon: 'orders-o', tone: 'brand' },
-  { label: '邀请有礼', path: '/referral', icon: 'share-o', tone: 'rose' },
-  { label: '积分商城', path: '/mall', icon: 'star-o', tone: 'mist' },
+  { label: '我的订单', path: '/my-orders', icon: 'orders-o', tone: 'twilight' },
+  { label: '邀请有礼', path: '/referral', icon: 'share-o', tone: 'sage' },
+  { label: '积分商城', path: '/mall', icon: 'star-o', tone: 'brand' },
   { label: '联系客服', path: '/help', icon: 'service-o', tone: 'clay' }
 ]
 
@@ -182,63 +184,69 @@ onMounted(loadProfile)
 
 <style scoped>
 .home { padding: 0 0 24px; }
-
 .card-wrap { padding: 8px 16px 12px; }
 
 /* 4 宫格 */
 .grid-card {
   margin: 0 16px;
-  padding: 18px 8px;
+  padding: 16px 8px 14px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 4px 0;
+  gap: 6px 0;
 }
 .grid-item {
   text-align: center;
-  padding: 6px 0;
+  padding: 4px 0;
   cursor: pointer;
-  transition: transform var(--dur) var(--ease);
+  transition: transform var(--dur) var(--ease-out);
 }
-.grid-item:active { transform: scale(0.97); }
+.grid-item:active { transform: scale(0.96); }
 .grid-icon {
-  width: 40px; height: 40px;
-  border-radius: 12px;
+  width: 38px; height: 38px;
+  border-radius: 9px;
   margin: 0 auto 6px;
   display: flex; align-items: center; justify-content: center;
+  transition: transform var(--dur) var(--ease-out);
 }
+.grid-item:hover .grid-icon { transform: scale(1.04); }
 .grid-icon.ic-brand { background: var(--brand-soft); color: var(--brand-deep); }
 .grid-icon.ic-rose { background: var(--accent-rose-soft); color: #8a5a52; }
-.grid-icon.ic-mist { background: rgba(168, 181, 184, 0.18); color: #5d6e72; }
-.grid-icon.ic-clay { background: var(--accent-clay-soft); color: #8a5a32; }
+.grid-icon.ic-mist { background: var(--accent-mist-soft); color: #4d5e68; }
+.grid-icon.ic-clay { background: var(--accent-clay-soft); color: #8a5a3a; }
+.grid-icon.ic-twilight { background: var(--accent-twilight-soft); color: #5e5278; }
+.grid-icon.ic-sage { background: var(--accent-sage-soft); color: #4a6655; }
 .grid-label { font-size: 12px; color: var(--ink-2); letter-spacing: 0.02em; }
 
 /* 今日小语 */
 .quote-card {
   margin: 14px 16px 0;
-  padding: 14px 16px;
+  padding: 14px 16px 12px;
   background: var(--surface-2);
   border: 1px dashed var(--line-2);
-  border-radius: var(--r-md);
+  border-left: 2px solid var(--brand);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
   position: relative;
   color: var(--ink-2);
 }
 .quote-mark {
-  position: absolute; top: 4px; left: 10px;
+  position: absolute; top: 4px; left: 8px;
   font-size: 26px; line-height: 1;
   color: var(--brand);
-  font-family: 'Songti SC', serif;
-  opacity: 0.5;
+  font-family: var(--font-serif);
+  opacity: 0.45;
 }
 .quote-body {
-  font-size: 13.5px; line-height: 1.7;
+  font-family: var(--font-serif);
+  font-size: 13.5px; line-height: 1.8;
   letter-spacing: 0.04em;
-  padding-left: 12px;
-  font-family: 'Songti SC', 'STSong', serif;
+  padding-left: 14px;
+  color: var(--ink);
 }
 .quote-author {
+  font-family: var(--font-serif);
   font-size: 11px; color: var(--muted);
-  margin-top: 6px; padding-left: 12px;
-  letter-spacing: 0.1em;
+  margin-top: 6px; padding-left: 14px;
+  letter-spacing: 0.18em;
 }
 
 /* 活动列表 */
@@ -251,8 +259,8 @@ onMounted(loadProfile)
   position: relative;
   overflow: hidden;
   cursor: pointer;
-  transition: transform var(--dur) var(--ease);
-  min-height: 90px;
+  transition: transform var(--dur) var(--ease-out);
+  min-height: 88px;
 }
 .banner-item:active { transform: scale(0.99); }
 .banner-item::before {
@@ -260,35 +268,48 @@ onMounted(loadProfile)
   position: absolute; right: -30px; top: -30px;
   width: 120px; height: 120px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.06);
 }
-.banner-rose { background: linear-gradient(135deg, #b88780 0%, #a8736a 100%); }
-.banner-brand { background: linear-gradient(135deg, #5a7d9f 0%, #4a6a87 100%); }
-.banner-clay { background: linear-gradient(135deg, #b8825a 0%, #9c6a45 100%); }
+.banner-item::after {
+  content: '';
+  position: absolute; left: -40px; bottom: -40px;
+  width: 100px; height: 100px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.04);
+}
+/* 去除高饱和渐变，使用低饱和纯色 */
+.banner-rose { background: #a88580; }
+.banner-brand { background: #5a7d9f; }
+.banner-clay { background: #a88366; }
 .b-tag {
   display: inline-block;
+  font-family: var(--font-serif);
   font-size: 10.5px;
   padding: 2px 8px;
-  background: rgba(255, 255, 255, 0.18);
-  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 2px;
   margin-bottom: 6px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.16em;
 }
-.b-title { font-size: 17px; font-weight: 600; letter-spacing: 0.02em; line-height: 1.3; }
-.b-sub { font-size: 12px; opacity: 0.85; margin-top: 4px; letter-spacing: 0.04em; }
+.b-title {
+  font-family: var(--font-serif);
+  font-size: 17px; font-weight: 500;
+  letter-spacing: 0.04em; line-height: 1.3;
+}
+.b-sub { font-family: var(--font-serif); font-size: 12px; opacity: 0.85; margin-top: 4px; letter-spacing: 0.06em; }
 .b-right { opacity: 0.5; z-index: 1; }
 
 /* 会员权益 */
-.benefits { margin: 0 16px; }
+.benefits { margin: 0 16px; padding: 4px 16px; }
 .ben-row {
   display: flex; align-items: center; gap: 12px;
   padding: 12px 0;
   border-bottom: 1px dashed var(--line);
   cursor: pointer;
-  transition: background-color var(--dur) var(--ease);
+  transition: background-color var(--dur) var(--ease-out);
 }
 .ben-row:last-child { border-bottom: none; }
-.ben-row:active { background: var(--surface-2); margin: 0 -16px; padding: 12px 16px; }
+.ben-row:active { background: var(--surface-2); }
 .ben-icon {
   width: 32px; height: 32px;
   border-radius: 8px;
@@ -297,27 +318,27 @@ onMounted(loadProfile)
 }
 .ben-icon.b-brand { background: var(--brand-soft); color: var(--brand-deep); }
 .ben-icon.b-rose { background: var(--accent-rose-soft); color: #8a5a52; }
-.ben-icon.b-mist { background: rgba(168, 181, 184, 0.18); color: #5d6e72; }
-.ben-icon.b-clay { background: var(--accent-clay-soft); color: #8a5a32; }
+.ben-icon.b-mist { background: var(--accent-mist-soft); color: #4d5e68; }
+.ben-icon.b-clay { background: var(--accent-clay-soft); color: #8a5a3a; }
 .ben-text { flex: 1; min-width: 0; }
-.ben-title { font-size: 13.5px; color: var(--ink); font-weight: 500; letter-spacing: 0.02em; }
+.ben-title { font-family: var(--font-serif); font-size: 13.5px; color: var(--ink); font-weight: 500; letter-spacing: 0.04em; }
 .ben-sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; letter-spacing: 0.02em; }
-.ben-arrow { color: var(--muted-2); font-size: 14px; }
+.ben-arrow { color: var(--muted-2); font-size: 16px; line-height: 1; font-family: var(--font-serif); }
 
 /* 链接 */
-.link-card { margin: 0 16px; }
+.link-card { margin: 0 16px; padding: 4px 16px; }
 .link-row {
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 0;
   border-bottom: 1px dashed var(--line);
   cursor: pointer;
-  transition: opacity var(--dur) var(--ease);
+  transition: opacity var(--dur) var(--ease-out);
 }
 .link-row:last-child { border-bottom: none; }
 .link-row:active { opacity: 0.6; }
-.lk-left { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--ink-2); }
-.lk-left .van-icon { color: var(--brand-deep); font-size: 16px; }
-.lk-arrow { color: var(--muted-2); font-size: 16px; }
+.lk-left { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--ink-2); font-family: var(--font-serif); letter-spacing: 0.04em; }
+.lk-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; }
+.lk-arrow { color: var(--muted-2); font-size: 16px; line-height: 1; font-family: var(--font-serif); }
 
 .bottom-placeholder { height: 70px; }
 </style>

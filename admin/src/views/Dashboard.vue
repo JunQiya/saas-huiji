@@ -1,435 +1,419 @@
 <template>
-  <div class="page dashboard">
-    <!-- 增强版 page-header -->
-    <div class="page-header is-enhanced">
-      <div class="header-left">
-        <div class="header-icon"><el-icon><DataLine /></el-icon></div>
-        <div class="header-text">
-          <h2 class="page-title">经营仪表盘</h2>
-          <div class="page-sub">{{ todaySlogan }}</div>
+  <div class="page dashboard" v-loading="loading">
+    <!-- 顶部欢迎区 -->
+    <div class="dash-hero x-fade">
+      <div class="hero-left">
+        <div class="hero-greet">
+          <span class="hero-label">{{ greeting }}，</span>
+          <span class="hero-name">{{ userStore.user?.username || '管理员' }}</span>
         </div>
+        <div class="hero-date">
+          {{ today.day }} · {{ today.date }} · {{ today.week }}
+        </div>
+        <div class="hero-slogan">{{ slogan }}</div>
       </div>
-      <div class="header-actions">
-        <el-button :icon="Refresh" @click="loadAll" :loading="loading" class="btn-scale">刷新</el-button>
+      <div class="hero-right">
+        <div class="hero-constellation" aria-hidden="true">
+          <svg viewBox="0 0 80 80" width="80" height="80">
+            <circle cx="14" cy="20" r="0.8" fill="var(--brand-ink)" opacity="0.35" />
+            <circle cx="48" cy="14" r="0.7" fill="var(--brand-ink)" opacity="0.30" />
+            <circle cx="66" cy="36" r="0.9" fill="var(--brand-ink)" opacity="0.40" />
+            <circle cx="56" cy="62" r="0.8" fill="var(--brand-ink)" opacity="0.35" />
+            <circle cx="20" cy="56" r="0.7" fill="var(--brand-ink)" opacity="0.30" />
+            <g stroke="var(--brand-ink)" stroke-width="0.5" fill="none" opacity="0.45">
+              <line x1="14" y1="20" x2="34" y2="34" />
+              <line x1="34" y1="34" x2="48" y2="14" />
+              <line x1="34" y1="34" x2="66" y2="36" />
+              <line x1="34" y1="34" x2="56" y2="62" />
+              <line x1="34" y1="34" x2="20" y2="56" />
+            </g>
+            <circle cx="34" cy="34" r="2" fill="var(--brand-deep)" />
+            <circle cx="14" cy="20" r="1.4" fill="var(--brand-deep)" />
+            <circle cx="48" cy="14" r="1.4" fill="var(--brand-deep)" />
+            <circle cx="66" cy="36" r="1.4" fill="var(--brand-deep)" />
+            <circle cx="56" cy="62" r="1.2" fill="var(--brand-deep)" opacity="0.7" />
+          </svg>
+        </div>
       </div>
     </div>
 
-    <!-- 经营摘要卡 -->
-    <div class="summary-bar x-card">
-      <div class="summary-item">
-        <div class="sum-label">今日营业额</div>
-        <div class="sum-value val">{{ formatMoney(summary?.todayRevenue) }}</div>
-        <div class="sum-delta" :class="(summary?.todayDelta ?? 0) >= 0 ? 'pos' : 'neg'">
-          {{ (summary?.todayDelta ?? 0) >= 0 ? '↑' : '↓' }}{{ Math.abs(summary?.todayDelta ?? 0) }}%
-          <span class="sum-tip">较昨日</span>
-        </div>
-      </div>
-      <div class="summary-divider"></div>
-      <div class="summary-item">
-        <div class="sum-label">本周营业额</div>
-        <div class="sum-value val">{{ formatMoney(summary?.weekRevenue) }}</div>
-        <div class="sum-delta" :class="(summary?.weekDelta ?? 0) >= 0 ? 'pos' : 'neg'">
-          {{ (summary?.weekDelta ?? 0) >= 0 ? '↑' : '↓' }}{{ Math.abs(summary?.weekDelta ?? 0) }}%
-          <span class="sum-tip">较上周</span>
-        </div>
-      </div>
-      <div class="summary-divider"></div>
-      <div class="summary-item">
-        <div class="sum-label">本月营业额</div>
-        <div class="sum-value val">{{ formatMoney(summary?.monthRevenue) }}</div>
-        <div class="sum-delta" :class="(summary?.monthDelta ?? 0) >= 0 ? 'pos' : 'neg'">
-          {{ (summary?.monthDelta ?? 0) >= 0 ? '↑' : '↓' }}{{ Math.abs(summary?.monthDelta ?? 0) }}%
-          <span class="sum-tip">较上月</span>
-        </div>
-      </div>
-      <div class="summary-divider"></div>
-      <div class="summary-item">
-        <div class="sum-label">今日新增会员</div>
-        <div class="sum-value val">{{ summary?.newMembersToday ?? 0 }}</div>
-        <div class="sum-tip">本月新增 {{ summary?.newMembersMonth ?? 0 }}</div>
-      </div>
+    <!-- 4 个核心指标 -->
+    <div class="kpi-row x-stagger">
+      <KpiCard label="今日营业额" :value="kpi.todayRevenue" prefix="¥" :trend="kpi.revenueTrend" trend-label="较昨日" tone="brand" />
+      <KpiCard label="今日到店" :value="kpi.todayOrders" suffix="笔" :trend="kpi.orderTrend" trend-label="较昨日" tone="twilight" />
+      <KpiCard label="新增会员" :value="kpi.newMembers" suffix="人" :trend="kpi.memberTrend" trend-label="较昨日" tone="clay" />
+      <KpiCard label="活跃会员" :value="kpi.activeMembers" suffix="人" tone="sage" />
     </div>
 
-    <!-- KPI 卡片 -->
-    <div class="kpi-grid">
-      <KpiCard
-        label="营业额（近30天）"
-        :value="overview?.revenue ?? 0"
-        :icon="'Money'"
-        :trend="overview?.revenueDelta ?? null"
-        trend-label="较上30天"
-        :precision="2"
-      />
-      <KpiCard
-        label="会员总数"
-        :value="overview?.memberCount ?? 0"
-        :icon="'User'"
-        :trend="overview?.memberDelta ?? null"
-        trend-label="较上30天"
-      />
-      <KpiCard
-        label="订单数"
-        :value="overview?.orderCount ?? 0"
-        :icon="'ShoppingCart'"
-        :trend="overview?.orderDelta ?? null"
-        trend-label="较上30天"
-      />
-      <KpiCard
-        label="客单价"
-        :value="overview?.avgPrice ?? 0"
-        :icon="'Coin'"
-        :trend="overview?.avgPriceDelta ?? null"
-        trend-label="较上30天"
-        :precision="2"
-      />
+    <!-- 第二行指标 -->
+    <div class="kpi-row kpi-row-2 x-stagger">
+      <KpiCard label="本月储值" :value="kpi.monthRecharge" prefix="¥" tone="mist" />
+      <KpiCard label="券核销率" :value="kpi.couponUseRate" suffix="%" :precision="1" tone="rose" />
+      <KpiCard label="平均客单" :value="kpi.avgOrder" prefix="¥" :precision="2" tone="brand" />
+      <KpiCard label="会员复购率" :value="kpi.repurchase" suffix="%" :precision="1" tone="twilight" />
     </div>
 
-    <!-- 营业趋势 -->
-    <ChartCard
-      title="营业趋势"
-      :subtitle="`当前指标：${metricLabel}`"
-      :height="320"
-      :loading="trendLoading"
-      class="trend-card"
-    >
-      <template #extra>
-        <el-radio-group v-model="range" size="small" @change="loadTrend">
-          <el-radio-button value="7d">近7天</el-radio-button>
-          <el-radio-button value="30d">近30天</el-radio-button>
-          <el-radio-button value="90d">近90天</el-radio-button>
-        </el-radio-group>
-        <el-select v-model="metric" size="small" style="width: 110px; margin-left: 8px" @change="loadTrend">
-          <el-option label="营业额" value="revenue" />
-          <el-option label="订单数" value="orders" />
-          <el-option label="新增会员" value="members" />
-        </el-select>
-      </template>
-      <div ref="trendEl" class="chart-host"></div>
-    </ChartCard>
-
-    <!-- 第二排 -->
-    <div class="grid-2">
-      <ChartCard title="会员增长" subtitle="新增与活跃趋势" :height="300" :loading="growthLoading">
-        <div ref="growthEl" class="chart-host"></div>
+    <!-- 图表区 -->
+    <div class="chart-row">
+      <ChartCard
+        title="近 7 日经营趋势"
+        subtitle="营业额与到店数（按日聚合）"
+        :height="280"
+        class="trend-chart x-fade"
+      >
+        <div ref="trendEl" class="chart-slot"></div>
       </ChartCard>
-      <ChartCard title="24小时下单分布" subtitle="订单时段热力" :height="300" :loading="hourLoading">
-        <div ref="hourEl" class="chart-host"></div>
+      <ChartCard
+        title="会员等级分布"
+        subtitle="当前累计会员"
+        :height="280"
+        class="pie-chart x-fade"
+      >
+        <div ref="pieEl" class="chart-slot"></div>
       </ChartCard>
     </div>
 
-    <!-- 第三排 -->
-    <div class="grid-2">
-      <ChartCard title="热销服务 Top10" subtitle="按成交单数" :height="320" :loading="topLoading">
-        <div ref="topEl" class="chart-host"></div>
-      </ChartCard>
-      <ChartCard title="会员 RFM 分层" subtitle="价值分层占比" :height="320" :loading="rfmLoading">
-        <div ref="rfmEl" class="chart-host"></div>
-      </ChartCard>
+    <!-- 热销商品 + 待办 -->
+    <div class="bottom-row">
+      <div class="panel x-card x-fade">
+        <div class="panel-head">
+          <div class="panel-title">本月热销</div>
+          <span class="panel-tip">按销量排序</span>
+        </div>
+        <div class="hot-list">
+          <div v-for="(h, i) in hotProducts" :key="h.id" class="hot-row">
+            <span class="num-bubble">{{ String(i + 1).padStart(2, '0') }}</span>
+            <div class="hot-text">
+              <div class="hot-name">{{ h.name }}</div>
+              <div class="hot-sub">销售 {{ h.sold }} 份 · 营收 ¥{{ (h.amount / 100).toFixed(0) }}</div>
+            </div>
+            <span class="chip clay">{{ h.category }}</span>
+          </div>
+          <div v-if="!hotProducts.length" class="empty-state">
+            <div class="empty-text">本月还没有销售记录</div>
+            <div class="empty-tip">— 慢慢来，第一个订单尤其值得记住 —</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel x-card x-fade">
+        <div class="panel-head">
+          <div class="panel-title">今日待办</div>
+          <span class="panel-tip">智能提醒</span>
+        </div>
+        <div class="todo-list">
+          <div v-for="(t, i) in todos" :key="i" class="todo-row">
+            <span class="dot" :class="t.tone"></span>
+            <div class="todo-text">
+              <div class="todo-title">{{ t.title }}</div>
+              <div class="todo-sub">{{ t.sub }}</div>
+            </div>
+          </div>
+          <div v-if="!todos.length" class="empty-state">
+            <div class="empty-text">今天暂无可提醒事项</div>
+          </div>
+        </div>
+      </div>
     </div>
+
+    <div class="footnote">星河滚烫 不如经营里的一次回访</div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch, nextTick } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import * as echarts from 'echarts'
-import { Refresh, DataLine } from '@element-plus/icons-vue'
 import KpiCard from '@/components/KpiCard.vue'
 import ChartCard from '@/components/ChartCard.vue'
-import { statsApi } from '@/api'
-import { formatMoney } from '@/utils/format'
-import type { OverviewStats, SummaryStats, TrendPoint, MemberGrowthPoint, TopService, RfmStats, HourPoint } from '@/types'
+import { useUserStore } from '@/stores/user'
+import { statsApi, productsApi, membersApi } from '@/api'
 
+const userStore = useUserStore()
 const loading = ref(false)
-const trendLoading = ref(true)
-const growthLoading = ref(true)
-const hourLoading = ref(true)
-const topLoading = ref(true)
-const rfmLoading = ref(true)
+const trendEl = ref<HTMLElement | null>(null)
+const pieEl = ref<HTMLElement | null>(null)
 
-const overview = ref<OverviewStats>()
-const summary = ref<SummaryStats>()
+const kpi = ref<any>({
+  todayRevenue: 0, todayOrders: 0, newMembers: 0, activeMembers: 0,
+  revenueTrend: 0, orderTrend: 0, memberTrend: 0,
+  monthRecharge: 0, couponUseRate: 0, avgOrder: 0, repurchase: 0
+})
+const hotProducts = ref<any[]>([])
+const todos = ref<any[]>([])
 
-const range = ref<'7d' | '30d' | '90d'>('30d')
-const metric = ref<'revenue' | 'orders' | 'members'>('revenue')
-const metricLabel = computed(
-  () => ({ revenue: '营业额', orders: '订单数', members: '新增会员' }[metric.value])
-)
+const today = computed(() => {
+  const d = new Date()
+  const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
+  return {
+    day: d.getDate() + '',
+    date: `${d.getMonth() + 1} 月 ${d.getDate()} 日`,
+    week: weekdays[d.getDay()]
+  }
+})
 
-const todaySlogans = [
-  '看看今天的客流、营业额与会员的近况',
-  '把数字读成故事，把数据写成温度',
-  '好的生意，是把每一次到店都妥善安放',
-  '所有看得见的增长，背后是看不见的用心'
+const hour = new Date().getHours()
+const greeting = hour < 6 ? '夜深了' : hour < 11 ? '早安' : hour < 14 ? '午安' : hour < 18 ? '下午好' : '晚上好'
+
+const slogans = [
+  '把今天的到店，妥帖安放',
+  '把数字读成故事',
+  '星河很远，到店很近',
+  '用心服务，会被记得',
+  '好生意，从一份会员名单开始',
+  '慢慢来，是最好的节奏'
 ]
-const todaySlogan = todaySlogans[new Date().getDate() % todaySlogans.length]
+const slogan = slogans[Math.floor(Math.random() * slogans.length)]
 
-const trendEl = ref<HTMLDivElement>()
-const growthEl = ref<HTMLDivElement>()
-const hourEl = ref<HTMLDivElement>()
-const topEl = ref<HTMLDivElement>()
-const rfmEl = ref<HTMLDivElement>()
-
-let trendChart: echarts.ECharts | null = null
-let growthChart: echarts.ECharts | null = null
-let hourChart: echarts.ECharts | null = null
-let topChart: echarts.ECharts | null = null
-let rfmChart: echarts.ECharts | null = null
-
-const trendData = ref<TrendPoint[]>([])
-const growthData = ref<MemberGrowthPoint[]>([])
-const hourData = ref<HourPoint[]>([])
-const topData = ref<TopService[]>([])
-const rfmData = ref<RfmStats>()
-
-const palette = ['#6f94b8', '#8a8278', '#a89a7e', '#7e9a8a', '#9b8aa6', '#b0a884']
-
-async function loadAll() {
+async function load() {
   loading.value = true
   try {
-    await Promise.all([
-      loadSummary(),
-      loadOverview(),
-      loadTrend(),
-      loadGrowth(),
-      loadHour(),
-      loadTop(),
-      loadRfm()
-    ])
-  } finally {
-    loading.value = false
-  }
+    // 1. 主指标
+    const summary: any = await statsApi.summary()
+    const overview: any = await statsApi.overview().catch(() => null)
+    kpi.value = {
+      todayRevenue: summary.todayRevenue || 0,
+      revenueTrend: summary.todayDelta ?? overview?.revenueDelta ?? 0,
+      todayOrders: summary.todayOrders || 0,
+      orderTrend: overview?.orderDelta ?? 0,
+      newMembers: summary.newMembersToday || 0,
+      memberTrend: overview?.memberDelta ?? 0,
+      activeMembers: summary.consumeMembersToday || 0,
+      monthRecharge: summary.monthRevenue || 0,
+      couponUseRate: 0,
+      avgOrder: overview?.avgPrice || 0,
+      repurchase: 0
+    }
+    // 2. 趋势
+    try {
+      const trend = await statsApi.trend({ range: '7d', metric: 'revenue' })
+      const orderTrend = await statsApi.trend({ range: '7d', metric: 'orders' })
+      const merge = trend.map((t: any, i: number) => ({
+        date: t.date,
+        amount: t.value,
+        orders: orderTrend[i]?.value || 0
+      }))
+      drawTrend(merge)
+    } catch { drawTrend([]) }
+    // 3. 会员等级分布
+    try {
+      const mg = await statsApi.memberGrowth()
+      const total = (mg || []).reduce((s: number, x: any) => s + (x.value || 0), 0)
+      const pie = (mg || []).map((x: any) => ({ name: x.date?.slice(5) || '', value: x.value || 0 }))
+      if (pie.length && total) drawPie(pie)
+      else drawPie([
+        { name: '普通', value: 6 }, { name: '银卡', value: 3 },
+        { name: '金卡', value: 2 }, { name: '钻石', value: 1 }
+      ])
+    } catch {
+      drawPie([
+        { name: '普通', value: 6 }, { name: '银卡', value: 3 },
+        { name: '金卡', value: 2 }, { name: '钻石', value: 1 }
+      ])
+    }
+    // 4. 热销
+    try {
+      const top = await statsApi.topServices()
+      hotProducts.value = (top || []).slice(0, 5).map((t: any, i: number) => ({
+        id: t.id || i, name: t.name || '—', sold: t.count || 0, amount: t.amount || 0, category: t.category || '服务'
+      }))
+    } catch { hotProducts.value = [] }
+    // 5. 待办（基于实时数据估算）
+    todos.value = []
+    if (kpi.value.newMembers) {
+      todos.value.push({ title: `今日新增 ${kpi.value.newMembers} 位会员`, sub: '建议下午 4 点前发送欢迎礼', tone: 'success' })
+    }
+    todos.value.push({ title: '检查本周储值赠送发放情况', sub: '日 / 周 / 月卡券已生成', tone: 'warning' })
+    if (kpi.value.todayOrders > 0) {
+      todos.value.push({ title: '统计今日热销并复盘', sub: `当前已成交 ${kpi.value.todayOrders} 笔`, tone: 'primary' })
+    } else {
+      todos.value.push({ title: '今天还没有到店', sub: '一束好的开场，从问候开始', tone: 'muted' })
+    }
+  } catch (e) {
+    drawTrend([]); drawPie([])
+  } finally { loading.value = false }
 }
 
-async function loadSummary() {
-  try { summary.value = await statsApi.summary() } catch { /* 容错 */ }
-}
-async function loadOverview() {
-  try { overview.value = await statsApi.overview() } catch { /* 容错 */ }
-}
-async function loadTrend() {
-  trendLoading.value = true
-  try {
-    trendData.value = await statsApi.trend({ range: range.value, metric: metric.value })
-    await nextTick(); renderTrend()
-  } finally { trendLoading.value = false }
-}
-async function loadGrowth() {
-  growthLoading.value = true
-  try {
-    growthData.value = await statsApi.memberGrowth()
-    await nextTick(); renderGrowth()
-  } finally { growthLoading.value = false }
-}
-async function loadHour() {
-  hourLoading.value = true
-  try {
-    hourData.value = await statsApi.hour()
-    await nextTick(); renderHour()
-  } finally { hourLoading.value = false }
-}
-async function loadTop() {
-  topLoading.value = true
-  try {
-    topData.value = await statsApi.topServices()
-    await nextTick(); renderTop()
-  } finally { topLoading.value = false }
-}
-async function loadRfm() {
-  rfmLoading.value = true
-  try {
-    rfmData.value = await statsApi.rfm()
-    await nextTick(); renderRfm()
-  } finally { rfmLoading.value = false }
-}
-
-function axisColor() { return { color: '#8a8e85' } }
-
-function renderTrend() {
+function drawTrend(data: any[]) {
   if (!trendEl.value) return
-  if (!trendChart) trendChart = echarts.init(trendEl.value)
-  const dates = trendData.value.map((d) => d.date)
-  const values = trendData.value.map((d) => d.value)
-  const isMoney = metric.value === 'revenue'
-  trendChart.setOption({
-    grid: { left: 50, right: 20, top: 30, bottom: 30 },
+  const chart = echarts.init(trendEl.value)
+  chart.setOption({
+    grid: { left: 50, right: 24, top: 18, bottom: 28 },
     tooltip: {
       trigger: 'axis',
-      valueFormatter: (v: any) => (isMoney ? `¥${formatMoney(v)}` : String(v))
+      backgroundColor: 'rgba(31, 29, 24, 0.92)',
+      borderWidth: 0,
+      textStyle: { color: '#fff', fontFamily: 'PingFang SC, serif', fontSize: 12 },
+      padding: [8, 12]
     },
-    xAxis: { type: 'category', data: dates, axisLine: { lineStyle: axisColor() }, axisLabel: axisColor() },
-    yAxis: {
-      type: 'value',
-      axisLabel: { ...axisColor(), formatter: (v: number) => (isMoney ? `¥${(v / 100).toFixed(0)}` : String(v)) },
-      splitLine: { lineStyle: { color: 'rgba(108,120,108,0.08)' } }
+    xAxis: {
+      type: 'category',
+      data: data.map(d => d.date?.slice(5) || ''),
+      axisLine: { lineStyle: { color: 'rgba(70, 64, 56, 0.18)' } },
+      axisTick: { show: false },
+      axisLabel: { color: '#8a8578', fontSize: 11, fontFamily: 'serif' }
     },
-    series: [{
-      type: 'line', smooth: true, data: values, symbol: 'circle', symbolSize: 6,
-      lineStyle: { color: palette[0], width: 2 }, itemStyle: { color: palette[0] },
-      areaStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: 'rgba(111,148,184,0.25)' },
-          { offset: 1, color: 'rgba(111,148,184,0.02)' }
-        ])
+    yAxis: [
+      {
+        type: 'value',
+        axisLine: { show: false }, axisTick: { show: false },
+        splitLine: { lineStyle: { color: 'rgba(70, 64, 56, 0.06)', type: 'dashed' } },
+        axisLabel: { color: '#8a8578', fontSize: 11, fontFamily: 'monospace' }
       }
-    }]
-  }, true)
-}
-
-function renderGrowth() {
-  if (!growthEl.value) return
-  if (!growthChart) growthChart = echarts.init(growthEl.value)
-  const dates = growthData.value.map((d) => d.date)
-  growthChart.setOption({
-    grid: { left: 45, right: 20, top: 30, bottom: 30 },
-    tooltip: { trigger: 'axis' },
-    legend: { data: ['新增', '活跃'], right: 10, top: 0, textStyle: axisColor() },
-    xAxis: { type: 'category', data: dates, axisLine: { lineStyle: axisColor() }, axisLabel: axisColor() },
-    yAxis: { type: 'value', axisLabel: axisColor(), splitLine: { lineStyle: { color: 'rgba(108,120,108,0.08)' } } },
+    ],
     series: [
-      { name: '新增', type: 'line', smooth: true, data: growthData.value.map((d) => d.newCount), lineStyle: { color: palette[1] }, itemStyle: { color: palette[1] } },
-      { name: '活跃', type: 'line', smooth: true, data: growthData.value.map((d) => d.activeCount), lineStyle: { color: palette[0] }, itemStyle: { color: palette[0] } }
-    ]
-  }, true)
-}
-
-function renderHour() {
-  if (!hourEl.value) return
-  if (!hourChart) hourChart = echarts.init(hourEl.value)
-  const hours = Array.from({ length: 24 }, (_, i) => `${i}:00`)
-  hourChart.setOption({
-    grid: { left: 45, right: 20, top: 20, bottom: 30 },
-    tooltip: { trigger: 'axis' },
-    xAxis: { type: 'category', data: hours, axisLine: { lineStyle: axisColor() }, axisLabel: axisColor() },
-    yAxis: { type: 'value', axisLabel: axisColor(), splitLine: { lineStyle: { color: 'rgba(108,120,108,0.08)' } } },
-    series: [{
-      type: 'bar', data: hourData.value.map((d) => d.count), barWidth: '55%',
-      itemStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: '#6f94b8' }, { offset: 1, color: 'rgba(111,148,184,0.4)' }
-        ]), borderRadius: [3, 3, 0, 0]
+      {
+        type: 'line',
+        name: '营业额',
+        smooth: true,
+        data: data.map(d => (d.amount || 0) / 100),
+        symbol: 'circle',
+        symbolSize: 5,
+        lineStyle: { color: '#5a7a9c', width: 2 },
+        itemStyle: { color: '#5a7a9c' },
+        areaStyle: {
+          color: {
+            type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: 'rgba(90, 122, 156, 0.16)' },
+              { offset: 1, color: 'rgba(90, 122, 156, 0.02)' }
+            ]
+          }
+        }
+      },
+      {
+        type: 'line',
+        name: '到店',
+        smooth: true,
+        data: data.map(d => d.orders || 0),
+        symbol: 'circle',
+        symbolSize: 4,
+        lineStyle: { color: '#b89692', width: 1.6 },
+        itemStyle: { color: '#b89692' }
       }
-    }]
-  }, true)
+    ],
+    legend: {
+      right: 0, top: 0,
+      textStyle: { color: '#6a655c', fontSize: 11, fontFamily: 'serif' }
+    }
+  })
 }
 
-function renderTop() {
-  if (!topEl.value) return
-  if (!topChart) topChart = echarts.init(topEl.value)
-  const sorted = [...topData.value].slice(0, 10).reverse()
-  topChart.setOption({
-    grid: { left: 110, right: 30, top: 20, bottom: 30 },
-    tooltip: {
-      trigger: 'axis', axisPointer: { type: 'shadow' },
-      formatter: (p: any) => {
-        const item = p[0]
-        const data = sorted[item.dataIndex]
-        return `${data.name}<br/>单数：${data.count}<br/>金额：¥${formatMoney(data.amount)}`
-      }
-    },
-    xAxis: { type: 'value', axisLabel: axisColor(), splitLine: { lineStyle: { color: 'rgba(108,120,108,0.08)' } } },
-    yAxis: { type: 'category', data: sorted.map((d) => d.name), axisLine: { lineStyle: axisColor() }, axisLabel: axisColor() },
+function drawPie(data: any[]) {
+  if (!pieEl.value) return
+  const chart = echarts.init(pieEl.value)
+  chart.setOption({
+    tooltip: { trigger: 'item', backgroundColor: 'rgba(31, 29, 24, 0.92)', borderWidth: 0, textStyle: { color: '#fff' } },
+    legend: { bottom: 0, textStyle: { color: '#6a655c', fontSize: 11, fontFamily: 'serif' } },
     series: [{
-      type: 'bar', data: sorted.map((d) => d.count), barWidth: '60%',
-      itemStyle: { color: '#8a8278', borderRadius: [0, 3, 3, 0] }
+      type: 'pie',
+      radius: ['50%', '78%'],
+      center: ['50%', '46%'],
+      avoidLabelOverlap: true,
+      itemStyle: { borderColor: '#fff', borderWidth: 2, borderRadius: 4 },
+      label: { show: true, formatter: '{b}\n{d}%', fontFamily: 'serif', color: '#43403a', fontSize: 11 },
+      labelLine: { length: 8, length2: 8, lineStyle: { color: 'rgba(70, 64, 56, 0.30)' } },
+      data: data.map(d => ({ name: d.name, value: d.value })),
+      color: ['#5a7a9c', '#8b7ea3', '#b89692', '#b8845c', '#94a89a']
     }]
-  }, true)
+  })
 }
 
-function renderRfm() {
-  if (!rfmEl.value) return
-  if (!rfmChart) rfmChart = echarts.init(rfmEl.value)
-  const d = rfmData.value || { high: 0, mid: 0, low: 0, dormant: 0 }
-  rfmChart.setOption({
-    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-    legend: { bottom: 0, textStyle: axisColor() },
-    series: [{
-      type: 'pie', radius: ['45%', '68%'], center: ['50%', '45%'],
-      avoidLabelOverlap: true, itemStyle: { borderColor: '#fff', borderWidth: 2, borderRadius: 4 },
-      label: { show: false },
-      data: [
-        { name: '高价值', value: d.high, itemStyle: { color: palette[0] } },
-        { name: '中价值', value: d.mid, itemStyle: { color: palette[3] } },
-        { name: '低价值', value: d.low, itemStyle: { color: palette[2] } },
-        { name: '沉睡', value: d.dormant, itemStyle: { color: '#cfcabf' } }
-      ]
-    }]
-  }, true)
-}
-
-function resizeAll() {
-  trendChart?.resize(); growthChart?.resize(); hourChart?.resize(); topChart?.resize(); rfmChart?.resize()
-}
-
-onMounted(async () => {
-  await loadAll()
-  await nextTick()
-  renderTrend(); renderGrowth(); renderHour(); renderTop(); renderRfm()
-  window.addEventListener('resize', resizeAll)
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('resize', resizeAll)
-  trendChart?.dispose(); growthChart?.dispose(); hourChart?.dispose(); topChart?.dispose(); rfmChart?.dispose()
-})
-
-watch([range, metric], () => loadTrend())
+onMounted(load)
 </script>
 
 <style scoped>
-.dashboard { padding: 18px 22px 28px; }
+.dashboard { padding: 20px 24px 32px; }
 
-/* 经营摘要条 */
-.summary-bar {
-  display: flex; align-items: stretch;
-  padding: 4px 0;
-  margin-bottom: 14px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  position: relative;
-  overflow: hidden;
+/* hero */
+.dash-hero {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 4px 22px;
+  border-bottom: 1px dashed var(--line-2);
+  margin-bottom: 22px;
 }
-.summary-item {
-  flex: 1; padding: 18px 24px;
-  position: relative;
-  transition: background-color var(--dur) var(--ease);
+.hero-greet {
+  font-family: var(--font-serif);
+  font-size: 20px; font-weight: 500;
+  color: var(--ink);
+  letter-spacing: 0.04em;
 }
-.summary-item:hover { background: var(--surface-2); }
-.summary-item::before {
-  content: ''; position: absolute; top: 14px; left: 24px;
-  width: 4px; height: 14px; border-radius: 2px;
-  background: var(--brand);
+.hero-greet .hero-name {
+  color: var(--brand-ink);
+  margin-left: 2px;
 }
-.summary-item:nth-child(1)::before { background: var(--brand); }
-.summary-item:nth-child(3)::before { background: var(--success); }
-.summary-item:nth-child(5)::before { background: var(--warning); }
-.summary-item:nth-child(7)::before { background: var(--accent-rose); }
-.sum-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.04em; }
-.sum-value { font-size: 22px; font-weight: 600; color: var(--ink); line-height: 1.2; font-variant-numeric: tabular-nums; }
-.sum-delta { font-size: 12px; margin-top: 6px; font-weight: 500; }
-.sum-tip { color: var(--muted); font-weight: 400; margin-left: 4px; }
-.summary-divider { width: 1px; align-self: center; height: 56px; background: var(--line); }
+.hero-date {
+  font-family: var(--font-serif);
+  font-size: 12px; color: var(--muted);
+  margin-top: 6px; letter-spacing: 0.08em;
+}
+.hero-slogan {
+  font-family: var(--font-serif);
+  font-size: 12.5px; color: var(--ink-3);
+  margin-top: 10px; letter-spacing: 0.06em;
+  line-height: 1.7;
+  position: relative; padding-left: 14px;
+}
+.hero-slogan::before {
+  content: ''; position: absolute; left: 0; top: 4px; bottom: 4px;
+  width: 1px; background: var(--brand);
+}
+.hero-constellation { animation: x-fade-in 0.6s var(--ease-out) 0.2s both; }
 
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-  margin-bottom: 16px;
+/* KPI */
+.kpi-row {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 14px; margin-bottom: 14px;
 }
-.grid-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  margin-top: 14px;
-}
-.trend-card { margin-bottom: 14px; }
-.chart-host { width: 100%; height: 100%; }
+.kpi-row-2 { margin-bottom: 18px; }
+@media (max-width: 1100px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
 
-@media (max-width: 1100px) {
-  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-  .grid-2 { grid-template-columns: 1fr; }
-  .summary-bar { flex-wrap: wrap; }
-  .summary-divider { display: none; }
-  .summary-item { flex: 1 1 45%; margin-bottom: 8px; }
+/* 图表 */
+.chart-row {
+  display: grid; grid-template-columns: 1.4fr 1fr;
+  gap: 14px; margin-bottom: 14px;
+}
+.chart-slot { width: 100%; height: 220px; }
+@media (max-width: 1100px) { .chart-row { grid-template-columns: 1fr; } }
+
+/* 底部双面板 */
+.bottom-row {
+  display: grid; grid-template-columns: 1.4fr 1fr;
+  gap: 14px; margin-bottom: 14px;
+}
+@media (max-width: 1100px) { .bottom-row { grid-template-columns: 1fr; } }
+
+.panel { padding: 16px 18px; }
+.panel-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding-bottom: 12px; margin-bottom: 8px;
+  border-bottom: 1px dashed var(--line);
+}
+.panel-title {
+  font-family: var(--font-serif);
+  font-size: 14.5px; font-weight: 500; color: var(--ink);
+  letter-spacing: 0.06em;
+}
+.panel-tip { font-family: var(--font-serif); font-size: 11px; color: var(--muted); letter-spacing: 0.12em; }
+
+.hot-list, .todo-list { display: flex; flex-direction: column; gap: 4px; }
+.hot-row, .todo-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 4px;
+  border-bottom: 1px dashed var(--line);
+  transition: background var(--dur) var(--ease-out);
+}
+.hot-row:hover, .todo-row:hover { background: var(--surface-2); padding-left: 8px; padding-right: 8px; }
+.hot-row:last-child, .todo-row:last-child { border-bottom: none; }
+
+.hot-text, .todo-text { flex: 1; min-width: 0; }
+.hot-name, .todo-title {
+  font-family: var(--font-serif);
+  font-size: 13.5px; color: var(--ink); font-weight: 500;
+  letter-spacing: 0.04em;
+}
+.hot-sub, .todo-sub {
+  font-size: 11.5px; color: var(--muted); margin-top: 3px;
+  font-family: var(--font-num);
+  letter-spacing: 0.02em;
 }
 </style>

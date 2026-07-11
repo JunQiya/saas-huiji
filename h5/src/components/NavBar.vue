@@ -20,12 +20,13 @@
 </template>
 
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
+
 interface Props { title?: string; subtitle?: string; back?: boolean; fixed?: boolean; transparent?: boolean }
 withDefaults(defineProps<Props>(), { title: '', subtitle: '', back: false, fixed: false, transparent: false })
 
 const router = useRouter()
 function onBack() { if (window.history.length > 1) router.back(); else router.push('/') }
-import { useRouter } from 'vue-router'
 </script>
 
 <style scoped>
@@ -42,7 +43,16 @@ import { useRouter } from 'vue-router'
 .nav-row {
   display: flex; align-items: center;
   height: 44px; padding: 0 6px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px dashed var(--line-2);
+  position: relative;
+}
+.nav-row::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; left: 16px;
+  width: 28px; height: 1px;
+  background: var(--brand);
+  opacity: 0.7;
 }
 .nav-left, .nav-right {
   display: flex; align-items: center;
@@ -54,7 +64,7 @@ import { useRouter } from 'vue-router'
   display: flex; align-items: center; justify-content: center;
   color: var(--ink);
   border-radius: 8px;
-  transition: background-color var(--dur) var(--ease);
+  transition: background-color var(--dur) var(--ease-out);
   cursor: pointer;
 }
 .nav-icon:hover { background: var(--surface-2); }
@@ -65,11 +75,13 @@ import { useRouter } from 'vue-router'
   line-height: 1.2;
 }
 .title-main {
-  font-size: 15px; font-weight: 600; color: var(--ink);
-  letter-spacing: 0.04em;
+  font-family: var(--font-serif);
+  font-size: 15.5px; font-weight: 500; color: var(--ink);
+  letter-spacing: 0.08em;
 }
 .title-sub {
+  font-family: var(--font-serif);
   font-size: 10.5px; color: var(--muted);
-  letter-spacing: 0.06em; margin-top: 1px;
+  letter-spacing: 0.10em; margin-top: 2px;
 }
 </style>

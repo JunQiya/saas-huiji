@@ -3,12 +3,26 @@
     <!-- 侧边栏 -->
     <el-aside :width="collapsed ? '64px' : '224px'" class="aside">
       <div class="aside-brand" :class="{ collapsed }">
-        <div class="brand-mark">
-          <span class="star"></span>
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 36 36" width="32" height="32">
+            <circle cx="9" cy="9" r="0.8" fill="currentColor" opacity="0.4" />
+            <circle cx="27" cy="6" r="0.7" fill="currentColor" opacity="0.32" />
+            <circle cx="30" cy="22" r="0.8" fill="currentColor" opacity="0.36" />
+            <circle cx="7" cy="28" r="0.7" fill="currentColor" opacity="0.28" />
+            <g stroke="currentColor" stroke-width="0.7" opacity="0.5" fill="none">
+              <line x1="13" y1="14" x2="18" y2="20" />
+              <line x1="18" y1="20" x2="23" y2="14" />
+              <line x1="18" y1="20" x2="18" y2="26" />
+            </g>
+            <circle cx="13" cy="14" r="1.6" fill="currentColor" />
+            <circle cx="23" cy="14" r="1.6" fill="currentColor" />
+            <circle cx="18" cy="20" r="2.2" fill="currentColor" />
+            <circle cx="18" cy="26" r="1.2" fill="currentColor" opacity="0.7" />
+          </svg>
         </div>
         <div v-if="!collapsed" class="brand-text">
           <div class="brand-name">星河·会记</div>
-          <div class="brand-sub">会员营销后台</div>
+          <div class="brand-sub">经营后台 · 夜读手记</div>
         </div>
       </div>
 
@@ -19,11 +33,14 @@
           :collapse-transition="false"
           background-color="transparent"
           text-color="var(--ink-2)"
-          active-text-color="var(--primary-action)"
+          active-text-color="var(--brand-ink)"
           router
         >
           <template v-for="group in menuGroups" :key="group.title">
-            <div v-if="!collapsed" class="menu-group-title">{{ group.title }}</div>
+            <div v-if="!collapsed" class="menu-group-title">
+              <span class="mg-dot"></span>
+              <span>{{ group.title }}</span>
+            </div>
             <div v-else class="menu-group-divider"></div>
             <el-menu-item v-for="m in group.items" :key="m.path" :index="m.path">
               <el-icon><component :is="m.icon" /></el-icon>
@@ -32,16 +49,20 @@
           </template>
         </el-menu>
       </el-scrollbar>
+
+      <div v-if="!collapsed" class="aside-foot">
+        <span class="af-quote">{{ asideQuote }}</span>
+      </div>
     </el-aside>
 
     <el-container class="main-container">
       <!-- 顶栏 -->
-      <el-header class="header" height="52px">
+      <el-header class="header" height="56px">
         <div class="header-left">
           <el-button text class="collapse-btn" @click="collapsed = !collapsed">
             <el-icon><Expand v-if="collapsed" /><Fold v-else /></el-icon>
           </el-button>
-          <el-breadcrumb separator="/" class="crumbs">
+          <el-breadcrumb separator=" / " class="crumbs">
             <el-breadcrumb-item :to="{ path: '/dashboard' }">首页</el-breadcrumb-item>
             <el-breadcrumb-item v-for="(c, i) in crumbs" :key="i">{{ c }}</el-breadcrumb-item>
           </el-breadcrumb>
@@ -113,7 +134,6 @@ const userStore = useUserStore()
 const collapsed = ref(false)
 const isDark = ref(false)
 
-// 菜单分组
 const menuGroups = [
   {
     title: '经营总览',
@@ -158,7 +178,6 @@ const menuGroups = [
   }
 ]
 
-// 顶栏面包屑
 const crumbs = computed(() => {
   const map: Record<string, string> = {
     '/dashboard': '仪表盘',
@@ -186,12 +205,21 @@ const avatarText = computed(() => {
   return name.charAt(0).toUpperCase()
 })
 
+const asideQuote = computed(() => {
+  const quotes = [
+    '把数字读成故事',
+    '把到店谱成日常',
+    '用心的服务会被记住',
+    '慢一点的生意也走得远'
+  ]
+  return quotes[Math.floor(Math.random() * quotes.length)]
+})
+
 function toggleDark() {
   isDark.value = !isDark.value
   document.body.classList.toggle('theme-dark-mock', isDark.value)
   ElMessage.info(isDark.value ? '已开启暗色占位（完整暗色模式即将上线）' : '已关闭暗色')
 }
-
 
 const currentStore = reactive<any>({ storeId: null, name: '' })
 const stores = ref<any[]>([])
@@ -210,7 +238,6 @@ async function onStoreCmd(cmd: any) {
   await settingsPlanApi.switchStore(Number(cmd))
   ElMessage.success('已切换门店')
   await loadStore()
-  // 简单刷新当前页
   router.replace('/dashboard').then(() => router.go(0))
 }
 
@@ -226,13 +253,12 @@ async function onUserCmd(cmd: string) {
       userStore.logout()
       ElMessage.success('已安全退出')
       router.replace('/login')
-    } catch {/* 取消 */}
+    } catch {}
   }
 }
 
 onMounted(() => {
   loadStore()
-  // 从 store 恢复折叠态
   const saved = localStorage.getItem('aside-collapsed')
   if (saved) collapsed.value = saved === '1'
 })
@@ -242,44 +268,65 @@ onMounted(() => {
 .layout { height: 100vh; }
 
 .aside {
-  background: var(--card-bg);
+  background: var(--surface);
   border-right: 1px solid var(--line);
-  transition: width 0.2s ease-out;
+  transition: width 0.2s var(--ease-out);
   display: flex; flex-direction: column;
 }
 .aside-brand {
-  height: 56px;
+  height: 60px;
   display: flex; align-items: center;
-  gap: 10px;
+  gap: 11px;
   padding: 0 18px;
   border-bottom: 1px solid var(--line);
+  position: relative;
+}
+.aside-brand::after {
+  content: '';
+  position: absolute;
+  left: 18px; bottom: -1px;
+  width: 24px; height: 1px;
+  background: var(--brand);
+  opacity: 0.7;
 }
 .aside-brand.collapsed { justify-content: center; padding: 0; }
 .brand-mark {
   width: 32px; height: 32px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #6f94b8 0%, #4a6a87 100%);
+  color: var(--brand-deep);
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
-.star {
-  width: 14px; height: 14px;
-  background: #fff;
-  clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-}
 .brand-text { line-height: 1.2; }
-.brand-name { font-size: 14px; font-weight: 600; color: var(--ink); }
-.brand-sub { font-size: 11px; color: var(--muted); }
+.brand-name {
+  font-family: var(--font-serif);
+  font-size: 14.5px; font-weight: 500;
+  color: var(--ink);
+  letter-spacing: 0.08em;
+}
+.brand-sub {
+  font-family: var(--font-serif);
+  font-size: 10.5px; color: var(--muted);
+  letter-spacing: 0.10em;
+  margin-top: 2px;
+}
 
 .aside-scroll { flex: 1; padding: 8px 0; }
 .aside :deep(.el-menu) { border-right: none; }
 
 .menu-group-title {
+  font-family: var(--font-serif);
   font-size: 11px;
   color: var(--muted-2);
-  letter-spacing: 1px;
-  padding: 12px 20px 4px;
-  font-weight: 500;
+  letter-spacing: 0.24em;
+  padding: 14px 20px 4px;
+  font-weight: 400;
+  display: flex; align-items: center; gap: 6px;
+}
+.mg-dot {
+  display: inline-block; width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--brand);
+  opacity: 0.5;
 }
 .menu-group-divider {
   height: 1px;
@@ -288,21 +335,23 @@ onMounted(() => {
 }
 
 .aside :deep(.el-menu-item) {
-  height: 42px;
-  line-height: 42px;
-  border-radius: 8px;
-  margin: 2px 8px;
+  height: 40px;
+  line-height: 40px;
+  border-radius: 6px;
+  margin: 1px 8px;
   padding-left: 16px !important;
   position: relative;
   font-size: 13.5px;
+  font-family: var(--font-serif);
+  letter-spacing: 0.04em;
 }
 .aside :deep(.el-menu-item:hover) {
-  background: rgba(111, 148, 184, 0.06) !important;
-  color: var(--primary-action) !important;
+  background: var(--surface-2) !important;
+  color: var(--ink) !important;
 }
 .aside :deep(.el-menu-item.is-active) {
-  background: var(--primary-action-soft) !important;
-  color: var(--primary-action) !important;
+  background: var(--brand-soft) !important;
+  color: var(--brand-ink) !important;
   font-weight: 500;
 }
 .aside :deep(.el-menu-item.is-active::before) {
@@ -310,54 +359,82 @@ onMounted(() => {
   position: absolute;
   left: 0; top: 50%;
   transform: translateY(-50%);
-  width: 3px; height: 18px;
-  background: var(--primary-action);
+  width: 2px; height: 16px;
+  background: var(--brand);
   border-radius: 0 2px 2px 0;
 }
 .aside :deep(.el-menu--collapse) .el-menu-item {
-  margin: 4px 8px;
+  margin: 2px 8px;
   padding-left: 0 !important;
   display: flex; justify-content: center;
+}
+
+.aside-foot {
+  padding: 14px 18px 16px;
+  border-top: 1px dashed var(--line-2);
+}
+.af-quote {
+  font-family: var(--font-serif);
+  font-size: 11px;
+  color: var(--muted-2);
+  letter-spacing: 0.16em;
+  display: block;
+  text-align: center;
 }
 
 /* 顶栏 */
 .header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 0 22px;
-  background: var(--card-bg);
+  padding: 0 24px;
+  background: var(--surface);
   border-bottom: 1px solid var(--line);
-  height: 52px;
+  height: 56px;
 }
 .header-left { display: flex; align-items: center; gap: 12px; }
-.collapse-btn { font-size: 16px; }
+.collapse-btn { font-size: 16px; color: var(--ink-2); }
 .crumbs :deep(.el-breadcrumb__item) { font-size: 13px; }
-.crumbs :deep(.el-breadcrumb__item:last-child .el-breadcrumb__inner) { color: var(--ink); font-weight: 500; }
+.crumbs :deep(.el-breadcrumb__item:last-child .el-breadcrumb__inner) {
+  color: var(--ink); font-weight: 500;
+  font-family: var(--font-serif);
+  letter-spacing: 0.04em;
+}
 .crumbs :deep(.el-breadcrumb__item:not(:last-child) .el-breadcrumb__inner) { color: var(--muted); }
+.crumbs :deep(.el-breadcrumb__separator) { color: var(--muted-2); }
 
 .header-right { display: flex; align-items: center; gap: 4px; }
 .icon-btn { font-size: 16px; padding: 8px; color: var(--ink-2); }
 .store-picker { margin-right: 4px; }
-.store-info { display: flex; align-items: center; gap: 4px; cursor: pointer; padding: 4px 10px; border-radius: 6px; font-size: 13px; color: var(--ink-2); transition: background 0.2s ease-out; }
-.store-info:hover { background: rgba(111, 148, 184, 0.06); color: var(--primary-action); }
-.store-name { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
+.store-info {
+  display: flex; align-items: center; gap: 5px;
+  cursor: pointer; padding: 5px 10px; border-radius: 6px;
+  font-size: 13px; color: var(--ink-2);
+  transition: background var(--dur) var(--ease-out);
+}
+.store-info:hover { background: var(--surface-2); color: var(--ink); }
+.store-name {
+  max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: var(--font-serif); letter-spacing: 0.04em;
+}
 
 .user-info {
   display: flex; align-items: center; gap: 8px;
-  cursor: pointer; padding: 4px 8px;
-  border-radius: 6px;
-  transition: background 0.2s ease-out;
+  cursor: pointer; padding: 4px 8px 4px 4px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  transition: background var(--dur) var(--ease-out);
 }
-.user-info:hover { background: rgba(111, 148, 184, 0.06); }
-.avatar { background: var(--primary-action); color: #fff; font-size: 12px; font-weight: 600; }
-.username { font-size: 13px; color: var(--ink); }
+.user-info:hover { background: var(--surface-2); }
+.avatar {
+  background: var(--brand) !important; color: #fff !important;
+  font-size: 12px; font-weight: 500;
+  font-family: var(--font-num);
+}
+.username { font-size: 13px; color: var(--ink); font-family: var(--font-serif); }
 
-/* 主体淡入 */
 .main { padding: 0; background: transparent; }
-.fade-enter-active, .fade-leave-active { transition: opacity 0.18s ease-out; }
+.fade-enter-active, .fade-leave-active { transition: opacity 0.18s var(--ease-out); }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 
-/* 折叠态 - 标题 tooltip */
 .aside :deep(.el-menu--collapse) .el-menu-item [class^='el-icon'] {
   margin-right: 0;
 }

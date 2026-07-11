@@ -1,26 +1,56 @@
 <template>
   <div class="page login">
-    <!-- 装饰背景 -->
-    <div class="bg-decor decor-a"></div>
-    <div class="bg-decor decor-b"></div>
-    <div class="bg-decor decor-c"></div>
+    <!-- 装饰星座背景 -->
+    <svg class="bg-stars" viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <g fill="#4a6583">
+        <circle cx="40" cy="120" r="0.9" opacity="0.30" />
+        <circle cx="120" cy="80" r="0.7" opacity="0.24" />
+        <circle cx="240" cy="60" r="0.9" opacity="0.30" />
+        <circle cx="320" cy="140" r="1" opacity="0.34" />
+        <circle cx="370" cy="260" r="0.8" opacity="0.26" />
+        <circle cx="60" cy="320" r="0.7" opacity="0.22" />
+        <circle cx="380" cy="420" r="0.9" opacity="0.30" />
+        <circle cx="20" cy="500" r="0.8" opacity="0.26" />
+        <circle cx="320" cy="580" r="0.7" opacity="0.22" />
+        <circle cx="80" cy="700" r="0.9" opacity="0.30" />
+        <circle cx="260" cy="760" r="0.8" opacity="0.26" />
+        <circle cx="180" cy="200" r="0.6" opacity="0.20" />
+      </g>
+      <g stroke="#4a6583" stroke-width="0.4" fill="none" opacity="0.30">
+        <line x1="120" y1="80" x2="240" y2="60" />
+        <line x1="240" y1="60" x2="320" y2="140" />
+        <line x1="60" y1="320" x2="180" y2="200" />
+        <line x1="20" y1="500" x2="80" y2="700" />
+      </g>
+    </svg>
 
-    <!-- 顶部品牌区 -->
     <div class="brand-zone">
       <div class="brand-mark">
-        <span class="star"></span>
-        <span class="orbit"></span>
+        <svg viewBox="0 0 36 36" width="42" height="42">
+          <circle cx="9" cy="9" r="0.8" fill="var(--brand-deep)" opacity="0.4" />
+          <circle cx="27" cy="6" r="0.7" fill="var(--brand-deep)" opacity="0.32" />
+          <circle cx="30" cy="22" r="0.8" fill="var(--brand-deep)" opacity="0.36" />
+          <circle cx="7" cy="28" r="0.7" fill="var(--brand-deep)" opacity="0.28" />
+          <g stroke="var(--brand-deep)" stroke-width="0.7" opacity="0.5" fill="none">
+            <line x1="13" y1="14" x2="18" y2="20" />
+            <line x1="18" y1="20" x2="23" y2="14" />
+            <line x1="18" y1="20" x2="18" y2="26" />
+          </g>
+          <circle cx="13" cy="14" r="1.6" fill="var(--brand-deep)" />
+          <circle cx="23" cy="14" r="1.6" fill="var(--brand-deep)" />
+          <circle cx="18" cy="20" r="2.2" fill="var(--brand-deep)" />
+          <circle cx="18" cy="26" r="1.2" fill="var(--brand-deep)" opacity="0.7" />
+        </svg>
       </div>
       <div class="brand-name">星河·会记</div>
-      <div class="brand-en">XINGHE HUIJI</div>
+      <div class="brand-en">HUIJI · 夜读手记</div>
       <div class="brand-slogan">{{ slogan }}</div>
     </div>
 
-    <!-- 登录卡片 -->
-    <div class="login-card">
+    <div class="login-card x-fade">
       <div class="card-head">
         <div class="head-title">欢迎回来</div>
-        <div class="head-sub">手机号验证码登录，验证码 8888</div>
+        <div class="head-sub">手机号验证码登录，演示验证码 8888</div>
       </div>
 
       <div class="form">
@@ -52,7 +82,7 @@
               :disabled="codeCountdown > 0 || !phoneValid"
               @click="onSendCode"
             >
-              {{ codeCountdown > 0 ? `${codeCountdown}s 后重发` : '获取验证码' }}
+              {{ codeCountdown > 0 ? `${codeCountdown}s` : '获取验证码' }}
             </button>
           </div>
         </div>
@@ -69,10 +99,7 @@
       </div>
     </div>
 
-    <!-- 底部小字 -->
-    <div class="footer-poem">
-      <div class="poem-line">— 记得星河，也记得你 —</div>
-    </div>
+    <div class="footer-poem">记得星河 也记得你</div>
   </div>
 </template>
 
@@ -144,191 +171,159 @@ onMounted(() => {
   padding: 0 0 40px;
   position: relative;
   overflow: hidden;
-  background:
-    radial-gradient(800px 500px at 50% -100px, rgba(111, 148, 184, 0.10), transparent 60%),
-    var(--page-bg);
 }
-
-/* 背景装饰 */
-.bg-decor { position: absolute; border-radius: 50%; pointer-events: none; }
-.decor-a {
-  width: 360px; height: 360px;
-  top: -120px; right: -100px;
-  background: radial-gradient(circle, rgba(111, 148, 184, 0.10), transparent 60%);
-}
-.decor-b {
-  width: 240px; height: 240px;
-  top: 220px; left: -80px;
-  background: radial-gradient(circle, rgba(200, 157, 150, 0.10), transparent 60%);
-}
-.decor-c {
-  width: 280px; height: 280px;
-  bottom: -100px; right: -60px;
-  background: radial-gradient(circle, rgba(168, 181, 184, 0.10), transparent 60%);
+.bg-stars {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 0;
 }
 
 /* 品牌区 */
 .brand-zone {
   position: relative;
   text-align: center;
-  padding: 80px 16px 36px;
+  padding: 72px 16px 32px;
   z-index: 1;
+  animation: x-fade-in 0.5s var(--ease-out) both;
 }
 .brand-mark {
-  width: 72px; height: 72px;
-  margin: 0 auto 18px;
-  position: relative;
+  width: 60px; height: 60px;
+  margin: 0 auto 16px;
   display: flex; align-items: center; justify-content: center;
-  background: var(--brand-soft);
-  border-radius: 18px;
-  box-shadow: 0 8px 24px rgba(74, 106, 135, 0.10);
+  background: var(--brand-softer);
+  border-radius: 14px;
+  border: 1px dashed var(--line-2);
 }
-.brand-mark .star {
-  width: 32px; height: 32px;
-  background: var(--brand-deep);
-  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-  position: relative; z-index: 1;
-}
-.brand-mark .orbit {
-  position: absolute; inset: 0;
-  border: 1px dashed rgba(111, 148, 184, 0.35);
-  border-radius: 50%;
-  margin: -8px;
-  animation: spin 20s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
 .brand-name {
-  font-size: 22px;
-  font-weight: 600;
+  font-family: var(--font-serif);
+  font-size: 22px; font-weight: 500;
   color: var(--ink);
   letter-spacing: 0.08em;
-  font-family: 'Songti SC', 'STSong', 'SimSun', serif;
+  line-height: 1.2;
 }
 .brand-en {
-  font-size: 10.5px;
-  color: var(--muted);
-  letter-spacing: 0.36em;
-  margin-top: 4px;
-  font-weight: 500;
+  font-family: var(--font-num);
+  font-size: 10px; color: var(--muted);
+  letter-spacing: 0.32em;
+  margin-top: 6px;
+  font-weight: 400;
 }
 .brand-slogan {
-  margin-top: 16px;
-  font-size: 12.5px;
-  color: var(--ink-2);
+  margin-top: 18px;
+  font-family: var(--font-serif);
+  font-size: 13px; color: var(--ink-2);
   letter-spacing: 0.16em;
-  font-family: 'Songti SC', serif;
-  opacity: 0.85;
+  opacity: 0.88;
 }
 
 /* 登录卡片 */
 .login-card {
   position: relative;
   z-index: 1;
-  margin: 0 24px;
+  margin: 0 22px;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--r-xl);
-  padding: 28px 22px 22px;
-  box-shadow: 0 8px 32px rgba(60, 70, 68, 0.08);
+  padding: 24px 22px 20px;
+  box-shadow: var(--shadow-md);
+  animation: x-fade-in 0.6s var(--ease-out) 0.1s both;
 }
 .card-head { margin-bottom: 22px; }
 .head-title {
-  font-size: 19px; font-weight: 600; color: var(--ink);
-  letter-spacing: 0.04em;
-  font-family: 'Songti SC', 'STSong', serif;
+  font-family: var(--font-serif);
+  font-size: 19px; font-weight: 500; color: var(--ink);
+  letter-spacing: 0.06em;
 }
 .head-sub {
+  font-family: var(--font-serif);
   font-size: 12px; color: var(--muted);
-  margin-top: 6px; letter-spacing: 0.04em;
+  margin-top: 6px; letter-spacing: 0.06em;
 }
 
 .form { display: flex; flex-direction: column; gap: 16px; }
 .form-item { display: flex; flex-direction: column; gap: 6px; }
 .form-label {
+  font-family: var(--font-serif);
   font-size: 11px; color: var(--muted);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0.18em;
   font-weight: 500;
 }
 .form-input {
-  width: 100%;
-  height: 44px;
+  width: 100%; height: 42px;
   padding: 0 14px;
   background: var(--surface-2);
   border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  font-size: 14.5px;
-  color: var(--ink);
+  border-radius: var(--r);
+  font-size: 14.5px; color: var(--ink);
   letter-spacing: 0.04em;
   outline: none;
-  transition: border-color var(--dur) var(--ease), background-color var(--dur) var(--ease);
+  transition: border-color var(--dur) var(--ease-out), background-color var(--dur) var(--ease-out);
   font-family: inherit;
 }
 .form-input:focus {
-  border-color: var(--brand);
+  border-color: var(--brand-ink);
   background: var(--surface);
 }
 .form-input::placeholder { color: var(--muted-2); }
 .form-row { display: flex; gap: 10px; }
 .form-row .form-input { flex: 1; }
 .code-btn {
-  height: 44px;
-  padding: 0 14px;
+  height: 42px;
+  padding: 0 12px;
   background: var(--surface-2);
   border: 1px solid var(--line);
-  border-radius: var(--r-md);
+  border-radius: var(--r);
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12.5px;
+  font-family: var(--font-serif);
+  letter-spacing: 0.04em;
   cursor: not-allowed;
   white-space: nowrap;
-  transition: all var(--dur) var(--ease);
-  font-family: inherit;
+  transition: all var(--dur) var(--ease-out);
 }
 .code-btn.active {
   background: var(--brand-soft);
-  border-color: var(--brand-soft);
-  color: var(--brand-deep);
+  border-color: transparent;
+  color: var(--brand-ink);
   cursor: pointer;
 }
 .code-btn.active:active { transform: scale(0.98); }
 
 .submit-btn {
-  height: 46px;
-  margin-top: 6px;
+  height: 44px;
+  margin-top: 4px;
   background: var(--brand-deep);
   color: #fff;
   border: none;
-  border-radius: var(--r-md);
-  font-size: 15px;
-  font-weight: 500;
+  border-radius: var(--r);
+  font-size: 14.5px; font-weight: 500;
   letter-spacing: 0.32em;
+  font-family: var(--font-serif);
   cursor: pointer;
-  transition: all var(--dur) var(--ease);
-  font-family: inherit;
+  transition: all var(--dur) var(--ease-out);
 }
-.submit-btn:hover:not(:disabled) { transform: scale(1.01); background: #3d5b76; }
+.submit-btn:hover:not(:disabled) { transform: scale(1.01); background: #2e4863; }
 .submit-btn:active:not(:disabled) { transform: scale(0.99); }
 .submit-btn:disabled { background: var(--muted-2); cursor: not-allowed; }
 
 .agreement {
   font-size: 11px; color: var(--muted);
   text-align: center; margin-top: 12px;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
 }
-.agree-link { color: var(--brand-deep); margin: 0 2px; }
+.agree-link { color: var(--brand-ink); margin: 0 2px; cursor: pointer; }
 
-/* 底部小字 */
 .footer-poem {
   text-align: center;
-  margin-top: 32px;
+  margin-top: 28px;
   position: relative;
   z-index: 1;
-}
-.poem-line {
-  font-size: 11px;
-  color: var(--muted);
+  font-family: var(--font-serif);
+  font-size: 11px; color: var(--muted-2);
   letter-spacing: 0.32em;
-  font-family: 'Songti SC', serif;
-  opacity: 0.7;
+}
+.footer-poem::before, .footer-poem::after {
+  content: '·'; margin: 0 8px; color: var(--muted-2);
 }
 </style>

@@ -1,11 +1,28 @@
 <template>
   <div class="member-card" :class="`level-${level}`">
-    <div class="card-decor decor-1"></div>
-    <div class="card-decor decor-2"></div>
+    <div class="card-decor decor-1" aria-hidden="true"></div>
+    <div class="card-decor decor-2" aria-hidden="true"></div>
+    <svg class="card-stars" viewBox="0 0 200 200" aria-hidden="true">
+      <circle cx="160" cy="40" r="1" fill="#fff" opacity="0.45" />
+      <circle cx="178" cy="70" r="0.8" fill="#fff" opacity="0.35" />
+      <circle cx="180" cy="120" r="1.2" fill="#fff" opacity="0.50" />
+      <circle cx="156" cy="170" r="0.7" fill="#fff" opacity="0.30" />
+      <circle cx="30" cy="180" r="0.8" fill="#fff" opacity="0.32" />
+    </svg>
     <div class="card-content">
       <div class="row-top">
-        <div class="brand-mark">
-          <span class="star"></span>
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20">
+            <circle cx="8" cy="9" r="1.2" fill="#fff" />
+            <circle cx="16" cy="9" r="1.2" fill="#fff" />
+            <circle cx="12" cy="13" r="1.6" fill="#fff" />
+            <circle cx="12" cy="17" r="0.8" fill="#fff" opacity="0.7" />
+            <g stroke="#fff" stroke-width="0.5" opacity="0.5" fill="none">
+              <line x1="8" y1="9" x2="12" y2="13" />
+              <line x1="16" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="13" x2="12" y2="17" />
+            </g>
+          </svg>
         </div>
         <div class="brand-text">星河·会记</div>
         <div class="card-level">{{ levelName }}</div>
@@ -16,18 +33,18 @@
       <div class="row-phone">{{ formatPhone(phone) }}</div>
       <div class="row-stats">
         <div class="stat">
-          <div class="stat-val">¥{{ formatMoney(balance) }}</div>
+          <div class="stat-val">¥<span class="num">{{ formatMoney(balance) }}</span></div>
           <div class="stat-lbl">储值余额</div>
         </div>
         <div class="stat-sep"></div>
         <div class="stat">
-          <div class="stat-val">{{ points ?? 0 }}</div>
+          <div class="stat-val num">{{ points ?? 0 }}</div>
           <div class="stat-lbl">积分</div>
         </div>
         <div class="stat-sep"></div>
         <div class="stat">
-          <div class="stat-val">{{ consumeCount ?? 0 }}</div>
-          <div class="stat-lbl">到店次数</div>
+          <div class="stat-val num">{{ consumeCount ?? 0 }}</div>
+          <div class="stat-lbl">到店</div>
         </div>
       </div>
     </div>
@@ -44,7 +61,7 @@ interface Props {
   points?: number
   consumeCount?: number
 }
-const props = withDefaults(defineProps<Props>(), { level: 1, levelName: '普通会员', points: 0, consumeCount: 0 })
+withDefaults(defineProps<Props>(), { level: 1, levelName: '普通会员', points: 0, consumeCount: 0 })
 
 const hour = new Date().getHours()
 const greeting = hour < 6 ? '夜深了' : hour < 11 ? '早安' : hour < 14 ? '午安' : hour < 18 ? '下午好' : '晚上好'
@@ -61,95 +78,106 @@ function formatPhone(p: string) {
 <style scoped>
 .member-card {
   position: relative;
-  background: linear-gradient(135deg, #4a6a87 0%, #5a7d9f 55%, #6f94b8 100%);
   border-radius: var(--r-lg);
   padding: 16px 18px 18px;
   color: #fff;
   overflow: hidden;
-  box-shadow: 0 6px 24px rgba(74, 106, 135, 0.22);
+  box-shadow: 0 6px 24px rgba(31, 29, 24, 0.18);
+  border: 1px solid transparent;
 }
-.member-card.level-1 { background: linear-gradient(135deg, #6c7066 0%, #8a8e85 100%); }
-.member-card.level-2 { background: linear-gradient(135deg, #5a7d9f 0%, #6f94b8 100%); }
-.member-card.level-3 { background: linear-gradient(135deg, #4a6a87 0%, #5a7d9f 100%); }
+/* 等级配色（深浅有别，但都去掉了亮亮的高饱和渐变） */
+.member-card.level-1 {
+  background: #8a8578;
+}
+.member-card.level-2 {
+  background: #6b7e8e;
+}
+.member-card.level-3 {
+  background: #4a6583;
+}
 .member-card.level-4 {
-  background:
-    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.18), transparent 40%),
-    linear-gradient(135deg, #3a5a76 0%, #4a6a87 100%);
+  background: #2e4863;
+  box-shadow: 0 8px 28px rgba(46, 72, 99, 0.30);
 }
+
 .card-decor {
   position: absolute; border-radius: 50%;
   pointer-events: none;
 }
 .decor-1 {
-  width: 180px; height: 180px;
-  top: -60px; right: -40px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.10), transparent 70%);
-}
-.decor-2 {
-  width: 100px; height: 100px;
-  bottom: -30px; left: -20px;
+  width: 220px; height: 220px;
+  top: -80px; right: -60px;
   background: radial-gradient(circle, rgba(255, 255, 255, 0.06), transparent 70%);
 }
+.decor-2 {
+  width: 120px; height: 120px;
+  bottom: -30px; left: -30px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.04), transparent 70%);
+}
+.card-stars {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  pointer-events: none;
+}
 .card-content { position: relative; z-index: 1; }
-.row-top { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; }
+.row-top { display: flex; align-items: center; gap: 8px; margin-bottom: 22px; }
 .brand-mark {
   width: 22px; height: 22px;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(255, 255, 255, 0.18);
-  border-radius: 6px;
-}
-.brand-mark .star {
-  width: 11px; height: 11px;
-  background: #fff;
-  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  flex-shrink: 0;
 }
 .brand-text {
-  font-size: 11px; letter-spacing: 0.16em;
+  font-family: var(--font-serif);
+  font-size: 11.5px; letter-spacing: 0.18em;
   opacity: 0.85;
-  font-weight: 500;
+  font-weight: 400;
 }
 .card-level {
   margin-left: auto;
+  font-family: var(--font-serif);
   font-size: 10.5px;
-  padding: 2px 8px;
-  background: rgba(255, 255, 255, 0.18);
-  border-radius: 999px;
-  letter-spacing: 0.08em;
-  font-weight: 500;
+  padding: 2px 9px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 2px;
+  letter-spacing: 0.18em;
+  font-weight: 400;
 }
 .row-name { margin-bottom: 4px; }
 .hi {
-  font-size: 17px; font-weight: 500;
-  letter-spacing: 0.02em;
+  font-family: var(--font-serif);
+  font-size: 18px; font-weight: 400;
+  letter-spacing: 0.04em;
 }
 .row-phone {
+  font-family: var(--font-num);
   font-size: 11.5px;
-  opacity: 0.72;
-  font-family: 'SF Mono', monospace;
-  letter-spacing: 0.12em;
-  margin-bottom: 18px;
+  opacity: 0.65;
+  letter-spacing: 0.16em;
+  margin-bottom: 22px;
 }
 .row-stats {
   display: flex; align-items: center;
-  gap: 12px;
+  gap: 10px;
   padding-top: 14px;
-  border-top: 1px dashed rgba(255, 255, 255, 0.18);
+  border-top: 1px dashed rgba(255, 255, 255, 0.20);
 }
 .stat { flex: 1; }
 .stat-val {
-  font-size: 18px; font-weight: 600;
+  font-family: var(--font-num);
+  font-size: 18px; font-weight: 500;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.01em;
   line-height: 1.2;
 }
+.stat-val .num { margin-left: 1px; }
 .stat-lbl {
+  font-family: var(--font-serif);
   font-size: 10.5px;
-  opacity: 0.7;
-  letter-spacing: 0.08em;
-  margin-top: 2px;
+  opacity: 0.65;
+  letter-spacing: 0.16em;
+  margin-top: 4px;
 }
 .stat-sep {
-  width: 1px; height: 26px;
+  width: 1px; height: 24px;
   background: rgba(255, 255, 255, 0.18);
 }
 </style>

@@ -1,25 +1,65 @@
 <template>
   <div class="login-page">
-    <!-- 左侧装饰区 -->
+    <!-- 左侧装饰区（星座 + 寄语） -->
     <div class="login-left">
-      <div class="left-decor decor-1"></div>
-      <div class="left-decor decor-2"></div>
-      <div class="left-decor decor-3"></div>
+      <svg class="starfield" viewBox="0 0 600 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <g class="stars">
+          <circle cx="60" cy="80" r="1.2" fill="var(--brand-ink)" opacity="0.30" />
+          <circle cx="180" cy="140" r="0.8" fill="var(--brand-ink)" opacity="0.25" />
+          <circle cx="320" cy="100" r="1" fill="var(--brand-ink)" opacity="0.30" />
+          <circle cx="480" cy="220" r="1.2" fill="var(--brand-ink)" opacity="0.32" />
+          <circle cx="120" cy="320" r="0.8" fill="var(--brand-ink)" opacity="0.22" />
+          <circle cx="380" cy="380" r="1" fill="var(--brand-ink)" opacity="0.28" />
+          <circle cx="240" cy="480" r="0.9" fill="var(--brand-ink)" opacity="0.26" />
+          <circle cx="500" cy="540" r="1.1" fill="var(--brand-ink)" opacity="0.30" />
+          <circle cx="80" cy="620" r="0.9" fill="var(--brand-ink)" opacity="0.24" />
+          <circle cx="320" cy="700" r="1" fill="var(--brand-ink)" opacity="0.28" />
+          <circle cx="450" cy="760" r="0.7" fill="var(--brand-ink)" opacity="0.20" />
+        </g>
+        <g class="constellation" stroke="var(--brand-ink)" stroke-width="0.6" fill="none" opacity="0.45">
+          <line x1="120" y1="320" x2="240" y2="480" />
+          <line x1="240" y1="480" x2="380" y2="380" />
+          <line x1="380" y1="380" x2="500" y2="540" />
+        </g>
+        <g class="stars-emphasis">
+          <circle cx="120" cy="320" r="2" fill="var(--brand-deep)" />
+          <circle cx="240" cy="480" r="2.6" fill="var(--brand-deep)" />
+          <circle cx="380" cy="380" r="2" fill="var(--brand-deep)" />
+          <circle cx="500" cy="540" r="2" fill="var(--brand-deep)" />
+        </g>
+      </svg>
+
       <div class="left-content">
         <div class="brand-row">
           <div class="brand-mark">
-            <span class="star"></span>
+            <svg viewBox="0 0 36 36" width="36" height="36">
+              <circle cx="9" cy="9" r="0.8" fill="var(--brand-deep)" opacity="0.4" />
+              <circle cx="27" cy="6" r="0.7" fill="var(--brand-deep)" opacity="0.32" />
+              <circle cx="30" cy="22" r="0.8" fill="var(--brand-deep)" opacity="0.36" />
+              <circle cx="7" cy="28" r="0.7" fill="var(--brand-deep)" opacity="0.28" />
+              <g stroke="var(--brand-deep)" stroke-width="0.7" opacity="0.5" fill="none">
+                <line x1="13" y1="14" x2="18" y2="20" />
+                <line x1="18" y1="20" x2="23" y2="14" />
+                <line x1="18" y1="20" x2="18" y2="26" />
+              </g>
+              <circle cx="13" cy="14" r="1.6" fill="var(--brand-deep)" />
+              <circle cx="23" cy="14" r="1.6" fill="var(--brand-deep)" />
+              <circle cx="18" cy="20" r="2.2" fill="var(--brand-deep)" />
+              <circle cx="18" cy="26" r="1.2" fill="var(--brand-deep)" opacity="0.7" />
+            </svg>
           </div>
           <div class="brand-text">
             <div class="brand-name">星河·会记</div>
-            <div class="brand-sub">会员营销管理后台</div>
+            <div class="brand-sub">HUIJI · 夜读手记</div>
           </div>
         </div>
-        <div class="slogan">
-          <div class="slogan-text">{{ slogan }}</div>
-          <div class="slogan-divider"></div>
-          <div class="slogan-sub">在细水长流的经营里，记住每一位会员的故事</div>
-        </div>
+
+        <h1 class="slogan">
+          {{ slogan }}
+        </h1>
+        <div class="slogan-divider"></div>
+        <p class="slogan-sub">在细水长流的经营里，<br />记住每一位会员的故事。</p>
+
         <div class="bottom-tip">
           <span class="dot"></span>
           演示账号 admin / 123456
@@ -29,9 +69,9 @@
 
     <!-- 右侧登录区 -->
     <div class="login-right">
-      <div class="login-card x-card">
+      <div class="login-card">
         <div class="login-title">欢迎回来</div>
-        <div class="login-sub">登录后继续您今天的经营</div>
+        <div class="login-sub">登录后继续今天的经营。</div>
 
         <el-form
           ref="formRef"
@@ -41,44 +81,26 @@
           @keyup.enter="submit"
         >
           <el-form-item prop="username">
-            <el-input
-              v-model="form.username"
-              placeholder="账号"
-              :prefix-icon="User"
-              clearable
-            />
+            <el-input v-model="form.username" placeholder="账号" :prefix-icon="User" clearable />
           </el-form-item>
           <el-form-item prop="password">
-            <el-input
-              v-model="form.password"
-              type="password"
-              placeholder="密码"
-              :prefix-icon="Lock"
-              show-password
-              clearable
-            />
+            <el-input v-model="form.password" type="password" placeholder="密码" :prefix-icon="Lock" show-password clearable />
           </el-form-item>
-          <el-button
-            type="primary"
-            class="submit-btn btn-scale"
-            :loading="loading"
-            @click="submit"
-          >
+          <el-button type="primary" class="submit-btn" :loading="loading" @click="submit">
             登 录
           </el-button>
         </el-form>
 
-        <!-- 今日小贴士 -->
         <div class="tip-card">
           <div class="tip-label">
-            <el-icon><Sunny /></el-icon>
+            <span class="tip-icon">✦</span>
             <span>今日营业小贴士</span>
           </div>
           <div class="tip-text">{{ todayTip }}</div>
         </div>
       </div>
 
-      <div class="login-footer">© 星河·会记 · 让会员管理有温度</div>
+      <div class="login-foot">© 星河·会记 · 让会员管理有温度</div>
     </div>
   </div>
 </template>
@@ -87,7 +109,7 @@
 import { reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import { User, Lock, Sunny } from '@element-plus/icons-vue'
+import { User, Lock } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
@@ -102,7 +124,6 @@ const rules: FormRules = {
 }
 const loading = ref(false)
 
-// 欢迎语 - 文学化、温暖
 const slogans = [
   '记得星河，也记得你',
   '经营从每一次回访开始',
@@ -113,7 +134,6 @@ const slogans = [
 ]
 const slogan = slogans[Math.floor(Math.random() * slogans.length)]
 
-// 今日小贴士
 const tips = [
   '节后 7 天内回访的会员，复购率比平时高出 32%',
   '沉睡 60 天以上的会员，发一张小额代金券往往能唤醒',
@@ -131,180 +151,153 @@ async function submit() {
     ElMessage.success('登录成功，欢迎回来')
     const redirect = (route.query.redirect as string) || '/dashboard'
     router.replace(redirect)
-  } catch {
-    /* 拦截器已提示 */
-  } finally {
-    loading.value = false
-  }
+  } catch {} finally { loading.value = false }
 }
 </script>
 
 <style scoped>
 .login-page {
   height: 100vh;
-  display: flex;
-  flex-direction: row;
+  display: flex; flex-direction: row;
   background: var(--page-bg);
   overflow: hidden;
 }
 
-/* 左侧装饰区 */
+/* 左侧 */
 .login-left {
   position: relative;
-  width: 50%;
+  width: 48%;
   background:
-    radial-gradient(circle at 18% 22%, rgba(111, 148, 184, 0.18), transparent 42%),
-    radial-gradient(circle at 82% 78%, rgba(138, 130, 120, 0.12), transparent 42%),
-    linear-gradient(140deg, #fbfaf6 0%, #eef0f2 60%, #e6e8ec 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+    radial-gradient(circle at 20% 22%, rgba(90, 122, 156, 0.15), transparent 42%),
+    radial-gradient(circle at 80% 78%, rgba(139, 126, 163, 0.10), transparent 48%),
+    linear-gradient(140deg, #f5f4ef 0%, #ecedef 60%, #e6e8ec 100%);
+  display: flex; align-items: center; justify-content: center;
   overflow: hidden;
 }
-.left-content {
-  position: relative;
-  z-index: 2;
-  max-width: 420px;
-  padding: 0 32px;
-}
-.left-decor {
-  position: absolute;
-  border-radius: 50%;
-  pointer-events: none;
-  filter: blur(0.5px);
-}
-.decor-1 {
-  width: 220px; height: 220px;
-  top: 12%; right: 8%;
-  background: radial-gradient(circle, rgba(111, 148, 184, 0.10), transparent 70%);
-}
-.decor-2 {
-  width: 320px; height: 320px;
-  bottom: -10%; left: -8%;
-  background: radial-gradient(circle, rgba(138, 130, 120, 0.10), transparent 70%);
-}
-.decor-3 {
-  width: 80px; height: 80px;
-  top: 18%; left: 14%;
-  border: 1px solid rgba(108, 120, 108, 0.18);
-  background: rgba(255, 255, 255, 0.4);
-}
+.starfield { position: absolute; inset: 0; width: 100%; height: 100%; }
+.stars circle, .stars-emphasis circle { animation: x-twinkle 4.5s ease-in-out infinite; }
+.stars circle:nth-child(2n), .stars-emphasis circle:nth-child(2n) { animation-delay: 0.8s; }
+.stars circle:nth-child(3n), .stars-emphasis circle:nth-child(3n) { animation-delay: 1.6s; }
+.stars circle:nth-child(5n), .stars-emphasis circle:nth-child(5n) { animation-delay: 2.4s; }
 
+.left-content {
+  position: relative; z-index: 2;
+  max-width: 420px; padding: 0 36px;
+  animation: x-fade-in 0.6s var(--ease-out) both;
+}
 .brand-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 56px;
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 64px;
 }
-.brand-mark {
-  width: 44px; height: 44px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #6f94b8 0%, #4a6a87 100%);
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 4px 14px rgba(74, 106, 135, 0.25);
-}
-.star {
-  width: 18px; height: 18px;
-  background: #fff;
-  clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-}
+.brand-mark { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; }
 .brand-name {
-  font-size: 20px; font-weight: 600; color: var(--ink);
+  font-family: var(--font-serif);
+  font-size: 18px; font-weight: 500; color: var(--ink);
+  letter-spacing: 0.08em;
 }
 .brand-sub {
-  font-size: 12px; color: var(--muted); margin-top: 2px;
+  font-family: var(--font-num);
+  font-size: 10px; color: var(--muted);
+  letter-spacing: 0.28em;
+  margin-top: 4px;
 }
 .slogan {
-  margin-bottom: 32px;
-}
-.slogan-text {
-  font-size: 30px;
-  font-weight: 600;
-  color: var(--ink);
-  letter-spacing: 2px;
-  line-height: 1.3;
+  font-family: var(--font-serif);
+  font-size: 30px; font-weight: 500; color: var(--ink);
+  letter-spacing: 0.04em;
+  line-height: 1.35;
+  margin: 0 0 18px;
+  animation: x-fade-in 0.7s var(--ease-out) 0.1s both;
 }
 .slogan-divider {
-  width: 36px; height: 2px;
-  background: var(--primary-action);
+  width: 36px; height: 1px;
+  background: var(--brand);
   margin: 20px 0 16px;
-  border-radius: 1px;
+  animation: x-fade-in 0.7s var(--ease-out) 0.2s both;
 }
 .slogan-sub {
-  font-size: 14px; color: var(--muted); line-height: 1.7;
-  letter-spacing: 0.5px;
+  font-family: var(--font-serif);
+  font-size: 14px; color: var(--ink-3); line-height: 1.8;
+  letter-spacing: 0.04em;
+  margin: 0 0 32px;
+  animation: x-fade-in 0.7s var(--ease-out) 0.25s both;
 }
 .bottom-tip {
-  margin-top: 64px;
-  font-size: 12px; color: var(--muted-2);
+  font-family: var(--font-num);
+  font-size: 11.5px; color: var(--muted);
   display: flex; align-items: center; gap: 6px;
+  letter-spacing: 0.08em;
+  animation: x-fade-in 0.7s var(--ease-out) 0.35s both;
 }
-.bottom-tip .dot {
-  background: var(--success);
-}
+.bottom-tip .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--brand); opacity: 0.7; }
 
-/* 右侧登录区 */
+/* 右侧 */
 .login-right {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
   padding: 24px;
-  background: var(--card-bg);
+  background: var(--surface);
   position: relative;
 }
 .login-card {
-  width: 100%;
-  max-width: 380px;
-  padding: 32px 32px 24px;
-  box-shadow: var(--shadow);
+  width: 100%; max-width: 380px;
+  padding: 8px 4px 4px;
+  animation: x-fade-in 0.6s var(--ease-out) 0.15s both;
 }
 .login-title {
-  font-size: 22px; font-weight: 600; color: var(--ink);
-  margin-bottom: 6px; letter-spacing: 0.5px;
+  font-family: var(--font-serif);
+  font-size: 22px; font-weight: 500; color: var(--ink);
+  margin-bottom: 6px; letter-spacing: 0.06em;
 }
 .login-sub {
-  font-size: 13px; color: var(--muted); margin-bottom: 24px;
+  font-family: var(--font-serif);
+  font-size: 13px; color: var(--muted); margin-bottom: 28px;
+  letter-spacing: 0.04em;
 }
 .submit-btn {
-  width: 100%; margin-top: 6px; height: 42px; font-size: 15px; letter-spacing: 4px;
+  width: 100%; height: 42px; font-size: 14px;
+  letter-spacing: 0.32em;
+  font-family: var(--font-serif);
+  margin-top: 6px;
+  border-radius: var(--r);
 }
 .tip-card {
-  margin-top: 18px;
+  margin-top: 20px;
   padding: 12px 14px;
-  background: rgba(111, 148, 184, 0.06);
-  border: 1px dashed rgba(111, 148, 184, 0.30);
-  border-radius: var(--radius);
+  background: var(--brand-softer);
+  border: 1px dashed var(--line-2);
+  border-left: 2px solid var(--brand);
+  border-radius: 0 var(--r) var(--r) 0;
 }
 .tip-label {
   display: flex; align-items: center; gap: 6px;
-  font-size: 12px; color: var(--primary-action); font-weight: 500;
+  font-family: var(--font-serif);
+  font-size: 11.5px; color: var(--brand-ink);
+  letter-spacing: 0.10em; font-weight: 500;
   margin-bottom: 4px;
 }
+.tip-icon { font-size: 10px; color: var(--brand); }
 .tip-text {
-  font-size: 12.5px; color: var(--ink-2); line-height: 1.6;
+  font-family: var(--font-serif);
+  font-size: 12px; color: var(--ink-2);
+  line-height: 1.7; letter-spacing: 0.04em;
 }
-.login-footer {
-  margin-top: 24px;
-  font-size: 12px; color: var(--muted);
-}
-
-/* 输入框聚焦态：用冷蓝 */
-.login-card :deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 1px var(--primary-action) inset !important;
-}
-.login-card :deep(.el-input__wrapper:hover) {
-  box-shadow: 0 0 0 1px rgba(111, 148, 184, 0.4) inset !important;
+.login-foot {
+  margin-top: 28px;
+  font-family: var(--font-serif);
+  font-size: 11px; color: var(--muted-2);
+  letter-spacing: 0.18em;
+  text-align: center;
 }
 
 /* 移动端单列 */
 @media (max-width: 820px) {
   .login-page { flex-direction: column; }
-  .login-left { width: 100%; height: 220px; }
-  .slogan-text { font-size: 22px; }
-  .brand-row { margin-bottom: 20px; }
-  .bottom-tip { margin-top: 16px; }
+  .login-left { width: 100%; height: 200px; }
+  .slogan { font-size: 20px; }
+  .brand-row { margin-bottom: 16px; }
+  .bottom-tip { margin-top: 12px; }
   .login-right { padding: 16px; }
 }
 </style>
