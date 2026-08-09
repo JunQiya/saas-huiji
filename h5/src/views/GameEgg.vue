@@ -74,39 +74,25 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onActivated, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, ref } from 'vue'
 import { showToast } from 'vant'
 import { gameApi } from '@/api/h5'
-import { formatDateTime } from '@/utils/format'
 import NavBar from '@/components/NavBar.vue'
 import GameResult from '@/components/GameResult.vue'
+import { useGamePage } from '@/composables/useGamePage'
 
-const route = useRoute()
-const gameId = route.params.id as string
+const {
+  gameId, loading, game, prizes, records, showRecords,
+  remaining, resultVisible, result, bgStyle,
+  loadRecords, formatTime
+} = useGamePage()
 
-const loading = ref(false)
-const game = ref<any>(null)
-const prizes = ref<any[]>([])
-const records = ref<any[]>([])
-const showRecords = ref(false)
-
-const remaining = ref(0)
-const resultVisible = ref(false)
-const result = ref<any>(null)
 const playing = ref(false)
 
 // 金蛋数量：3-6 个
 const eggCount = ref(3)
 const brokenIndex = ref(0) // 被砸碎的金蛋序号
 const hittingIndex = ref(0) // 当前敲击中
-
-const bgStyle = computed(() => {
-  if (game.value?.bgImage) {
-    return { backgroundImage: `url(${game.value.bgImage})` }
-  }
-  return {}
-})
 
 // 碎片样式
 function fragStyle(i: number) {
@@ -177,34 +163,6 @@ async function onContinue() {
   }
 }
 
-async function loadDetail() {
-  loading.value = true
-  try {
-    const d = await gameApi.detail(gameId)
-    game.value = d?.game ?? d
-    prizes.value = d?.prizes || []
-    remaining.value = d?.game?.dailyLimit ?? 0
-  } catch (e: any) { console.warn('loadDetail failed', e) }
-  finally { loading.value = false }
-}
-
-async function loadRecords() {
-  try { records.value = (await gameApi.myPlays(gameId)) || [] } catch (e: any) { console.warn('loadRecords failed', e) }
-}
-
-function formatTime(t?: string) {
-  if (!t) return ''
-  return formatDateTime(t)
-}
-
-onMounted(() => {
-  loadDetail()
-  loadRecords()
-})
-// 从其他页面返回时重新拉取剩余次数
-onActivated(() => {
-  loadDetail()
-})
 </script>
 
 <style scoped>

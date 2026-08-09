@@ -46,6 +46,11 @@ huiji:
   init-data: false
   # H5 前端域名(微信授权回调后重定向使用), 未配置 WxAccount.domain 时回退到此值
   h5-domain: http://localhost:5173
+  h5:
+    # 短信验证码回显模式(生产必须关闭): true 时验证码直接出现在接口响应中
+    sms-dev-mode: false
+    # 兜底固定验证码(仅演示环境配置, 生产留空以禁用)
+    sms-code: ""
 
 logging:
   level:

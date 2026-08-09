@@ -40,6 +40,20 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
                         @Param("storeFilter") String storeFilter,
                         Pageable pageable);
 
+    /** 会员列表查询(标签筛选用 SQL 层过滤, 保证分页 total 准确) */
+    @Query("select m from Member m where m.tenantId = :tenantId and m.deleted = false " +
+            "and (:keyword is null or :keyword = '' or lower(m.name) like lower(concat('%', :keyword, '%')) or m.phone like concat('%', :keyword, '%')) " +
+            "and (:level is null or m.level = :level) " +
+            "and (:storeFilter is null or m.storeIds like concat('%', :storeFilter, '%')) " +
+            "and m.id in (select t.memberId from MemberTag t where t.tenantId = :tenantId and t.tag = :tag) " +
+            "order by m.id desc")
+    Page<Member> searchWithTag(@Param("tenantId") Long tenantId,
+                               @Param("keyword") String keyword,
+                               @Param("level") Integer level,
+                               @Param("storeFilter") String storeFilter,
+                               @Param("tag") String tag,
+                               Pageable pageable);
+
     /** 按关键字(姓名/手机)取会员 id 列表, 供全局流水按会员筛选 */
     @Query("select m.id from Member m where m.tenantId = :tenantId and m.deleted = false " +
             "and (lower(m.name) like lower(concat('%', :keyword, '%')) or m.phone like concat('%', :keyword, '%'))")

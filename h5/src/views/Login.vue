@@ -117,6 +117,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { showToast, showDialog } from 'vant'
 import { h5Api } from '@/api/h5'
+import { CONTACT } from '@/constants/config'
 import { useMemberStore } from '@/stores/member'
 
 const router = useRouter()
@@ -226,7 +227,7 @@ function showTerms() {
 function showPrivacy() {
   showDialog({
     title: '隐私条款',
-    message: '我们重视您的隐私：\n\n1. 收集的信息仅用于会员服务（手机号、消费记录）\n2. 未经您同意，不会向第三方共享个人信息\n3. 您有权查看、更正、删除个人信息\n4. 联系方式：xinghe@mail.lxxno.cn',
+    message: `我们重视您的隐私：\n\n1. 收集的信息仅用于会员服务（手机号、消费记录）\n2. 未经您同意，不会向第三方共享个人信息\n3. 您有权查看、更正、删除个人信息\n4. 联系方式：${CONTACT.privacyEmail}`,
     confirmButtonText: '我知道了'
   })
 }

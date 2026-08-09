@@ -112,12 +112,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { List, Refresh, Plus, Search, Download } from '@element-plus/icons-vue'
+import { List, Refresh, Plus, Search, Download, View } from '@element-plus/icons-vue'
 import { ordersApi, statsApi, storesApi } from '@/api'
 import { fenToYuan } from '@/utils/format'
 import { exportCsv } from '@/utils/csv'
+import { usePolling } from '@/composables/usePolling'
 
 const orderSlogan = [
   '把每一笔流水，都记成一段值得回看的故事',
@@ -144,7 +145,7 @@ function payMethodLabel(m: string) {
   return { CASH: '现金', WECHAT: '微信', ALIPAY: '支付宝', BALANCE: '余额', MIXED: '混合' }[m] || m
 }
 function fmtDate(t: any) { if (!t) return '-'; try { return new Date(t).toLocaleString() } catch { return String(t) } }
-function yuan(f: any) { if (f == null) return '0.00'; return Number(fenToYuan(f)).toFixed(2) }
+const yuan = fenToYuan
 
 const storeMap = reactive<Record<number, string>>({})
 async function loadStores() {
@@ -293,34 +294,9 @@ async function voidOrder(row: any) {
   load()
 }
 
-let pollTimer: number | null = null
-function startPolling() {
-  stopPolling()
-  pollTimer = window.setInterval(() => {
-    load()
-  }, 30000)
-}
-function stopPolling() {
-  if (pollTimer) {
-    clearInterval(pollTimer)
-    pollTimer = null
-  }
-}
-function onVisibilityChange() {
-  if (document.hidden) {
-    stopPolling()
-  } else {
-    load()
-    startPolling()
-  }
-}
+onMounted(() => { load(); loadStores() })
 
-onMounted(() => { load(); loadStores(); document.addEventListener('visibilitychange', onVisibilityChange); startPolling() })
-
-onBeforeUnmount(() => {
-  stopPolling()
-  document.removeEventListener('visibilitychange', onVisibilityChange)
-})
+usePolling({ interval: 30000, tick: load })
 </script>
 
 <style scoped>

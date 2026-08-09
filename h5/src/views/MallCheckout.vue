@@ -188,6 +188,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { showToast } from 'vant'
 import { mallApi, h5Api, type CouponRecord } from '@/api/h5'
 import NavBar from '@/components/NavBar.vue'
+import { fenToYuan, formatDate } from '@/utils/format'
 
 const route = useRoute()
 const router = useRouter()
@@ -311,15 +312,7 @@ function onSelectCoupon(c: CouponRecord) {
   couponVisible.value = false
 }
 
-function fmtDate(s: any) {
-  if (!s) return ''
-  try {
-    const d = new Date(s)
-    if (isNaN(d.getTime())) return String(s)
-    const pad = (n: number) => String(n).padStart(2, '0')
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-  } catch { return String(s) }
-}
+const fmtDate = formatDate
 
 function validate(): boolean {
   if (!items.value.length) { showToast('没有可结算的商品'); return false }
@@ -369,10 +362,7 @@ async function onSubmit() {
   finally { submitting.value = false }
 }
 
-function yuan(f: any) {
-  if (f == null) return '0.00'
-  return (Number(f) / 100).toFixed(2)
-}
+const yuan = fenToYuan
 
 onMounted(() => {
   loadCartItems()

@@ -127,6 +127,7 @@ import { showToast, showSuccessToast, showFailToast, showLoadingToast, showConfi
 import { h5Api } from '@/api/h5'
 import NavBar from '@/components/NavBar.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import { fenToYuan, formatDateTime } from '@/utils/format'
 
 const route = useRoute()
 const loading = ref(false)
@@ -135,8 +136,8 @@ const order = ref<any>(null)
 function statusLabel(s: string) { return ({ PENDING: '待支付', PAID: '已支付', REFUNDED: '已退款', VOID: '已作废' } as any)[s] || s }
 function statusClass(s: string) { if (s === 'PAID') return 'success'; if (s === 'PENDING') return 'warning'; if (s === 'VOID') return 'danger'; if (s === 'REFUNDED') return 'info'; return '' }
 function payLabel(m: string) { return ({ CASH: '现金', WECHAT: '微信', ALIPAY: '支付宝', BALANCE: '余额', MIXED: '混合' } as any)[m] || m }
-function yuan(f: any) { if (f == null) return '0.00'; return (Number(f) / 100).toFixed(2) }
-function fmt(t: any) { if (!t) return '-'; try { return new Date(t).toLocaleString('zh-CN', { hour12: false }) } catch { return String(t) } }
+const yuan = fenToYuan
+const fmt = formatDateTime
 
 // 进度时间轴
 interface Node { state: 'done' | 'current' | 'pending'; title: string; time: string; desc?: string }
@@ -263,7 +264,6 @@ onActivated(load)
 .status-card.warning { background: var(--warning); }
 .status-card.danger { background: var(--danger); }
 .status-card.info { background: var(--muted); }
-.st-stars { display: none; }
 .st-content { position: relative; z-index: 1; }
 .st-name {
   font-family: var(--font-serif);

@@ -98,6 +98,7 @@ import { mallApi } from '@/api/h5'
 import { useMemberStore } from '@/stores/member'
 import NavBar from '@/components/NavBar.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import { fenToYuan } from '@/utils/format'
 
 const router = useRouter()
 const memberStore = useMemberStore()
@@ -219,10 +220,7 @@ function goOrders() {
   router.push('/mall/orders')
 }
 
-function yuan(f: any) {
-  if (f == null) return '0.00'
-  return (Number(f) / 100).toFixed(2)
-}
+const yuan = fenToYuan
 
 onMounted(() => {
   loadCategories()

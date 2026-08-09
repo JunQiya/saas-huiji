@@ -7,9 +7,9 @@ import com.huiji.entity.Member;
 import com.huiji.entity.WxAccount;
 import com.huiji.repository.MemberRepository;
 import com.huiji.security.LoginUserHolder;
+import com.huiji.security.MemberContext;
 import com.huiji.security.MemberTokenUtil;
 import com.huiji.service.WxMpConfigService;
-import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -56,8 +56,9 @@ public class WeChatController {
                       HttpServletResponse response) throws IOException {
         WxAccount account = wxMpConfigService.getAccount(tenantId);
         String domain = resolveDomain(account);
-        // 微信回调地址, 默认用本服务 /api/wx/callback
-        String redirectUri = (redirect != null && !redirect.isBlank())
+        // 微信回调地址：默认用本服务 /api/wx/callback；
+        // 若传入 redirect，仅允许配置域名下的路径，防止开放重定向
+        String redirectUri = isAllowedCallback(redirect, domain)
                 ? redirect
                 : domain + "/api/wx/callback";
         // state 格式: tenantId:{extra}, 回调时解析出 tenantId
@@ -178,6 +179,18 @@ public class WeChatController {
         return "";
     }
 
+    /** 校验回调地址只落在配置域名下（防开放重定向） */
+    private boolean isAllowedCallback(String redirect, String domain) {
+        if (redirect == null || redirect.isBlank() || domain == null || domain.isBlank()) {
+            return false;
+        }
+        // 仅接受同源路径，且必须以域名开头；禁止外链与协议混淆
+        String normalized = domain.replaceAll("/+$", "");
+        return redirect.startsWith(normalized)
+                && !redirect.contains("://") && !redirect.contains("@")
+                && redirect.startsWith(normalized + "/api/wx/callback");
+    }
+
     /** 微信性别映射 */
     private String mapGender(Integer sex) {
         if (sex == null) return "UNKNOWN";
@@ -190,27 +203,7 @@ public class WeChatController {
 
     /** 解析 memberToken, 返回 [memberId, tenantId] */
     private long[] currentMember(HttpServletRequest req) {
-        String header = req.getHeader("Authorization");
-        if (header == null || !header.startsWith("Bearer ")) {
-            throw new BizException(ErrorCode.SESSION_EXPIRED, "请先登录");
-        }
-        String token = header.substring(7);
-        try {
-            Claims claims = memberTokenUtil.parse(token);
-            if (!"MEMBER".equals(claims.get("type", String.class))) {
-                throw new BizException(ErrorCode.SESSION_EXPIRED, "登录态无效");
-            }
-            Long memberId = claims.get("memberId", Long.class);
-            Long tenantId = claims.get("tenantId", Long.class);
-            if (memberId == null) {
-                throw new BizException(ErrorCode.SESSION_EXPIRED, "登录态无效");
-            }
-            return new long[]{memberId, tenantId == null ? 1L : tenantId};
-        } catch (BizException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new BizException(ErrorCode.SESSION_EXPIRED, "登录已过期");
-        }
+        return MemberContext.require(req, memberTokenUtil);
     }
 
     private static String str(Object o) {

@@ -1,0 +1,25 @@
+# test profile: H2 内存库(MySQL 兼容模式), 零外部依赖, 用于端到端验证/E2E 测试
+spring:
+  datasource:
+    url: jdbc:h2:mem:huiji;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;DATABASE_TO_LOWER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+    defer-datasource-initialization: true
+  h2:
+    console:
+      enabled: true
+
+huiji:
+  init-data: true
+  h5:
+    sms-dev-mode: true
+    sms-code: "8888"
+
+logging:
+  level:
+    com.huiji: INFO

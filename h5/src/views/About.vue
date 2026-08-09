@@ -58,17 +58,17 @@
             <div class="contact-ic"><van-icon name="phone-o" /></div>
             <div class="contact-text">
               <div class="contact-key">客服电话</div>
-              <div class="contact-val">021-63008888</div>
+              <div class="contact-val">{{ CONTACT.phone }}</div>
             </div>
-            <a :href="`tel:02163008888`" class="contact-action">拨号</a>
+            <a :href="CONTACT.phoneHref" class="contact-action">拨号</a>
           </div>
           <div class="contact-row">
             <div class="contact-ic"><van-icon name="envelop-o" /></div>
             <div class="contact-text">
               <div class="contact-key">服务邮箱</div>
-              <div class="contact-val">xinghe@mail.lxxno.cn</div>
+              <div class="contact-val">{{ CONTACT.email }}</div>
             </div>
-            <a :href="`mailto:xinghe@mail.lxxno.cn`" class="contact-action">写信</a>
+            <a :href="CONTACT.emailHref" class="contact-action">写信</a>
           </div>
           <div class="contact-row">
             <div class="contact-ic"><van-icon name="location-o" /></div>
@@ -96,6 +96,7 @@
 
 <script setup lang="ts">
 import NavBar from '@/components/NavBar.vue'
+import { CONTACT } from '@/constants/config'
 </script>
 
 <style scoped>

@@ -324,10 +324,7 @@ async function saveStock() {
   }
 }
 
-function yuan(fen: any) {
-  if (fen == null) return '0.00'
-  return Number(fenToYuan(fen)).toFixed(2)
-}
+const yuan = fenToYuan
 
 function coverColor(cat: string) {
   return cat === 'GOODS' ? 'var(--accent-clay)' : 'var(--brand)'

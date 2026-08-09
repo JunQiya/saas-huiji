@@ -18,10 +18,10 @@ import com.huiji.repository.OrderItemRepository;
 import com.huiji.repository.OrderRepository;
 import com.huiji.security.LoginUser;
 import com.huiji.security.LoginUserHolder;
+import com.huiji.security.MemberContext;
 import com.huiji.security.MemberTokenUtil;
 import com.huiji.service.OrderService;
 import com.huiji.service.WxMpConfigService;
-import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -200,27 +200,7 @@ public class WxPayController {
 
     /** 解析 memberToken, 返回 [memberId, tenantId] */
     private long[] currentMember(HttpServletRequest req) {
-        String header = req.getHeader("Authorization");
-        if (header == null || !header.startsWith("Bearer ")) {
-            throw new BizException(ErrorCode.SESSION_EXPIRED, "请先登录");
-        }
-        String token = header.substring(7);
-        try {
-            Claims claims = memberTokenUtil.parse(token);
-            if (!"MEMBER".equals(claims.get("type", String.class))) {
-                throw new BizException(ErrorCode.SESSION_EXPIRED, "登录态无效");
-            }
-            Long memberId = claims.get("memberId", Long.class);
-            Long tenantId = claims.get("tenantId", Long.class);
-            if (memberId == null) {
-                throw new BizException(ErrorCode.SESSION_EXPIRED, "登录态无效");
-            }
-            return new long[]{memberId, tenantId == null ? 1L : tenantId};
-        } catch (BizException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new BizException(ErrorCode.SESSION_EXPIRED, "登录已过期");
-        }
+        return MemberContext.require(req, memberTokenUtil);
     }
 
     /** 从 XML 中提取标签值(兼容 CDATA) */

@@ -24,7 +24,7 @@
                 <div class="color-row">
                   <el-color-picker v-model="form.brandColor" />
                   <el-input v-model="form.brandColor" style="width: 120px" />
-                  <el-button size="small" @click="form.brandColor = '#8a8278'">恢复默认</el-button>
+                  <el-button size="small" @click="form.brandColor = '#5a7a9c'">恢复默认</el-button>
                 </div>
               </el-form-item>
               <el-form-item label="短信签名">
@@ -234,7 +234,7 @@ const router = useRouter()
 
 const form = reactive({
   tenantName: '',
-  brandColor: '#8a8278',
+  brandColor: '#5a7a9c',
   smsSign: '',
   levelRules: [] as any[],
   rechargeRules: [] as any[]
@@ -263,8 +263,9 @@ const upgradeMonths = ref(12)
 const stores = ref<any[]>([])
 const currentStore = reactive<any>({ storeId: null, name: '', address: '', phone: '' })
 
-function limitLabel(k: string) {
-  return ({ members: '会员上限', stores: '门店上限', products: '商品上限', employees: '员工上限' } as any)[k] || k
+function limitLabel(k: string | number) {
+  const key = String(k)
+  return ({ members: '会员上限', stores: '门店上限', products: '商品上限', employees: '员工上限' } as any)[key] || key
 }
 
 async function loadBasic() {
@@ -272,7 +273,7 @@ async function loadBasic() {
   try {
     const s: any = await settingsApi.get()
     form.tenantName = s.tenantName || ''
-    form.brandColor = s.brandColor || '#8a8278'
+    form.brandColor = s.brandColor || '#5a7a9c'
     form.smsSign = s.smsSign || ''
     form.levelRules = (s.levelRules || []).map((r: any) => ({
       level: r.level, name: r.name, threshold: r.threshold, thresholdYuan: Number(fenToYuan(r.threshold))

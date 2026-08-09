@@ -123,24 +123,3 @@ export function wxShare(title: string, desc: string, link: string, imgUrl: strin
   window.wx.updateAppMessageShareData({ title, desc, link, imgUrl })
   window.wx.updateTimelineShareData({ title, link, imgUrl })
 }
-
-// 调用微信扫一扫
-export function wxScanQrCode(callback: (result: string) => void): void {
-  if (!window.wx) return
-  window.wx.scanQRCode({
-    needResult: 1,
-    scanType: ['qrCode', 'barCode'],
-    success: (res) => callback(res.resultStr)
-  })
-}
-
-// 选择图片（相册 / 拍照）
-export function wxChooseImage(callback: (localIds: string[]) => void): void {
-  if (!window.wx) return
-  window.wx.chooseImage({
-    count: 9,
-    sizeType: ['original', 'compressed'],
-    sourceType: ['album', 'camera'],
-    success: (res) => callback(res.localIds)
-  })
-}

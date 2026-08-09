@@ -12,7 +12,6 @@ import com.huiji.security.LoginUserHolder;
 import com.huiji.service.SettingsService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -72,7 +71,7 @@ public class SettingsController {
         TenantSetting ts = tenantSettingRepository.findByTenantId(tenantId).orElse(null);
         String plan = ts == null || ts.getPlan() == null ? "FREE" : ts.getPlan();
         int smsBalance = ts == null || ts.getSmsBalance() == null ? 0 : ts.getSmsBalance();
-        Map<String, Object> limits = planLimits(plan);
+        Map<String, Object> limits = settingsService.planLimits(plan);
         Map<String, Object> vo = new LinkedHashMap<>();
         vo.put("plan", plan);
         vo.put("smsBalance", smsBalance);
@@ -84,7 +83,6 @@ public class SettingsController {
 
     /** 升级套餐: 入参 {plan, months}，持久化到租户设置 */
     @PostMapping("/plan/upgrade")
-    @Transactional
     public Result<Map<String, Object>> upgrade(@RequestBody Map<String, Object> body) {
         if (body == null) {
             return plan();
@@ -96,28 +94,7 @@ public class SettingsController {
         if (monthsObj instanceof Number) months = ((Number) monthsObj).intValue();
         if (months <= 0 || months > 36) months = 1;
         Long tenantId = LoginUserHolder.currentTenantId();
-        TenantSetting ts = tenantSettingRepository.findByTenantId(tenantId).orElseGet(() -> {
-            TenantSetting s = new TenantSetting();
-            s.setTenantId(tenantId);
-            return s;
-        });
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime base = ts.getPlanExpiresAt() != null && ts.getPlanExpiresAt().isAfter(now)
-                ? ts.getPlanExpiresAt() : now;
-        ts.setPlan(plan);
-        ts.setPlanExpiresAt(base.plusMonths(months));
-        ts.setSmsBalance(plan.equals("FLAGSHIP") ? 5000 : plan.equals("GROWTH") ? 1000 : plan.equals("BASIC") ? 200 : 0);
-        if (ts.getCreatedAt() == null) ts.setCreatedAt(now);
-        ts.setUpdatedAt(now);
-        tenantSettingRepository.save(ts);
-        Map<String, Object> vo = new LinkedHashMap<>();
-        vo.put("plan", plan);
-        vo.put("smsBalance", ts.getSmsBalance());
-        vo.put("startedAt", ts.getCreatedAt());
-        vo.put("expiresAt", ts.getPlanExpiresAt());
-        vo.put("months", months);
-        vo.put("limits", planLimits(plan));
-        return Result.success(vo);
+        return Result.success(settingsService.upgrade(tenantId, plan, months));
     }
 
     /** 当前门店 */
@@ -176,25 +153,6 @@ public class SettingsController {
         vo.put("name", store.getName());
         vo.put("token", newToken);
         return Result.success(vo);
-    }
-
-    /** 各套餐的配额上限 */
-    private Map<String, Object> planLimits(String plan) {
-        Map<String, Object> m = new LinkedHashMap<>();
-        switch (plan == null ? "FREE" : plan) {
-            case "FLAGSHIP":
-                m.put("members", "不限"); m.put("stores", "不限"); m.put("products", 1000); m.put("employees", "不限");
-                break;
-            case "GROWTH":
-                m.put("members", 50000); m.put("stores", 30); m.put("products", 500); m.put("employees", 50);
-                break;
-            case "BASIC":
-                m.put("members", 5000); m.put("stores", 10); m.put("products", 100); m.put("employees", 20);
-                break;
-            default:
-                m.put("members", 500); m.put("stores", 3); m.put("products", 30); m.put("employees", 5);
-        }
-        return m;
     }
 
     /** 把 SettingsDto.SettingsRequest 转换为通用 Map 响应 */

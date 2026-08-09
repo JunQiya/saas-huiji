@@ -57,17 +57,13 @@ public class MemberService {
         Long tenantId = LoginUserHolder.currentTenantId();
         String storeFilter = (storeIds == null || storeIds.isEmpty()) ? null : String.valueOf(storeIds.get(0));
         Pageable pageable = PageRequest.of(Math.max(0, page - 1), size <= 0 ? 20 : size);
-        Page<Member> p = memberRepository.search(tenantId, trim(keyword), level, storeFilter, pageable);
+        // 标签筛选走 SQL 层过滤, 保证分页 total 准确(避免内存过滤导致总数失真)
+        Page<Member> p = (tag != null && !tag.isBlank())
+                ? memberRepository.searchWithTag(tenantId, trim(keyword), level, storeFilter, tag.trim(), pageable)
+                : memberRepository.search(tenantId, trim(keyword), level, storeFilter, pageable);
 
-        // 标签筛选: 先按标签取会员 id 集合, 内存过滤
-        List<Member> members = p.getContent();
-        if (tag != null && !tag.isBlank()) {
-            Set<Long> tagMemberIds = new HashSet<>(memberTagRepository.findMemberIdsByTag(tenantId, tag));
-            members = members.stream().filter(m -> tagMemberIds.contains(m.getId())).collect(Collectors.toList());
-        }
-        List<Map<String, Object>> list = members.stream().map(m -> toVO(m, true)).collect(Collectors.toList());
-        long total = tag == null || tag.isBlank() ? p.getTotalElements() : members.size();
-        return PageData.of(list, total, page, size);
+        List<Map<String, Object>> list = p.getContent().stream().map(m -> toVO(m, true)).collect(Collectors.toList());
+        return PageData.of(list, p.getTotalElements(), page, size);
     }
 
     @Transactional

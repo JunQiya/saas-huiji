@@ -16,6 +16,9 @@ spring:
 
 huiji:
   init-data: true
+  h5:
+    sms-dev-mode: true
+    sms-code: "8888"
 
 logging:
   level:

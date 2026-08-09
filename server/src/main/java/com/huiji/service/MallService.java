@@ -238,8 +238,13 @@ public class MallService {
 
         // 2) 构建下单请求
         OrderDto.CreateOrderRequest orderReq = new OrderDto.CreateOrderRequest();
-        // 商城订单 storeId: 自提用请求中的 storeId, 配送默认 0(商品 storeIds 为空时不校验)
-        orderReq.setStoreId(req.getStoreId() != null ? req.getStoreId() : 0L);
+        // 商城订单门店: 优先用请求中的 storeId; 未指定时从购物车商品适用门店推导,
+        // 避免 storeId=0 触发商品门店校验失败(商品 storeIds 非空时)
+        Long checkoutStoreId = req.getStoreId();
+        if (checkoutStoreId == null || checkoutStoreId <= 0) {
+            checkoutStoreId = inferStoreId(tenantId, toCheckout);
+        }
+        orderReq.setStoreId(checkoutStoreId);
         orderReq.setMemberId(memberId);
         orderReq.setRemark(req.getRemark());
         List<OrderDto.OrderItemRequest> items = new ArrayList<>();
@@ -293,6 +298,37 @@ public class MallService {
         payParams.put("orderNo", orderResult.get("orderNo"));
         result.put("payParams", payParams);
         return result;
+    }
+
+    /**
+     * 从购物车商品推导结算门店: 取所有商品适用门店的交集; 无交集则取第一个商品的首个门店。
+     * 避免 storeId 缺省时商品门店校验失败。
+     */
+    private Long inferStoreId(Long tenantId, List<Cart> carts) {
+        Set<Long> common = null;
+        for (Cart c : carts) {
+            Product p = productRepository.findByIdAndTenantIdAndDeletedFalse(c.getProductId(), tenantId).orElse(null);
+            if (p == null || p.getStoreIds() == null || p.getStoreIds().isEmpty()) {
+                continue;
+            }
+            Set<Long> stores = new HashSet<>(p.getStoreIds());
+            if (common == null) {
+                common = new HashSet<>(stores);
+            } else {
+                common.retainAll(stores);
+            }
+        }
+        if (common != null && !common.isEmpty()) {
+            return common.iterator().next();
+        }
+        // 兜底: 第一个商品的第一个门店
+        for (Cart c : carts) {
+            Product p = productRepository.findByIdAndTenantIdAndDeletedFalse(c.getProductId(), tenantId).orElse(null);
+            if (p != null && p.getStoreIds() != null && !p.getStoreIds().isEmpty()) {
+                return p.getStoreIds().get(0);
+            }
+        }
+        return null;
     }
 
     /** 我的商城订单列表(含 OrderExtend) */

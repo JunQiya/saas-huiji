@@ -47,6 +47,7 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
+    private final jakarta.persistence.EntityManager entityManager;
     private final ProductRepository productRepository;
     private final MemberRepository memberRepository;
     private final WalletTransactionRepository walletRepository;
@@ -161,7 +162,9 @@ public class OrderService {
                 throw new BizException(ErrorCode.VALIDATION, "支付方式不合法");
             }
         }
-        order = orderRepository.save(order);
+        // persist + flush: 立即回填主键, 供返回的 orderId 使用(MySQL/H2 均可靠)
+        entityManager.persist(order);
+        entityManager.flush();
         for (OrderItem oi : items) {
             oi.setOrderId(order.getId());
         }

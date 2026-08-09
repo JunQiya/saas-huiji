@@ -51,6 +51,7 @@ import { useRouter } from 'vue-router'
 import { h5Api, type OrderInfo as Order } from '@/api/h5'
 import NavBar from '@/components/NavBar.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import { fenToYuan, formatDateTime } from '@/utils/format'
 
 const router = useRouter()
 const loading = ref(false)
@@ -103,8 +104,8 @@ function statusLabel(s: string) {
 function statusClass(s: string) {
   return ({ PENDING: 'warning', PAID: 'success', REFUNDED: 'info', VOID: 'danger' } as any)[s] || 'mist'
 }
-function yuan(f: any) { if (f == null) return '0.00'; return (Number(f) / 100).toFixed(2) }
-function fmt(t: any) { if (!t) return '-'; try { return new Date(t).toLocaleString('zh-CN', { hour12: false }) } catch { return String(t) } }
+const yuan = fenToYuan
+const fmt = formatDateTime
 
 onMounted(load)
 onActivated(() => { reset(); load() })

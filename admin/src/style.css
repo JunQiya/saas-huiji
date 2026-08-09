@@ -54,6 +54,13 @@
   --primary-action: var(--brand);
   --primary-action-soft: var(--brand-soft);
   --card-bg: var(--surface);
+  --primary: var(--brand);
+  --accent: var(--accent-twilight);
+  --radius: var(--r);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --card-border: var(--line-2);
+  --card-border-hover: var(--line-strong);
 
   /* === 装饰色 === */
   --accent-twilight: #8b7ea3;
@@ -438,6 +445,17 @@ html.dark {
   --accent-sage-soft: rgba(164, 184, 168, 0.18);
   --accent-rose: #c4a4a0;
   --accent-rose-soft: rgba(196, 164, 160, 0.18);
+
+  --primary-action: var(--brand);
+  --primary-action-soft: var(--brand-soft);
+  --card-bg: var(--surface);
+  --primary: var(--brand);
+  --accent: var(--accent-twilight);
+  --radius: var(--r);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --card-border: var(--line-2);
+  --card-border-hover: var(--line-strong);
 
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.20);
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.24);

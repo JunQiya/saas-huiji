@@ -104,7 +104,7 @@
     <div class="menu-card ui-card">
       <div class="menu-row dark-row">
         <div class="m-icon" :class="isDark ? 'ic-twilight' : 'ic-clay'">
-          <van-icon :name="isDark ? 'bulb-o' : 'bulb-o'" size="18" />
+          <van-icon :name="isDark ? 'bulb-on' : 'bulb-o'" size="18" />
         </div>
         <span class="m-text">暗色模式</span>
         <van-switch :model-value="isDark" size="20px" @update:model-value="toggleDark" />
@@ -119,7 +119,7 @@
 
     <div class="version">v 1.0 · 星河·会记</div>
 
-    <TabBar :items="tabItems" />
+    <TabBar :items="TAB_ITEMS" />
     <div class="bottom-placeholder"></div>
   </div>
 </template>
@@ -132,6 +132,7 @@ import { useMemberStore } from '@/stores/member'
 import { h5Api } from '@/api/h5'
 import BlogHeader from '@/components/BlogHeader.vue'
 import TabBar from '@/components/TabBar.vue'
+import { TAB_ITEMS } from '@/constants/tabs'
 
 const router = useRouter()
 const memberStore = useMemberStore()
@@ -194,13 +195,6 @@ const serviceMenus: { label: string; icon: string; tone: string; path: string; b
   { label: '邀请有礼', icon: 'share-o', tone: 'rose', path: '/referral', badge: '双向 30' },
   { label: '关于星河', icon: 'info-o', tone: 'mist', path: '/about' },
   { label: '帮助中心', icon: 'question-o', tone: 'clay', path: '/help' }
-]
-
-const tabItems = [
-  { path: '/', label: '首页', icon: 'wap-home-o' },
-  { path: '/mall', label: '商城', icon: 'gift-card-o' },
-  { path: '/my-orders', label: '订单', icon: 'orders-o' },
-  { path: '/profile', label: '我的', icon: 'user-o' }
 ]
 
 function onClick(m: any) {

@@ -11,9 +11,9 @@ import com.huiji.entity.Member;
 import com.huiji.repository.MemberRepository;
 import com.huiji.security.LoginUser;
 import com.huiji.security.LoginUserHolder;
+import com.huiji.security.MemberContext;
 import com.huiji.security.MemberTokenUtil;
 import com.huiji.service.GameService;
-import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -97,17 +97,7 @@ public class H5GameController {
     /** 从 query 参数或 member token 推断 tenantId */
     private Long resolveTenantId(Long tenantId, HttpServletRequest req) {
         if (tenantId != null) return tenantId;
-        String header = req.getHeader("Authorization");
-        if (header != null && header.startsWith("Bearer ")) {
-            try {
-                Claims claims = memberTokenUtil.parse(header.substring(7));
-                if ("MEMBER".equals(claims.get("type", String.class))) {
-                    Long tid = claims.get("tenantId", Long.class);
-                    if (tid != null) return tid;
-                }
-            } catch (Exception ignored) { }
-        }
-        return 1L;
+        return MemberContext.tryTenantId(req, memberTokenUtil);
     }
 
     private void bindAsMember(long memberId, long tenantId) {
@@ -122,33 +112,10 @@ public class H5GameController {
 
     /** 解析 memberToken, 返回 [memberId, tenantId] */
     private long[] currentMember(HttpServletRequest req) {
-        String header = req.getHeader("Authorization");
-        if (header == null || !header.startsWith("Bearer ")) {
-            throw new BizException(ErrorCode.SESSION_EXPIRED, "请先登录");
-        }
-        String token = header.substring(7);
-        try {
-            Claims claims = memberTokenUtil.parse(token);
-            if (!"MEMBER".equals(claims.get("type", String.class))) {
-                throw new BizException(ErrorCode.SESSION_EXPIRED, "登录态无效");
-            }
-            Long memberId = claims.get("memberId", Long.class);
-            Long tenantId = claims.get("tenantId", Long.class);
-            if (memberId == null) {
-                throw new BizException(ErrorCode.SESSION_EXPIRED, "登录态无效");
-            }
-            // tenantId 兜底: 从会员记录取
-            if (tenantId == null) {
-                Member m = memberRepository.findById(memberId)
+        return MemberContext.require(req, memberTokenUtil, memberId ->
+                memberRepository.findById(memberId)
                         .filter(x -> !Boolean.TRUE.equals(x.getDeleted()))
-                        .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "会员不存在"));
-                tenantId = m.getTenantId();
-            }
-            return new long[]{memberId, tenantId};
-        } catch (BizException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new BizException(ErrorCode.SESSION_EXPIRED, "登录已过期");
-        }
+                        .map(Member::getTenantId)
+                        .orElse(null));
     }
 }

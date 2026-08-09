@@ -220,6 +220,7 @@ import {
   Plus, Refresh, Search, Edit, Delete, Connection, Shop
 } from '@element-plus/icons-vue'
 import { mallApi, productsApi } from '@/api'
+import { fenToYuan } from '@/utils/format'
 
 const mallSlogan = [
   '把好物陈列清楚，让顾客挑得安心',
@@ -421,10 +422,7 @@ async function saveTracking() {
   } finally { trackingSaving.value = false }
 }
 
-function yuan(f: any) {
-  if (f == null) return '0.00'
-  return (Number(f) / 100).toFixed(2)
-}
+const yuan = fenToYuan
 function fmtTime(t: any) {
   if (!t) return '-'
   try { return new Date(t).toLocaleString('zh-CN', { hour12: false }) } catch { return String(t) }

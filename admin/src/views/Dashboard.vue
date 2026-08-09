@@ -5,7 +5,7 @@
       <div class="hero-left">
         <div class="hero-greet">
           <span class="hero-label">{{ greeting }}，</span>
-          <span class="hero-name">{{ userStore.user?.username || '管理员' }}</span>
+          <span class="hero-name">{{ userStore.userInfo?.username || '管理员' }}</span>
         </div>
         <div class="hero-date">
           {{ today.day }} · {{ today.date }} · {{ today.week }}
@@ -143,11 +143,11 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import * as echarts from 'echarts'
+import * as echarts from '@/utils/echarts'
 import KpiCard from '@/components/KpiCard.vue'
 import ChartCard from '@/components/ChartCard.vue'
 import { useUserStore } from '@/stores/user'
-import { statsApi, productsApi, membersApi, ordersApi, walletApi, diningApi, campaignsApi } from '@/api'
+import { statsApi, productsApi, membersApi, ordersApi, walletApi, diningApi, campaignsApi, settingsPlanApi } from '@/api'
 
 const userStore = useUserStore()
 const loading = ref(false)

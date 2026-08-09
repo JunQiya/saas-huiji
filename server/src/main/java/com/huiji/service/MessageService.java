@@ -11,9 +11,12 @@ import com.huiji.entity.TenantSetting;
 import com.huiji.repository.MessageTaskRepository;
 import com.huiji.repository.TenantSettingRepository;
 import com.huiji.security.LoginUserHolder;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -49,6 +52,15 @@ public class MessageService {
     private final TenantSettingRepository tenantSettingRepository;
     private final AuditHelper auditHelper;
     private final ObjectMapper objectMapper;
+    private final EntityManager entityManager;
+
+    /**
+     * 自引用注入：让 {@link #asyncSend} / {@link #sendInternal} 的方法级代理(@Async/@Transactional)生效，
+     * 避免同类内直接调用被 this 引用绕过代理。
+     */
+    @Lazy
+    @Autowired
+    private MessageService self;
 
     @Value("${huiji.message.simulate:true}")
     private boolean simulate;
@@ -108,11 +120,13 @@ public class MessageService {
         t.setStatus("PENDING");
         t.setScheduledAt(req.getScheduledAt());
         t.setCreatedBy(safeCurrentUserId());
-        messageTaskRepository.save(t);
+        // persist + flush: 立即持久化并回填主键(H2/MySQL 均可靠), 保证异步任务拿到真实 taskId
+        entityManager.persist(t);
+        entityManager.flush();
         auditHelper.record("新建消息任务", "message:" + t.getId(), req.getChannel() + "/" + count + "条");
 
-        // 异步模拟发送
-        asyncSend(t.getId());
+        // 异步模拟发送（经 self 调用以触发 @Async 代理）
+        self.asyncSend(t.getId());
 
         return toVO(t);
     }
@@ -148,7 +162,7 @@ public class MessageService {
             t.setFailedCount(0);
             t.setCost(0L);
             messageTaskRepository.save(t);
-            asyncSend(t.getId());
+            self.asyncSend(t.getId());
         }
         auditHelper.record("重试消息任务", "message:" + id, t.getChannel());
         return toVO(t);
@@ -162,7 +176,7 @@ public class MessageService {
     @Async
     public void asyncSend(Long taskId) {
         try {
-            sendInternal(taskId);
+            self.sendInternal(taskId);
         } catch (Exception e) {
             log.error("消息发送异常 taskId={}", taskId, e);
             try {
@@ -176,7 +190,7 @@ public class MessageService {
     }
 
     @Transactional
-    protected void sendInternal(Long taskId) {
+    public void sendInternal(Long taskId) {
         MessageTask t = messageTaskRepository.findById(taskId).orElse(null);
         if (t == null) return;
         if ("CANCELED".equals(t.getStatus())) return;
@@ -209,16 +223,18 @@ public class MessageService {
         t.setCompletedAt(LocalDateTime.now());
         messageTaskRepository.save(t);
 
-        // 扣减短信余额(MVP: 直接 audit 记录, 避免 schema 不一致)
+        // 真实扣减短信余额：按实际成功发送条数从 TenantSetting.smsBalance 扣除
         if ("SMS".equals(t.getChannel()) && cost > 0) {
-            final long finalSent = sent;
-            final long finalCost = cost;
-            final Long msgId = t.getId();
-            try {
-                tenantSettingRepository.findByTenantId(t.getTenantId()).ifPresent(setting -> {
-                    auditHelper.record("消息计费", "message:" + msgId, "扣" + finalSent + "条, 费用" + finalCost + "分");
-                });
-            } catch (Exception ignored) {}
+            final int sentFinal = sent;
+            final long costFinal = cost;
+            tenantSettingRepository.findByTenantId(t.getTenantId()).ifPresent(setting -> {
+                int bal = setting.getSmsBalance() == null ? 0 : setting.getSmsBalance();
+                int remaining = Math.max(0, bal - (int) costFinal);
+                setting.setSmsBalance(remaining);
+                tenantSettingRepository.save(setting);
+                auditHelper.record("消息计费", "message:" + taskId,
+                        "发送" + sentFinal + "条, 扣费" + costFinal + "分, 剩余" + remaining + "分");
+            });
         }
     }
 
@@ -271,8 +287,9 @@ public class MessageService {
     // ---- 内部辅助 ----
 
     private long readSmsBalance(Long tenantId) {
-        // MVP: 给予充足演示余额，实际生产对接计费服务
-        return 10000L;
+        return tenantSettingRepository.findByTenantId(tenantId)
+                .map(s -> s.getSmsBalance() == null ? 0L : s.getSmsBalance().longValue())
+                .orElse(0L);
     }
 
     private String serialize(List<Long> ids) {

@@ -60,7 +60,7 @@
       <!-- 顶栏 -->
       <el-header class="header" height="56px">
         <div class="header-left">
-          <el-button text class="collapse-btn" @click="collapsed = !collapsed">
+          <el-button text class="collapse-btn" @click="toggleCollapse">
             <el-icon><Expand v-if="collapsed" /><Fold v-else /></el-icon>
           </el-button>
           <el-breadcrumb separator=" / " class="crumbs">
@@ -91,10 +91,15 @@
               <el-icon><Moon v-if="!isDark" /><Sunny v-else /></el-icon>
             </el-button>
           </el-tooltip>
+          <el-tooltip content="使用说明" placement="bottom">
+            <el-button text class="icon-btn" @click="onHelp">
+              <el-icon><QuestionFilled /></el-icon>
+            </el-button>
+          </el-tooltip>
           <el-dropdown @command="onUserCmd">
             <span class="user-info">
               <el-avatar :size="28" class="avatar">{{ avatarText }}</el-avatar>
-              <span class="username">{{ userStore.user?.username || '管理员' }}</span>
+              <span class="username">{{ userStore.userInfo?.username || '管理员' }}</span>
               <el-icon><ArrowDown /></el-icon>
             </span>
             <template #dropdown>
@@ -121,100 +126,47 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter, type RouteRecordRaw } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   ArrowDown, Expand, Fold, Moon, Sunny, SwitchButton, Shop, Setting, QuestionFilled
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { settingsPlanApi, storesApi } from '@/api'
+import { routes } from '@/router'
+import pkg from '../../package.json'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
-const collapsed = ref(false)
+const collapsed = ref(localStorage.getItem('aside-collapsed') === '1')
 const isDark = ref(localStorage.getItem('theme') === 'dark')
 
-const menuGroups = [
-  {
-    title: '经营总览',
-    items: [
-      { path: '/dashboard', title: '仪表盘', icon: 'DataLine' },
-      { path: '/pos', title: '收银台', icon: 'Cashier' },
-      { path: '/products', title: '商品服务', icon: 'Goods' },
-      { path: '/orders', title: '订单流水', icon: 'List' },
-      { path: '/dining-tables', title: '桌台管理', icon: 'Grid' },
-      { path: '/kitchen-orders', title: '厨房工单', icon: 'Food' },
-      { path: '/mall-admin', title: '线上商城', icon: 'Shop' }
-    ]
-  },
-  {
-    title: '会员与储值',
-    items: [
-      { path: '/members', title: '会员管理', icon: 'User' },
-      { path: '/wallet', title: '储值流水', icon: 'Wallet' },
-      { path: '/referrals', title: '推荐裂变', icon: 'Share' }
-    ]
-  },
-  {
-    title: '营销',
-    items: [
-      { path: '/coupons', title: '优惠券', icon: 'Ticket' },
-      { path: '/campaigns', title: '营销活动', icon: 'Promotion' },
-      { path: '/games', title: '赢奖小游戏', icon: 'Trophy' },
-      { path: '/marketing-calendar', title: '营销日历', icon: 'Calendar' }
-    ]
-  },
-  {
-    title: '组织',
-    items: [
-      { path: '/stores', title: '门店管理', icon: 'Shop' },
-      { path: '/employees', title: '员工权限', icon: 'UserFilled' },
-      { path: '/agents', title: '代理商', icon: 'Connection' },
-      { path: '/audit', title: '操作审计', icon: 'Document' }
-    ]
-  },
-  {
-    title: '系统',
-    items: [
-      { path: '/messages', title: '消息中心', icon: 'ChatLineRound' },
-      { path: '/reports', title: '报表中心', icon: 'DataAnalysis' },
-      { path: '/wx-account', title: '微信公众号', icon: 'ChatDotRound' },
-      { path: '/settings', title: '系统设置', icon: 'Setting' }
-    ]
+// 侧边栏菜单由路由 meta 自动生成（单一数据源：router/index.ts），
+// 新增页面只需在路由 meta 声明 title/icon/group 即可。
+const menuGroups = computed(() => {
+  const groups = new Map<string, { title: string; items: { path: string; title: string; icon: string }[] }>()
+  const menuRoute = routes.find(r => r.path === '/')
+  const children = (menuRoute?.children || []) as RouteRecordRaw[]
+  for (const c of children) {
+    const meta = (c.meta || {}) as { title?: string; icon?: string; group?: string; hidden?: boolean }
+    if (meta.hidden || !meta.title || !meta.group) continue
+    const fullPath = '/' + (c.path || '')
+    if (!groups.has(meta.group)) {
+      groups.set(meta.group, { title: meta.group, items: [] })
+    }
+    groups.get(meta.group)!.items.push({ path: fullPath, title: meta.title, icon: meta.icon || 'Menu' })
   }
-]
+  return Array.from(groups.values())
+})
 
 const crumbs = computed(() => {
-  const map: Record<string, string> = {
-    '/dashboard': '仪表盘',
-    '/members': '会员管理',
-    '/wallet': '储值流水',
-    '/coupons': '优惠券',
-    '/campaigns': '营销活动',
-    '/games': '赢奖小游戏',
-    '/pos': '收银台',
-    '/products': '商品服务',
-    '/orders': '订单流水',
-    '/dining-tables': '桌台管理',
-    '/kitchen-orders': '厨房工单',
-    '/mall-admin': '线上商城',
-    '/marketing-calendar': '营销日历',
-    '/stores': '门店管理',
-    '/employees': '员工权限',
-    '/audit': '操作审计',
-    '/settings': '系统设置',
-    '/messages': '消息中心',
-    '/reports': '报表中心',
-    '/referrals': '推荐裂变',
-    '/agents': '代理商',
-    '/wx-account': '微信公众号'
-  }
-  return [map[route.path] || ''].filter(Boolean)
+  const meta = route.meta as { title?: string }
+  return [meta.title || ''].filter(Boolean)
 })
 
 const avatarText = computed(() => {
-  const name = userStore.user?.username || 'A'
+  const name = userStore.userInfo?.username || 'A'
   return name.charAt(0).toUpperCase()
 })
 
@@ -227,6 +179,11 @@ const asideQuote = computed(() => {
   ]
   return quotes[Math.floor(Math.random() * quotes.length)]
 })
+
+function toggleCollapse() {
+  collapsed.value = !collapsed.value
+  localStorage.setItem('aside-collapsed', collapsed.value ? '1' : '0')
+}
 
 function toggleDark() {
   isDark.value = !isDark.value
@@ -281,8 +238,8 @@ function onHelp() {
   ).catch(() => {})
 }
 
-// 版本号
-const version = '1.0.0'
+// 版本号（读取 package.json，避免手工维护两处）
+const version = pkg.version
 
 // 首次登录欢迎（只弹一次）
 function onFirstLogin() {

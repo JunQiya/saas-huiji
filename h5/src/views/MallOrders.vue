@@ -168,6 +168,7 @@ import { showConfirmDialog, showToast, showSuccessToast } from 'vant'
 import { mallApi } from '@/api/h5'
 import NavBar from '@/components/NavBar.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import { fenToYuan, formatDateTime } from '@/utils/format'
 
 const route = useRoute()
 const router = useRouter()
@@ -381,14 +382,8 @@ function statusChipClass(s: string) {
   } as any)[s] || 'mist'
 }
 
-function yuan(f: any) {
-  if (f == null) return '0.00'
-  return (Number(f) / 100).toFixed(2)
-}
-function fmt(t: any) {
-  if (!t) return '-'
-  try { return new Date(t).toLocaleString('zh-CN', { hour12: false }) } catch { return String(t) }
-}
+const yuan = fenToYuan
+const fmt = formatDateTime
 
 onMounted(() => {
   if (route.query.highlight) highlightId.value = String(route.query.highlight)

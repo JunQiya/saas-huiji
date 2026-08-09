@@ -9,13 +9,13 @@ import com.huiji.entity.Campaign;
 import com.huiji.repository.CampaignRepository;
 import com.huiji.security.LoginUser;
 import com.huiji.security.LoginUserHolder;
+import com.huiji.security.MemberContext;
 import com.huiji.security.MemberTokenUtil;
 import com.huiji.service.H5Service;
 import com.huiji.service.MallService;
 import com.huiji.service.OrderService;
 import com.huiji.service.ProductService;
 import com.huiji.service.SmsCodeService;
-import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -99,6 +99,8 @@ public class H5Controller {
     @PostMapping("/coupons/{id}/claim")
     public Result<Map<String, Object>> claim(HttpServletRequest req, @PathVariable Long id) {
         long[] ctx = currentMember(req);
+        // 绑定会员上下文: CouponService.claim 依赖 LoginUserHolder 取租户
+        bindAsMember(ctx[0], ctx[1]);
         return Result.success(h5Service.claim(ctx[0], ctx[1], id));
     }
 
@@ -179,11 +181,13 @@ public class H5Controller {
         }
     }
 
-    /** 活动详情(公开, 无需 member token) */
+    /** 活动详情(公开, 无需 member token, 按租户隔离) */
     @GetMapping("/campaigns/{id}")
-    public Result<Map<String, Object>> campaignDetail(@PathVariable Long id) {
+    public Result<Map<String, Object>> campaignDetail(@PathVariable Long id, HttpServletRequest req) {
+        Long tenantId = tryTenantId(req);
         Campaign c = campaignRepository.findById(id)
                 .filter(x -> !Boolean.TRUE.equals(x.getDeleted()))
+                .filter(x -> tenantId.equals(x.getTenantId()))
                 .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "活动不存在"));
         Map<String, Object> vo = new LinkedHashMap<>();
         vo.put("id", c.getId());
@@ -222,36 +226,11 @@ public class H5Controller {
 
     /** 解析 memberToken, 返回 [memberId, tenantId] */
     private long[] currentMember(HttpServletRequest req) {
-        String header = req.getHeader("Authorization");
-        if (header == null || !header.startsWith("Bearer ")) {
-            throw new BizException(ErrorCode.SESSION_EXPIRED, "请先登录");
-        }
-        String token = header.substring(7);
-        try {
-            Claims claims = memberTokenUtil.parse(token);
-            if (!"MEMBER".equals(claims.get("type", String.class))) {
-                throw new BizException(ErrorCode.SESSION_EXPIRED, "登录态无效");
-            }
-            Long memberId = claims.get("memberId", Long.class);
-            Long tenantId = claims.get("tenantId", Long.class);
-            if (memberId == null) {
-                throw new BizException(ErrorCode.SESSION_EXPIRED, "登录态无效");
-            }
-            return new long[]{memberId, tenantId == null ? 1L : tenantId};
-        } catch (BizException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new BizException(ErrorCode.SESSION_EXPIRED, "登录已过期");
-        }
+        return MemberContext.require(req, memberTokenUtil);
     }
 
-    /** 尝试从 memberToken 解析 tenantId，失败则返回默认 1L（用于公开接口） */
+    /** 尝试从 memberToken 解析 tenantId，失败则返回默认租户（用于公开接口） */
     private Long tryTenantId(HttpServletRequest req) {
-        try {
-            long[] ctx = currentMember(req);
-            return ctx[1];
-        } catch (Exception e) {
-            return 1L;
-        }
+        return MemberContext.tryTenantId(req, memberTokenUtil);
     }
 }

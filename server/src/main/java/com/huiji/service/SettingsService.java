@@ -12,9 +12,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 租户设置服务: 等级规则、储值规则、品牌信息。
@@ -71,6 +74,52 @@ public class SettingsService {
         dto.setLevelRules(parseRules(s.getLevelRules(), SettingsDto.LevelRule.class));
         dto.setRechargeRules(parseRules(s.getRechargeRules(), SettingsDto.RechargeRule.class));
         return dto;
+    }
+
+    /** 各套餐的配额上限 */
+    public Map<String, Object> planLimits(String plan) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        switch (plan == null ? "FREE" : plan) {
+            case "FLAGSHIP":
+                m.put("members", "不限"); m.put("stores", "不限"); m.put("products", 1000); m.put("employees", "不限");
+                break;
+            case "GROWTH":
+                m.put("members", 50000); m.put("stores", 30); m.put("products", 500); m.put("employees", 50);
+                break;
+            case "BASIC":
+                m.put("members", 5000); m.put("stores", 10); m.put("products", 100); m.put("employees", 20);
+                break;
+            default:
+                m.put("members", 500); m.put("stores", 3); m.put("products", 30); m.put("employees", 5);
+        }
+        return m;
+    }
+
+    /** 升级套餐: 按 plan/months 延长有效期并重置短信余额 */
+    @Transactional
+    public Map<String, Object> upgrade(Long tenantId, String plan, int months) {
+        TenantSetting ts = settingRepository.findByTenantId(tenantId).orElseGet(() -> {
+            TenantSetting s = new TenantSetting();
+            s.setTenantId(tenantId);
+            return s;
+        });
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime base = ts.getPlanExpiresAt() != null && ts.getPlanExpiresAt().isAfter(now)
+                ? ts.getPlanExpiresAt() : now;
+        ts.setPlan(plan);
+        ts.setPlanExpiresAt(base.plusMonths(months));
+        ts.setSmsBalance(plan.equals("FLAGSHIP") ? 5000 : plan.equals("GROWTH") ? 1000 : plan.equals("BASIC") ? 200 : 0);
+        if (ts.getCreatedAt() == null) ts.setCreatedAt(now);
+        ts.setUpdatedAt(now);
+        settingRepository.save(ts);
+        Map<String, Object> vo = new LinkedHashMap<>();
+        vo.put("plan", plan);
+        vo.put("smsBalance", ts.getSmsBalance());
+        vo.put("startedAt", ts.getCreatedAt());
+        vo.put("expiresAt", ts.getPlanExpiresAt());
+        vo.put("months", months);
+        vo.put("limits", planLimits(plan));
+        return vo;
     }
 
     @Transactional

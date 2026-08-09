@@ -78,26 +78,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onActivated, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { showToast } from 'vant'
 import { gameApi } from '@/api/h5'
-import { formatDateTime } from '@/utils/format'
 import NavBar from '@/components/NavBar.vue'
 import GameResult from '@/components/GameResult.vue'
+import { useGamePage } from '@/composables/useGamePage'
 
-const route = useRoute()
-const gameId = route.params.id as string
+const {
+  gameId, loading, game, prizes, records, showRecords,
+  remaining, resultVisible, result, bgStyle,
+  loadRecords, formatTime
+} = useGamePage()
 
-const loading = ref(false)
-const game = ref<any>(null)
-const prizes = ref<any[]>([])
-const records = ref<any[]>([])
-const showRecords = ref(false)
-
-const remaining = ref(0)
-const resultVisible = ref(false)
-const result = ref<any>(null)
 const revealed = ref(false)
 
 // Canvas
@@ -105,13 +98,6 @@ const canvasRef = ref<HTMLCanvasElement | null>(null)
 let ctx: CanvasRenderingContext2D | null = null
 let isDrawing = false
 let played = false // 本次是否已调用 play 接口
-
-const bgStyle = computed(() => {
-  if (game.value?.bgImage) {
-    return { backgroundImage: `url(${game.value.bgImage})` }
-  }
-  return {}
-})
 
 const isWin = computed(() => {
   const r = result.value
@@ -307,35 +293,10 @@ async function onContinue() {
   }
 }
 
-async function loadDetail() {
-  loading.value = true
-  try {
-    const d = await gameApi.detail(gameId)
-    game.value = d?.game ?? d
-    prizes.value = d?.prizes || []
-    remaining.value = d?.game?.dailyLimit ?? 0
-  } catch (e: any) { console.warn('loadDetail failed', e) }
-  finally { loading.value = false }
-}
-
-async function loadRecords() {
-  try { records.value = (await gameApi.myPlays(gameId)) || [] } catch (e: any) { console.warn('loadRecords failed', e) }
-}
-
-function formatTime(t?: string) {
-  if (!t) return ''
-  return formatDateTime(t)
-}
-
+// 首次挂载需初始化刮奖画布（详情/记录加载由 useGamePage 处理）
 onMounted(async () => {
-  await loadDetail()
-  loadRecords()
   await nextTick()
   initCanvas()
-})
-// 从其他页面返回时重新拉取剩余次数
-onActivated(() => {
-  loadDetail()
 })
 </script>
 

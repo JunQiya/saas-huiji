@@ -82,7 +82,8 @@ function enter(g: any) {
     EGG: `/games/egg/${g.id}`,
     SHAKE: `/games/shake/${g.id}`
   }
-  router.push(pathMap[g.type] || `/games/wheel/${g.id}`)
+  const fallback = pathMap[g.type] || `/games/wheel/${g.id}`
+  router.push(fallback)
 }
 
 async function load() {

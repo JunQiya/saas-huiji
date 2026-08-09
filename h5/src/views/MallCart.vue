@@ -77,6 +77,7 @@ import { showConfirmDialog, showToast } from 'vant'
 import { mallApi } from '@/api/h5'
 import NavBar from '@/components/NavBar.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import { fenToYuan } from '@/utils/format'
 
 const router = useRouter()
 
@@ -198,10 +199,7 @@ function openProduct(item: CartItem) {
 }
 function goMall() { router.push('/mall') }
 
-function yuan(f: any) {
-  if (f == null) return '0.00'
-  return (Number(f) / 100).toFixed(2)
-}
+const yuan = fenToYuan
 
 onMounted(load)
 onActivated(load)

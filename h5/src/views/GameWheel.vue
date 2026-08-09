@@ -71,39 +71,22 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onActivated, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, ref } from 'vue'
 import { showToast } from 'vant'
 import { gameApi } from '@/api/h5'
-import { formatDateTime } from '@/utils/format'
 import NavBar from '@/components/NavBar.vue'
 import GameResult from '@/components/GameResult.vue'
+import { useGamePage } from '@/composables/useGamePage'
 
-const route = useRoute()
-const gameId = route.params.id as string
-
-const loading = ref(false)
-const game = ref<any>(null)
-const prizes = ref<any[]>([])
-const records = ref<any[]>([])
-const showRecords = ref(false)
+const {
+  gameId, loading, game, prizes, records, showRecords,
+  remaining, resultVisible, result, bgStyle,
+  loadRecords, onContinue, formatTime
+} = useGamePage()
 
 const playing = ref(false)
 // 当前旋转角度（累计）
 const rotateDeg = ref(0)
-const resultVisible = ref(false)
-const result = ref<any>(null)
-
-// 剩余次数：由后端返回或本地递减
-const remaining = ref(0)
-
-// 背景图
-const bgStyle = computed(() => {
-  if (game.value?.bgImage) {
-    return { backgroundImage: `url(${game.value.bgImage})` }
-  }
-  return {}
-})
 
 // 扇形颜色（低饱和调色板）
 const sectorColors = [
@@ -156,23 +139,6 @@ function prizeLabel(p: any) {
   if (p.type === 'EMPTY') return '谢谢参与'
   if (p.type === 'POINTS') return `${p.refId || p.amount || 0} 积分`
   return p.name || '奖品'
-}
-
-// 加载游戏详情
-async function loadDetail() {
-  loading.value = true
-  try {
-    const d = await gameApi.detail(gameId)
-    game.value = d?.game ?? d
-    prizes.value = d?.prizes || []
-    remaining.value = d?.game?.dailyLimit ?? 0
-  } catch (e: any) { console.warn('loadDetail failed', e) }
-  finally { loading.value = false }
-}
-
-// 加载我的记录
-async function loadRecords() {
-  try { records.value = (await gameApi.myPlays(gameId)) || [] } catch (e: any) { console.warn('loadRecords failed', e) }
 }
 
 // 开始抽奖
@@ -239,25 +205,6 @@ function findPrizeIndex(res: any): number {
   return 0
 }
 
-// 继续抽奖
-function onContinue() {
-  resultVisible.value = false
-  result.value = null
-}
-
-function formatTime(t?: string) {
-  if (!t) return ''
-  return formatDateTime(t)
-}
-
-onMounted(() => {
-  loadDetail()
-  loadRecords()
-})
-// 从其他页面返回时重新拉取剩余次数
-onActivated(() => {
-  loadDetail()
-})
 </script>
 
 <style scoped>

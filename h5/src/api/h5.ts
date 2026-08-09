@@ -149,10 +149,6 @@ export const h5Api = {
   cancelOrder(id: number | string) {
     return request.post<any>(`/api/h5/orders/${id}/cancel`)
   },
-  async activeProducts(category?: string): Promise<Product[]> {
-    const data = await request.get<Product[] | PageData<Product>>('/api/h5/products/active', { category })
-    return pickList(data)
-  },
   campaignDetail(id: number | string) {
     return request.get<CampaignDetail>(`/api/h5/campaigns/${id}`)
   }

@@ -68,6 +68,7 @@
 import { computed, ref } from 'vue'
 import { showToast } from 'vant'
 import NavBar from '@/components/NavBar.vue'
+import { CONTACT } from '@/constants/config'
 
 const kw = ref('')
 const active = ref<number | null>(null)
@@ -90,8 +91,8 @@ const filtered = computed(() => {
 
 function pad(n: number) { return n.toString().padStart(2, '0') }
 function toggle(i: number) { active.value = active.value === i ? null : i }
-function callPhone() { window.location.href = 'tel:02163008888' }
-function onlineChat() { window.location.href = 'mailto:xinghe@mail.lxxno.cn?subject=在线咨询' }
+function callPhone() { window.location.href = CONTACT.phoneHref }
+function onlineChat() { window.location.href = CONTACT.emailHref }
 </script>
 
 <style scoped>

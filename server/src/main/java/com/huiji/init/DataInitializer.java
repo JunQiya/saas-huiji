@@ -20,6 +20,7 @@ import com.huiji.entity.Product;
 import com.huiji.entity.ReportTask;
 import com.huiji.entity.Store;
 import com.huiji.entity.Tenant;
+import com.huiji.entity.TenantSetting;
 import com.huiji.entity.User;
 import com.huiji.entity.WalletTransaction;
 import com.huiji.entity.WxAccount;
@@ -43,6 +44,7 @@ import com.huiji.repository.ProductRepository;
 import com.huiji.repository.ReportTaskRepository;
 import com.huiji.repository.StoreRepository;
 import com.huiji.repository.TenantRepository;
+import com.huiji.repository.TenantSettingRepository;
 import com.huiji.repository.UserRepository;
 import com.huiji.repository.WalletTransactionRepository;
 import com.huiji.repository.WxAccountRepository;
@@ -99,10 +101,12 @@ public class DataInitializer {
     private final AgentRepository agentRepository;
     private final WxAccountRepository wxAccountRepository;
     private final ReportTaskRepository reportTaskRepository;
+    private final TenantSettingRepository tenantSettingRepository;
     private final SettingsService settingsService;
     private final PasswordEncoder passwordEncoder;
     private final EntityManager entityManager;
     private final TransactionTemplate transactionTemplate;
+    private final javax.sql.DataSource dataSource;
 
     @Value("${huiji.init-data:false}")
     private boolean initData;
@@ -110,7 +114,13 @@ public class DataInitializer {
     @Bean
     public ApplicationRunner versionFixRunner() {
         return args -> {
-            // 修复 @Version 字段添加后已有数据的 version=null 问题
+            // 历史数据迁移：仅当表已存在且某行 version 为 null 时补 0。
+            // H2(测试) 下表由 ddl-auto 全新创建且带引号小写, 无引号 SQL 大小写不匹配, 直接跳过;
+            // MySQL 生产场景(表名/列名均小写) 才会真正执行修复。
+            if (isH2()) {
+                log.info("H2 环境跳过 version 字段历史修复(全新建表无此问题)");
+                return;
+            }
             String[] tables = {"tenant", "tenant_setting", "app_user", "member", "member_tag", "store",
                     "product", "coupon", "coupon_record", "campaign", "campaign_log",
                     "sales_order", "sales_order_item", "wallet_transaction", "dining_table",
@@ -122,10 +132,10 @@ public class DataInitializer {
                 for (String table : tables) {
                     try {
                         int n = entityManager.createNativeQuery(
-                                "UPDATE `" + table + "` SET `version` = 0 WHERE `version` IS NULL")
+                                "UPDATE " + table + " SET version = 0 WHERE version IS NULL")
                                 .executeUpdate();
                         total += n;
-                    } catch (Exception ignored) { }
+                    } catch (Exception ignored) { /* 表可能不存在或列已非空 */ }
                 }
                 log.info("version 字段修复完成, 共更新 {} 条记录", total);
                 return null;
@@ -143,8 +153,24 @@ public class DataInitializer {
         };
     }
 
+    private boolean isH2() {
+        try {
+            String url = dataSource.getConnection().getMetaData().getURL();
+            return url != null && url.toLowerCase().contains("h2");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     @Transactional
     protected void seed() {
+        // 整个种子数据放在一个事务内执行:
+        // 1) 保证 @Version + IDENTITY 的 id 回填与 refresh 可用(需要活动事务)
+        // 2) 中途失败整体回滚, 避免产生半截数据
+        transactionTemplate.executeWithoutResult(status -> doSeed());
+    }
+
+    private void doSeed() {
         if (tenantRepository.count() > 0) {
             log.info("演示数据已存在, 跳过初始化");
             return;
@@ -156,9 +182,15 @@ public class DataInitializer {
         tenant.setName("星河·会记演示");
         tenant.setBrandColor("#4f46e5");
         tenant.setStatus("ACTIVE");
-        tenantRepository.save(tenant);
+        entityManager.persist(tenant);
+        entityManager.flush();
         Long tid = tenant.getId();
-        settingsService.getOrInit(tid, tenant.getName());
+        TenantSetting ts = settingsService.getOrInit(tid, tenant.getName());
+        // 演示租户初始短信余额(分), 便于消息中心/群发功能直接演示
+        if (ts.getSmsBalance() == null || ts.getSmsBalance() <= 0) {
+            ts.setSmsBalance(100_000);
+            tenantSettingRepository.save(ts);
+        }
 
         // 2. 门店
         Store s1 = store("星河·会记 旗舰店", "上海市黄浦区南京东路 100 号", "021-63008888", "09:00-22:00", tid);
@@ -198,7 +230,9 @@ public class DataInitializer {
             m.setTotalAmount(0L);
             // 注册时间: 分散在过去 60 天
             m.setCreatedAt(LocalDateTime.now().minusDays(55 - i * 5));
-            memberRepository.save(m);
+            // 用 EntityManager 显式 persist + flush, 确保 H2 下 @Version+IDENTITY 正确回填主键
+            entityManager.persist(m);
+            entityManager.flush();
             members.add(m);
         }
         // 标签
@@ -342,28 +376,11 @@ public class DataInitializer {
                 mc.setName(mallCatNames[i]);
                 mc.setSortOrder(i + 1);
                 mc.setStatus("ENABLED");
-                mallCategoryRepository.save(mc);
+                entityManager.persist(mc);
+                entityManager.flush();
             }
         } catch (Exception e) {
             log.warn("商城分类演示数据初始化失败: {}", e.getMessage());
-        }
-
-        // 11. 将前 4 个商品设为商城可见, 关联到商城分类
-        try {
-            List<Product> products = productRepository.listActive(tid, null);
-            List<MallCategory> mallCats = mallCategoryRepository.findByTenantIdOrderBySortOrderAsc(tid);
-            if (!mallCats.isEmpty()) {
-                int bound = Math.min(4, products.size());
-                for (int i = 0; i < bound; i++) {
-                    Product p = products.get(i);
-                    p.setMallVisible(true);
-                    // 4 个商品轮流分配到 3 个商城分类
-                    p.setMallCategoryId(mallCats.get(i % mallCats.size()).getId());
-                    productRepository.save(p);
-                }
-            }
-        } catch (Exception e) {
-            log.warn("商品更新为商城可见失败: {}", e.getMessage());
         }
 
         // 12. 游戏演示数据: 大转盘 + 砸金蛋
@@ -385,7 +402,8 @@ public class DataInitializer {
             wheel.setPointsCost(0);
             wheel.setStatus("ENABLED");
             wheel.setRules("每人每天可抽奖1次，奖品包括优惠券和积分");
-            gameRepository.save(wheel);
+            entityManager.persist(wheel);
+            entityManager.flush();
 
             // 大转盘 4 个奖品
             GamePrize gp1 = new GamePrize();
@@ -437,8 +455,37 @@ public class DataInitializer {
             egg.setTotalLimit(0);
             egg.setPointsCost(0);
             egg.setStatus("ENABLED");
-            egg.setRules("每人每天可抽奖1次，奖品包括优惠券和积分");
-            gameRepository.save(egg);
+            egg.setRules("每人每天可砸1个金蛋，奖品包括优惠券和积分");
+            entityManager.persist(egg);
+            entityManager.flush();
+
+            // 金蛋 3 个奖品
+            GamePrize ep1 = new GamePrize();
+            ep1.setGameId(egg.getId());
+            ep1.setName("10元优惠券");
+            ep1.setType("COUPON");
+            ep1.setRefId(1L);
+            ep1.setRefName("新人券");
+            ep1.setProbability(150);
+            ep1.setSortOrder(1);
+            gamePrizeRepository.save(ep1);
+
+            GamePrize ep2 = new GamePrize();
+            ep2.setGameId(egg.getId());
+            ep2.setName("80积分");
+            ep2.setType("POINTS");
+            ep2.setAmount(80);
+            ep2.setProbability(300);
+            ep2.setSortOrder(2);
+            gamePrizeRepository.save(ep2);
+
+            GamePrize ep3 = new GamePrize();
+            ep3.setGameId(egg.getId());
+            ep3.setName("谢谢参与");
+            ep3.setType("EMPTY");
+            ep3.setProbability(550);
+            ep3.setSortOrder(3);
+            gamePrizeRepository.save(ep3);
         } catch (Exception e) {
             log.warn("游戏演示数据初始化失败: {}", e.getMessage());
         }
@@ -483,6 +530,20 @@ public class DataInitializer {
                 p.setStoreIds(List.of(s1.getId()));
                 p.setSoldCount((Integer) row[4]);
                 productRepository.save(p);
+            }
+
+            // 将前 4 个商品设为商城可见, 关联到商城分类(必须在商品创建之后)
+            List<MallCategory> mallCats = mallCategoryRepository.findByTenantIdOrderBySortOrderAsc(tid);
+            List<Product> products = productRepository.listActive(tid, null);
+            if (!mallCats.isEmpty() && !products.isEmpty()) {
+                int bound = Math.min(4, products.size());
+                for (int i = 0; i < bound; i++) {
+                    Product p = products.get(i);
+                    p.setMallVisible(true);
+                    // 4 个商品轮流分配到 3 个商城分类
+                    p.setMallCategoryId(mallCats.get(i % mallCats.size()).getId());
+                    productRepository.save(p);
+                }
             }
         } catch (Exception e) {
             log.warn("商品演示数据初始化失败: {}", e.getMessage());
@@ -612,7 +673,8 @@ public class DataInitializer {
                         order.setPaidAt(paidAt);
                         order.setCreatedAt(paidAt);
                         order.setUpdatedAt(paidAt);
-                        order = orderRepository.save(order);
+                        entityManager.persist(order);
+                        entityManager.flush();
 
                         for (OrderItem it : oitems) {
                             it.setOrderId(order.getId());
@@ -808,7 +870,9 @@ public class DataInitializer {
         s.setPhone(phone);
         s.setBusinessHours(hours);
         s.setStatus("ACTIVE");
-        return storeRepository.save(s);
+        entityManager.persist(s);
+        entityManager.flush();
+        return s;
     }
 
     private void user(Long tid, String username, String pwd, String name, String phone, String role, List<Long> storeIds) {
@@ -896,7 +960,9 @@ public class DataInitializer {
         c.setPerLimit(perLimit);
         c.setScope(scope);
         c.setStatus("ACTIVE");
-        return couponRepository.save(c);
+        entityManager.persist(c);
+        entityManager.flush();
+        return c;
     }
 
     private void grant(Long tid, Coupon c, Member... ms) {
@@ -936,6 +1002,8 @@ public class DataInitializer {
         c.setStatTriggered(triggered);
         c.setStatReached(reached);
         c.setStatConverted(converted);
-        return campaignRepository.save(c);
+        entityManager.persist(c);
+        entityManager.flush();
+        return c;
     }
 }

@@ -43,7 +43,7 @@
 
         <div class="oc-tags">
           <span class="chip brand">
-            <el-icon><PlaceHolder /></el-icon>
+            <el-icon><Location /></el-icon>
             {{ o.tableName || `桌台 ${o.tableId || '-'}` }}
           </span>
           <span class="chip" :class="o.orderType === 'TAKEOUT' ? 'clay' : 'mist'">
@@ -89,13 +89,11 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
+import { usePolling } from '@/composables/usePolling'
 import { ElMessage } from 'element-plus'
-import { Refresh } from '@element-plus/icons-vue'
+import { Refresh, Location } from '@element-plus/icons-vue'
 import { diningApi, storesApi, settingsPlanApi } from '@/api'
-
-// PlaceHolder 图标在 element-plus 中不存在时用兜底，这里用 Location 代替
-import { Location as PlaceHolder } from '@element-plus/icons-vue'
 
 const loading = ref(false)
 const list = ref<any[]>([])
@@ -103,8 +101,6 @@ const stores = ref<any[]>([])
 const storeId = ref<number | undefined>(undefined)
 const statusFilter = ref('')
 const lastRefresh = ref('')
-
-let pollTimer: number | null = null
 
 async function loadStores() {
   try { stores.value = (await storesApi.list()) || [] } catch {}
@@ -154,27 +150,6 @@ async function onUpdateStatus(o: any, status: string) {
   }
 }
 
-function startPolling() {
-  stopPolling()
-  pollTimer = window.setInterval(() => {
-    loadList()
-  }, 15000)
-}
-function stopPolling() {
-  if (pollTimer) {
-    clearInterval(pollTimer)
-    pollTimer = null
-  }
-}
-function onVisibilityChange() {
-  if (document.hidden) {
-    stopPolling()
-  } else {
-    loadList()
-    startPolling()
-  }
-}
-
 onMounted(async () => {
   await loadStores()
   if (!storeId.value) {
@@ -187,14 +162,9 @@ onMounted(async () => {
     storeId.value = stores.value[0].id
   }
   if (storeId.value) loadList()
-  document.addEventListener('visibilitychange', onVisibilityChange)
-  startPolling()
 })
 
-onBeforeUnmount(() => {
-  stopPolling()
-  document.removeEventListener('visibilitychange', onVisibilityChange)
-})
+usePolling({ interval: 15000, tick: loadList })
 </script>
 
 <style scoped>

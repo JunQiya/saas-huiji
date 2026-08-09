@@ -219,10 +219,7 @@ const productList = ref<any[]>([])
 const selectedProductIds = ref<number[]>([])
 const productTableRef = ref<any>()
 
-function yuan(fen: any) {
-  if (fen == null) return '0.00'
-  return Number(fenToYuan(fen)).toFixed(2)
-}
+const yuan = fenToYuan
 
 async function openProductConfig(row: Store) {
   currentStore.value = row

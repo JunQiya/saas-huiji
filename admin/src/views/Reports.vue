@@ -133,7 +133,7 @@
 
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
-import * as echarts from 'echarts'
+import * as echarts from '@/utils/echarts'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Plus, RefreshRight, ArrowDown, DataAnalysis } from '@element-plus/icons-vue'
 import { reportsApi, statsApi } from '@/api'
@@ -375,8 +375,8 @@ async function onDownload(row: any, type: string) {
   const url = reportsApi.downloadUrl(row.id, type as 'pdf' | 'xlsx')
   const filename = `${row.name || 'report'}_${type === 'pdf' ? 'PDF' : 'Excel'}.${type === 'pdf' ? 'pdf' : 'xlsx'}`
   try {
-    const res = await request.get(url, { responseType: 'blob' })
-    const blob = new Blob([res])
+    const res: any = await request.get(url, { responseType: 'blob' })
+    const blob = new Blob([res instanceof Blob ? res : res?.data])
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
     link.download = filename

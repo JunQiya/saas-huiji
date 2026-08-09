@@ -106,7 +106,7 @@
     <div class="footnote">把每一位会员 都当作一段值得悉心维护的关系</div>
 
     <!-- 底部 tabbar -->
-    <TabBar :items="tabItems" />
+    <TabBar :items="TAB_ITEMS" />
 
     <div class="bottom-placeholder"></div>
   </div>
@@ -121,6 +121,7 @@ import { initWxSdk, wxShare } from '@/utils/wx-sdk'
 import BlogHeader from '@/components/BlogHeader.vue'
 import MemberCard from '@/components/MemberCard.vue'
 import TabBar from '@/components/TabBar.vue'
+import { TAB_ITEMS } from '@/constants/tabs'
 
 const router = useRouter()
 const memberStore = useMemberStore()
@@ -162,13 +163,6 @@ const benefits = [
   { title: '等级折扣', sub: '金卡 9 折 / 钻石 8.5 折', icon: 'medal-o', tone: 'brand' },
   { title: '积分商城', sub: '用积分兑一份心意', icon: 'star-o', tone: 'mist', path: '/mall' },
   { title: '推荐有礼', sub: '老带新双向各得 30 元券', icon: 'share-o', tone: 'clay', path: '/referral' }
-]
-
-const tabItems = [
-  { path: '/', label: '首页', icon: 'wap-home-o' },
-  { path: '/mall', label: '商城', icon: 'gift-card-o' },
-  { path: '/my-orders', label: '订单', icon: 'orders-o' },
-  { path: '/profile', label: '我的', icon: 'user-o' }
 ]
 
 async function loadProfile() {

@@ -459,7 +459,7 @@ import {
   Plus, Search, RefreshLeft, User, Download, Upload,
   PriceTag, Medal, DataAnalysis, MagicStick
 } from '@element-plus/icons-vue'
-import * as echarts from 'echarts'
+import * as echarts from '@/utils/echarts'
 import { membersApi, storesApi } from '@/api'
 import { formatMoney, formatDateTime, formatDate, yuanToFen } from '@/utils/format'
 import type { Member, MemberProfile, Store, Transaction, CouponRecord } from '@/types'

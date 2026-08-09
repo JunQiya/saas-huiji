@@ -162,7 +162,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { usePolling } from '@/composables/usePolling'
 import { ElMessage } from 'element-plus'
 import { Refresh, Search, User, Delete, Printer, Money } from '@element-plus/icons-vue'
 import { productsApi, ordersApi, membersApi, settingsPlanApi, statsApi, storesApi } from '@/api'
@@ -220,7 +221,7 @@ const selectedCouponObj = computed(() => memberCoupons.value.find((c: any) => c.
 const couponDiscountFen = computed(() => selectedCouponObj.value?.amount || 0)
 const payable = computed(() => Math.max(0, subtotalAmount.value - discountFen.value - couponDiscountFen.value))
 
-function yuan(f: any) { if (f == null) return '0.00'; return Number(fenToYuan(f)).toFixed(2) }
+const yuan = fenToYuan
 function payMethodLabel(m: string) {
   return ({ CASH: '现金', WECHAT: '微信', ALIPAY: '支付宝', BALANCE: '余额', MIXED: '混合' } as any)[m] || m
 }
@@ -385,26 +386,22 @@ function printReceipt() {
   setTimeout(() => window.print(), 80)
 }
 
-let refreshTimer: ReturnType<typeof setInterval> | undefined
-function handleVisibilityChange() {
-  if (!document.hidden) {
-    loadProducts()
-    loadTodayStats()
-  }
-}
 onMounted(() => {
   loadAll()
-  refreshTimer = setInterval(() => {
+})
+
+usePolling({
+  interval: 30000,
+  tick: () => {
     // 仅在用户未编辑购物车/优惠时静默刷新，避免打断操作
     if (cart.value.length === 0) {
       loadProducts()
     }
-  }, 30000)
-  document.addEventListener('visibilitychange', handleVisibilityChange)
-})
-onBeforeUnmount(() => {
-  if (refreshTimer) clearInterval(refreshTimer)
-  document.removeEventListener('visibilitychange', handleVisibilityChange)
+  },
+  onVisible: () => {
+    loadProducts()
+    loadTodayStats()
+  }
 })
 </script>
 

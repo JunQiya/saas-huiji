@@ -41,20 +41,12 @@ export const useMemberStore = defineStore('member', () => {
     setMember(null)
   }
 
-  // 局部更新会员信息（如积分扣减），同步到 localStorage
-  function patchMember(patch: Partial<MemberProfile>) {
-    if (!memberInfo.value) return
-    const next = { ...memberInfo.value, ...patch }
-    setMember(next)
-  }
-
   return {
     memberToken,
     memberInfo,
     isLogin,
     setToken,
     setMember,
-    patchMember,
     logout
   }
 })
