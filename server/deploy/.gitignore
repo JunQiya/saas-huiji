@@ -1,0 +1,7 @@
+# 数据与密钥严禁入库
+huiji-db.sql
+.env
+.env.prod.example
+app.log
+app.pid
+*.jar

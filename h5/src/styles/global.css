@@ -462,3 +462,19 @@ html.dark {
 html.dark body {
   background: var(--page-bg);
 }
+
+/* ===== Vant Toast 兜底(确保各类型弹层均深色背景+白字, 避免白屏/无文字) ===== */
+.van-popup.van-toast,
+.van-toast--success,
+.van-toast--fail,
+.van-toast--warning,
+.van-toast--loading {
+  background: var(--van-toast-background, rgba(0, 0, 0, 0.7)) !important;
+  color: var(--van-toast-text-color, #fff) !important;
+}
+.van-popup.van-toast .van-toast__text {
+  color: inherit;
+}
+.van-popup.van-toast .van-toast__icon {
+  color: #fff !important;
+}

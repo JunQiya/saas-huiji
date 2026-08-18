@@ -65,7 +65,13 @@ public class H5Controller {
         if (phone == null || !phone.matches("^1\\d{10}$")) {
             throw new BizException(ErrorCode.VALIDATION, "请输入正确的手机号");
         }
-        String code = smsCodeService.send(phone);
+        String code;
+        try {
+            code = smsCodeService.send(phone);
+        } catch (IllegalStateException e) {
+            // 60 秒限流: 转业务错误, 避免 500
+            throw new BizException(ErrorCode.BIZ_ERROR, e.getMessage());
+        }
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("phone", phone);
         resp.put("expireSeconds", 300);

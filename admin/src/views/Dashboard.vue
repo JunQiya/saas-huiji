@@ -24,17 +24,17 @@
 
     <!-- 第二行指标 -->
     <div class="kpi-row kpi-row-2 x-stagger">
-      <KpiCard label="本月储值" :value="kpi.monthRecharge" prefix="¥" tone="mist" />
+      <KpiCard label="本月营业额" :value="kpi.monthRevenue" prefix="¥" :trend="kpi.monthDelta" trend-label="较上月" tone="brand" />
+      <KpiCard label="平均客单" :value="kpi.avgOrder" prefix="¥" :precision="2" tone="mist" />
       <KpiCard label="券核销率" :value="kpi.couponUseRate" suffix="%" :precision="1" tone="rose" />
-      <KpiCard label="平均客单" :value="kpi.avgOrder" prefix="¥" :precision="2" tone="brand" />
       <KpiCard label="会员复购率" :value="kpi.repurchase" suffix="%" :precision="1" tone="twilight" />
     </div>
 
     <!-- 第三行指标: 业务深度 -->
     <div class="kpi-row kpi-row-2 x-stagger">
-      <KpiCard label="本月积分发放" :value="kpi.monthPoints" suffix="分" tone="brand" />
-      <KpiCard label="厨房待出" :value="kpi.kitchenPending" suffix="单" tone="clay" />
+      <KpiCard label="本月储值" :value="kpi.monthRecharge" prefix="¥" tone="sage" />
       <KpiCard label="进行中活动" :value="kpi.activeCampaigns" suffix="个" tone="twilight" />
+      <KpiCard label="厨房待出" :value="kpi.kitchenPending" suffix="单" tone="clay" />
       <KpiCard label="沉睡会员" :value="kpi.dormantMembers" suffix="人" tone="rose" />
     </div>
 
@@ -49,17 +49,25 @@
         <div ref="trendEl" class="chart-slot"></div>
       </ChartCard>
       <ChartCard
-        title="会员等级分布"
-        subtitle="当前累计会员"
+        title="门店营收排行"
+        subtitle="近 30 天各门店营业额"
         :height="280"
-        class="pie-chart x-fade"
+        class="store-chart x-fade"
       >
-        <div ref="pieEl" class="chart-slot"></div>
+        <div ref="storeEl" class="chart-slot"></div>
       </ChartCard>
     </div>
 
-    <!-- 第二图表行: 时段分布 + 实时动态 -->
-    <div class="chart-row chart-row-2">
+    <!-- 第二图表行: 会员增长 + 时段分布 -->
+    <div class="chart-row">
+      <ChartCard
+        title="会员增长趋势"
+        subtitle="近 30 天新增 / 活跃会员"
+        :height="220"
+        class="x-fade"
+      >
+        <div ref="growthEl" class="chart-slot"></div>
+      </ChartCard>
       <ChartCard
         title="今日时段分布"
         subtitle="按小时聚合到店数"
@@ -68,7 +76,10 @@
       >
         <div ref="hourEl" class="chart-slot"></div>
       </ChartCard>
+    </div>
 
+    <!-- 底部: 实时动态 + 热销 + 等级分布 -->
+    <div class="bottom-row">
       <div class="panel x-card x-fade">
         <div class="panel-head">
           <div class="panel-title">实时动态</div>
@@ -92,10 +103,7 @@
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- 热销商品 + 待办 -->
-    <div class="bottom-row">
       <div class="panel x-card x-fade">
         <div class="panel-head">
           <div class="panel-title">本月热销</div>
@@ -119,20 +127,32 @@
 
       <div class="panel x-card x-fade">
         <div class="panel-head">
-          <div class="panel-title">今日待办</div>
-          <span class="panel-tip">智能提醒</span>
+          <div class="panel-title">会员等级分布</div>
+          <span class="panel-tip">当前累计会员</span>
         </div>
-        <div class="todo-list">
-          <div v-for="(t, i) in todos" :key="i" class="todo-row">
-            <span class="dot" :class="t.tone"></span>
-            <div class="todo-text">
-              <div class="todo-title">{{ t.title }}</div>
-              <div class="todo-sub">{{ t.sub }}</div>
-            </div>
+        <div ref="pieEl" class="chart-slot mini"></div>
+        <div v-if="!levelDistLoading && !levelDist.length" class="empty-state">
+          <div class="empty-text">暂无会员</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 今日待办 -->
+    <div class="x-card todo-card x-fade">
+      <div class="panel-head">
+        <div class="panel-title">今日待办</div>
+        <span class="panel-tip">智能提醒</span>
+      </div>
+      <div class="todo-list todo-list-inline">
+        <div v-for="(t, i) in todos" :key="i" class="todo-row">
+          <span class="dot" :class="t.tone"></span>
+          <div class="todo-text">
+            <div class="todo-title">{{ t.title }}</div>
+            <div class="todo-sub">{{ t.sub }}</div>
           </div>
-          <div v-if="!todos.length" class="empty-state">
-            <div class="empty-text">今天暂无可提醒事项</div>
-          </div>
+        </div>
+        <div v-if="!todos.length" class="empty-state">
+          <div class="empty-text">今天暂无可提醒事项</div>
         </div>
       </div>
     </div>
@@ -155,16 +175,20 @@ const loading = ref(false)
 const trendEl = ref<HTMLElement | null>(null)
 const pieEl = ref<HTMLElement | null>(null)
 const hourEl = ref<HTMLElement | null>(null)
+const storeEl = ref<HTMLElement | null>(null)
+const growthEl = ref<HTMLElement | null>(null)
 
 const kpi = ref<any>({
   todayRevenue: 0, todayOrders: 0, newMembers: 0, activeMembers: 0,
   revenueTrend: 0, orderTrend: 0, memberTrend: 0,
-  monthRecharge: 0, couponUseRate: 0, avgOrder: 0, repurchase: 0,
+  monthRevenue: 0, monthDelta: 0, monthRecharge: 0, couponUseRate: 0, avgOrder: 0, repurchase: 0,
   monthPoints: 0, kitchenPending: 0, activeCampaigns: 0, dormantMembers: 0
 })
 const hotProducts = ref<any[]>([])
 const todos = ref<any[]>([])
 const activity = ref<any[]>([])
+const levelDist = ref<any[]>([])
+const levelDistLoading = ref(false)
 
 const today = computed(() => {
   const d = new Date()
@@ -200,6 +224,8 @@ async function load() {
       newMembers: summary.newMembersToday || 0,
       memberTrend: overview?.memberDelta ?? 0,
       activeMembers: summary.consumeMembersToday || 0,
+      monthRevenue: summary.monthRevenue || 0,
+      monthDelta: summary.monthDelta ?? 0,
       monthRecharge: summary.monthRevenue || 0,
       couponUseRate: 0,
       avgOrder: overview?.avgPrice || 0,
@@ -221,13 +247,17 @@ async function load() {
       }))
       drawTrend(merge)
     } catch { drawTrend([]) }
-    // 3. 会员等级分布（按真实会员 levelName 聚合）
+    // 3. 门店营收排行
     try {
-      const levelPie = await loadLevelDistribution()
-      if (levelPie.length) drawPie(levelPie)
-      else drawPie([])
-    } catch { drawPie([]) }
-    // 4. 热销商品(按销量, 真实订单商品聚合)
+      const stores = await statsApi.storeRanking({ days: 30 })
+      drawStoreRanking(stores || [])
+    } catch { drawStoreRanking([]) }
+    // 4. 会员增长趋势
+    try {
+      const growth = await statsApi.memberGrowth()
+      drawGrowth(growth || [])
+    } catch { drawGrowth([]) }
+    // 5. 热销商品(按销量, 真实订单商品聚合)
     try {
       const top = await statsApi.productsTop({ limit: 5 })
       hotProducts.value = (top || []).slice(0, 5).map((t: any, i: number) => ({
@@ -238,16 +268,18 @@ async function load() {
         category: '热销'
       }))
     } catch { hotProducts.value = [] }
-    // 5. 时段分布
+    // 6. 时段分布
     try {
       const hour = await statsApi.hour()
       drawHour(hour || [])
     } catch { drawHour([]) }
-    // 6. 第三行指标: 月度积分 / 厨房工单 / 活动 / 沉睡 + 券核销率/复购率
+    // 7. 会员等级分布
+    loadLevelDistribution()
+    // 8. 第三行指标: 厨房工单 / 活动 / 沉睡 + 券核销率/复购率
     loadExtendedKpi()
-    // 7. 实时动态: 从最近订单 + 流水
+    // 9. 实时动态: 从最近订单 + 流水
     loadActivity()
-    // 8. 待办（基于实时数据估算）
+    // 10. 待办（基于实时数据估算）
     todos.value = []
     if (kpi.value.newMembers) {
       todos.value.push({ title: `今日新增 ${kpi.value.newMembers} 位会员`, sub: '建议下午 4 点前发送欢迎礼', tone: 'success' })
@@ -259,19 +291,28 @@ async function load() {
       todos.value.push({ title: '今天还没有到店', sub: '可以主动联系老会员', tone: 'muted' })
     }
   } catch (e) {
-    drawTrend([]); drawPie([]); drawHour([])
+    drawTrend([]); drawStoreRanking([]); drawGrowth([]); drawHour([]); drawPie([])
   } finally { loading.value = false }
 }
 
 async function loadLevelDistribution() {
-  const members: any = await membersApi.list({ page: 1, size: 500 })
-  const list = (members?.list || members?.data?.list || []) as any[]
-  const agg = new Map<string, number>()
-  for (const m of list) {
-    const name = m.levelName || `L${m.level || 1}`
-    agg.set(name, (agg.get(name) || 0) + 1)
+  levelDistLoading.value = true
+  try {
+    const members: any = await membersApi.list({ page: 1, size: 500 })
+    const list = (members?.list || members?.data?.list || []) as any[]
+    const agg = new Map<string, number>()
+    for (const m of list) {
+      const name = m.levelName || `L${m.level || 1}`
+      agg.set(name, (agg.get(name) || 0) + 1)
+    }
+    levelDist.value = Array.from(agg.entries()).map(([name, value]) => ({ name, value }))
+    drawPie(levelDist.value)
+  } catch {
+    levelDist.value = []
+    drawPie([])
+  } finally {
+    levelDistLoading.value = false
   }
-  return Array.from(agg.entries()).map(([name, value]) => ({ name, value }))
 }
 
 async function loadExtendedKpi() {
@@ -518,6 +559,93 @@ function drawHour(data: any[]) {
   })
 }
 
+function drawStoreRanking(data: any[]) {
+  if (!storeEl.value) return
+  echarts.getInstanceByDom(storeEl.value)?.dispose()
+  const chart = echarts.init(storeEl.value)
+  const c = chartColors()
+  const sorted = [...(data || [])].sort((a, b) => (a.amount || 0) - (b.amount || 0))
+  chart.setOption({
+    grid: { left: 70, right: 20, top: 10, bottom: 24 },
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: 'rgba(26, 29, 35, 0.92)', borderWidth: 0,
+      textStyle: { color: '#fff', fontSize: 12 }, padding: [6, 10],
+      formatter: (ps: any) => {
+        const p = Array.isArray(ps) ? ps[0] : ps
+        return `${p?.name}<br/>营业额 ¥${((p?.value || 0) / 100).toLocaleString('zh-CN')}`
+      }
+    },
+    xAxis: {
+      type: 'value',
+      axisLine: { show: false }, axisTick: { show: false },
+      splitLine: { lineStyle: { color: c.lineSoft, type: 'dashed' } },
+      axisLabel: { color: c.ink3, fontSize: 10, fontFamily: 'monospace', formatter: (v: number) => `¥${(v / 1000).toFixed(0)}k` }
+    },
+    yAxis: {
+      type: 'category',
+      data: sorted.map((d: any) => d.storeName || '未知门店'),
+      axisLine: { show: false }, axisTick: { show: false },
+      axisLabel: { color: c.ink2, fontSize: 11, fontFamily: 'serif', width: 60, overflow: 'truncate' }
+    },
+    series: [{
+      type: 'bar',
+      barWidth: 12,
+      itemStyle: { color: c.brand, borderRadius: [0, 4, 4, 0] },
+      data: sorted.map((d: any) => d.amount || 0)
+    }]
+  })
+}
+
+function drawGrowth(data: any[]) {
+  if (!growthEl.value) return
+  echarts.getInstanceByDom(growthEl.value)?.dispose()
+  const chart = echarts.init(growthEl.value)
+  const c = chartColors()
+  // 近 14 天展示, 避免横轴过密
+  const recent = (data || []).slice(-14)
+  chart.setOption({
+    grid: { left: 36, right: 18, top: 16, bottom: 26 },
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: 'rgba(26, 29, 35, 0.92)', borderWidth: 0,
+      textStyle: { color: '#fff', fontSize: 12 }, padding: [6, 10]
+    },
+    xAxis: {
+      type: 'category',
+      data: recent.map((d: any) => (d.date || '').slice(5)),
+      axisLine: { lineStyle: { color: c.line2 } }, axisTick: { show: false },
+      axisLabel: { color: c.ink3, fontSize: 10, fontFamily: 'monospace' }
+    },
+    yAxis: {
+      type: 'value', minInterval: 1,
+      axisLine: { show: false }, axisTick: { show: false },
+      splitLine: { lineStyle: { color: c.lineSoft, type: 'dashed' } },
+      axisLabel: { color: c.ink3, fontSize: 10, fontFamily: 'monospace' }
+    },
+    series: [
+      {
+        name: '新增',
+        type: 'line', smooth: true,
+        data: recent.map((d: any) => d.newCount || 0),
+        symbol: 'circle', symbolSize: 4,
+        lineStyle: { color: c.brand, width: 2 }, itemStyle: { color: c.brand }
+      },
+      {
+        name: '活跃',
+        type: 'line', smooth: true,
+        data: recent.map((d: any) => d.activeCount || 0),
+        symbol: 'circle', symbolSize: 4,
+        lineStyle: { color: c.sage, width: 2 }, itemStyle: { color: c.sage }
+      }
+    ],
+    legend: {
+      right: 0, top: 0,
+      textStyle: { color: c.ink3, fontSize: 11, fontFamily: 'serif' }
+    }
+  })
+}
+
 onMounted(load)
 
 // 60s 轮询刷新实时动态与今日指标(不重载整页, 避免图表闪烁)
@@ -532,6 +660,7 @@ usePolling({
           kpi.value.todayRevenue = t.amount || kpi.value.todayRevenue
         }
       }).catch(() => {})
+      statsApi.storeRanking({ days: 30 }).then((d: any) => drawStoreRanking(d || [])).catch(() => {})
     }
   }
 })
@@ -590,12 +719,13 @@ usePolling({
 .chart-slot { width: 100%; height: 220px; }
 @media (max-width: 1100px) { .chart-row { grid-template-columns: 1fr; } }
 
-/* 底部双面板 */
+/* 底部三面板 */
 .bottom-row {
-  display: grid; grid-template-columns: 1.4fr 1fr;
+  display: grid; grid-template-columns: 1.2fr 1.2fr 0.8fr;
   gap: 14px; margin-bottom: 14px;
 }
-@media (max-width: 1100px) { .bottom-row { grid-template-columns: 1fr; } }
+@media (max-width: 1300px) { .bottom-row { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 900px) { .bottom-row { grid-template-columns: 1fr; } }
 
 .panel { padding: 16px 18px; }
 .panel-head {
@@ -659,4 +789,14 @@ usePolling({
 /* 第二图表行 - 高度较小 */
 .chart-row-2 { margin-bottom: 14px; }
 .chart-row-2 .chart-slot { height: 160px; }
+
+/* 会员等级分布(小饼图) */
+.chart-slot.mini { height: 180px; margin-top: 6px; }
+
+/* 今日待办(独立卡片, 横排) */
+.todo-card { padding: 16px 18px; margin-bottom: 14px; }
+.todo-list-inline { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px 20px; }
+@media (max-width: 1100px) { .todo-list-inline { grid-template-columns: 1fr; } }
+.todo-list-inline .todo-row { border-bottom: none; }
+.todo-list-inline .empty-state { grid-column: 1 / -1; }
 </style>

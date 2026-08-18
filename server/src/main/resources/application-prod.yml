@@ -1,7 +1,8 @@
 # prod profile: 生产 MySQL, 数据持久化
 # 敏感配置一律通过环境变量注入, 不落明文:
 #   DB_URL / DB_USERNAME / DB_PASSWORD / JWT_SECRET
-#   H5_DOMAIN(可选, H5 域名, 微信授权回调回跳用)
+#   H5_DOMAIN(必填, H5 访问域名, 微信授权回调/点餐二维码回跳用)
+#   CORS_ORIGINS(可选, 逗号分隔的允许跨域来源; 留空=仅同源, 最安全)
 spring:
   datasource:
     url: ${DB_URL:jdbc:mysql://localhost:3306/huiji?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
@@ -17,9 +18,18 @@ spring:
     init:
       mode: never
 
-# 生产关闭演示数据与短信验证码回显
+# 生产关闭演示数据初始化; 短信验证码回显由 SMS_DEV_MODE 控制
+#   - 演示系统(推荐 true): 未接短信网关也能登录, 验证码回显到接口并由前端自动填充
+#   - 真实生产(false): 需接入真实短信网关, 否则登录不可用
 huiji:
   init-data: false
   h5:
-    sms-dev-mode: false
-    sms-code: ""
+    sms-dev-mode: ${SMS_DEV_MODE:false}
+    sms-code: ${SMS_FIXED_CODE:}
+  # H5 访问域名(如 https://h5.example.com), 微信 OAuth 回调与点餐二维码依赖
+  h5-domain: ${H5_DOMAIN:}
+
+# CORS: 生产默认仅同源(经 Nginx 反代), 需要跨域时用 CORS_ORIGINS 显式放开
+huiji-cors:
+  allowed-origins: ${CORS_ORIGINS:}
+

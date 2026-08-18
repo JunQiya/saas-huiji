@@ -97,4 +97,13 @@ public interface WalletTransactionRepository extends JpaRepository<WalletTransac
                                  @Param("start") LocalDateTime start,
                                  @Param("end") LocalDateTime end,
                                  @Param("memberIds") Collection<Long> memberIds);
+
+    /** 按门店聚合消费金额与笔数(近 start 之后), 返回 [storeId, sumAbsAmount, count] */
+    @Query("select t.storeId, coalesce(sum(abs(t.amount)),0), count(t) from WalletTransaction t " +
+            "where t.tenantId = :tenantId and t.type = 'CONSUME' and t.createdAt >= :start " +
+            "and t.createdAt < :end and t.storeId is not null " +
+            "group by t.storeId order by sum(abs(t.amount)) desc")
+    List<Object[]> sumByStore(@Param("tenantId") Long tenantId,
+                              @Param("start") LocalDateTime start,
+                              @Param("end") LocalDateTime end);
 }

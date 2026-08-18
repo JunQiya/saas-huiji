@@ -1,8 +1,10 @@
 package com.huiji.service;
 
 import com.huiji.entity.Member;
+import com.huiji.entity.Store;
 import com.huiji.entity.WalletTransaction;
 import com.huiji.repository.MemberRepository;
+import com.huiji.repository.StoreRepository;
 import com.huiji.repository.WalletTransactionRepository;
 import com.huiji.security.LoginUserHolder;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,7 @@ public class StatsService {
 
     private final MemberRepository memberRepository;
     private final WalletTransactionRepository walletRepository;
+    private final StoreRepository storeRepository;
 
     /** 当前门店 ID(null 表示不按门店过滤, 返回全租户数据) */
     private Long currentStoreId() {
@@ -119,9 +122,27 @@ public class StatsService {
         return result;
     }
 
-    /** 热门服务 Top10: 按消费流水的服务项(remark)聚合 */
-    public List<Map<String, Object>> topServices() {
+    /** 门店营收排行: 按近 N 天消费聚合 [storeId, amount, count], 门店名关联后返回 */
+    public List<Map<String, Object>> storeRanking(int days) {
         Long tenantId = LoginUserHolder.currentTenantId();
+        LocalDateTime start = LocalDateTime.now().minusDays(Math.max(1, days));
+        LocalDateTime end = LocalDateTime.now().plusDays(1);
+        List<Object[]> rows = walletRepository.sumByStore(tenantId, start, end);
+        Map<Long, String> storeNames = storeRepository.findByTenantIdAndDeletedFalseOrderByIdDesc(tenantId).stream()
+                .collect(Collectors.toMap(Store::getId, Store::getName, (a, b) -> a));
+        return rows.stream().limit(10).map(r -> {
+            Map<String, Object> vo = new LinkedHashMap<>();
+            Long sid = ((Number) r[0]).longValue();
+            vo.put("storeId", sid);
+            vo.put("storeName", storeNames.getOrDefault(sid, "门店#" + sid));
+            vo.put("amount", r[1] == null ? 0L : ((Number) r[1]).longValue());
+            vo.put("count", r[2] == null ? 0L : ((Number) r[2]).longValue());
+            return vo;
+        }).collect(Collectors.toList());
+    }
+
+    /** 热门服务 Top10: 按消费流水的服务项(remark)聚合 */
+    public List<Map<String, Object>> topServices() {        Long tenantId = LoginUserHolder.currentTenantId();
         Long storeId = currentStoreId();
         LocalDateTime start = LocalDateTime.now().minusDays(30);
         List<WalletTransaction> txs = walletRepository.consumeInRange(tenantId, start, LocalDateTime.now(), storeId);

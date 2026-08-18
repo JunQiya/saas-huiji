@@ -57,7 +57,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { User, Lock } from '@element-plus/icons-vue'
@@ -102,6 +102,13 @@ async function submit() {
     router.replace(redirect)
   } catch {} finally { loading.value = false }
 }
+
+// 登录过期自动退出: 若携带 reason=expired, 提示已过期
+onMounted(() => {
+  if (route.query.reason === 'expired') {
+    ElMessage.warning('登录已过期，请重新登录')
+  }
+})
 </script>
 
 <style scoped>

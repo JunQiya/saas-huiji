@@ -49,6 +49,12 @@ public class StatsController {
         return Result.success(statsService.memberGrowth());
     }
 
+    /** 门店营收排行(近 N 天) */
+    @GetMapping("/store-ranking")
+    public Result<List<Map<String, Object>>> storeRanking(@RequestParam(defaultValue = "30") int days) {
+        return Result.success(statsService.storeRanking(days));
+    }
+
     @GetMapping("/top-services")
     public Result<List<Map<String, Object>>> topServices(@RequestParam(required = false) String range,
                                                          @RequestParam(defaultValue = "10") int limit) {

@@ -294,8 +294,7 @@ public class DataInitializer {
             // 个别会员设为沉睡(>90 天无消费)
             if (i == 5 || i == 9) {
                 m.setLastConsumeAt(now.minusDays(100 + i * 5));
-            }
-            // 等级自动升级
+            }            // 等级自动升级
             var rule = settingsService.resolveLevel(tid, m.getTotalAmount());
             if (rule != null) {
                 m.setLevel(rule.getLevel());
@@ -647,7 +646,7 @@ public class DataInitializer {
                             item.setSubtotal(subtotal);
                             oitems.add(item);
                         }
-                        LocalDateTime paidAt = now.minusDays((mi * 6) + (oi * 8) + 1)
+                        LocalDateTime paidAt = now.minusDays((mi * 6) + (oi * 8))
                                 .withHour(10 + ((mi + oi) % 10))
                                 .withMinute(((mi * 7 + oi * 13) % 60))
                                 .withSecond(0).withNano(0);
@@ -900,8 +899,7 @@ public class DataInitializer {
         memberTagRepository.save(t);
     }
 
-    private void applyRecharge(Long tid, Member m, long amount, long gift, LocalDateTime when, Long opId, Long storeId) {
-        WalletTransaction tx = new WalletTransaction();
+    private void applyRecharge(Long tid, Member m, long amount, long gift, LocalDateTime when, Long opId, Long storeId) {        WalletTransaction tx = new WalletTransaction();
         tx.setTenantId(tid);
         tx.setMemberId(m.getId());
         tx.setType("RECHARGE");

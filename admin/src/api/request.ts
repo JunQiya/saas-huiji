@@ -111,9 +111,10 @@ function handleSessionExpired(message: string) {
   ElMessage.error(message)
   localStorage.removeItem('token')
   localStorage.removeItem('user')
+  localStorage.removeItem('token_exp')
   // 跳登录（避免循环依赖，直接用 location）
   const redirect = encodeURIComponent(window.location.pathname + window.location.search)
-  window.location.href = `/login?redirect=${redirect}`
+  window.location.href = `/login?redirect=${redirect}&reason=expired`
   setTimeout(() => {
     isRedirecting = false
   }, 1500)

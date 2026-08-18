@@ -47,6 +47,8 @@ export const statsApi = {
   rfm: () => request.get<any, RfmStats>('/stats/rfm'),
   hour: () => request.get<any, HourPoint[]>('/stats/hour'),
   ordersToday: () => request.get<any, { count: number; amount: number; date: string }>('/stats/orders/today'),
+  storeRanking: (params: { days?: number }) =>
+    request.get<any, { storeId: number; storeName: string; amount: number; count: number }[]>('/stats/store-ranking', { params }),
   productsTop: (params: { limit?: number; start?: string; end?: string }) =>
     request.get<any, { productId: number; productName: string; quantity: number; subtotal: number }[]>('/stats/products/top', { params })
 }
