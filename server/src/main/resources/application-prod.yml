@@ -1,0 +1,25 @@
+# prod profile: 生产 MySQL, 数据持久化
+# 敏感配置一律通过环境变量注入, 不落明文:
+#   DB_URL / DB_USERNAME / DB_PASSWORD / JWT_SECRET
+#   H5_DOMAIN(可选, H5 域名, 微信授权回调回跳用)
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/huiji?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: update
+    defer-datasource-initialization: true
+  sql:
+    init:
+      mode: never
+
+# 生产关闭演示数据与短信验证码回显
+huiji:
+  init-data: false
+  h5:
+    sms-dev-mode: false
+    sms-code: ""
