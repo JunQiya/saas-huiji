@@ -2,6 +2,7 @@
   <div class="page my-coupons">
     <NavBar title="我的券" back />
 
+    <van-pull-refresh v-model="refreshing" class="pr-wrap" @refresh="onRefresh">
     <div class="page-padding">
       <div class="tab-bar">
         <div
@@ -29,7 +30,7 @@
           <div class="left-stripe" :class="`type-${c.type}`">
             <div class="stripe-val">
               <template v-if="c.type === 'PERCENT'">
-                {{ c.faceValue }}<span class="small">折</span>
+                {{ ((c.faceValue || 0) / 10).toFixed(1).replace(/\.0$/, '') }}<span class="small">折</span>
               </template>
               <template v-else-if="c.type === 'EXPERIENCE' || c.type === 'BIRTHDAY'">
                 <span class="small gift">免费</span>
@@ -54,24 +55,33 @@
               <span class="dot" :class="dotClass(c.status)"></span>
               {{ statusText(c.status) }}
             </div>
-            <div v-if="c.status === 'UNUSED'" class="c-use-btn" @click.stop="onUse(c)">去使用 ›</div>
+            <div v-if="c.status === 'UNUSED'" class="c-use-btn" @click.stop="onUse(c)">出示券码 ›</div>
           </div>
         </div>
       </div>
     </div>
+    </van-pull-refresh>
+
+    <!-- 券码核销弹窗 -->
+    <CouponQrPopup
+      v-model:show="qrVisible"
+      :coupon-name="qrCoupon?.couponName"
+      :code="qrCoupon?.code"
+      :status="qrCoupon?.status"
+      :expire-at="qrCoupon?.expireAt"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { onActivated, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
 import { h5Api, type CouponRecord } from '@/api/h5'
 import { formatDateTime } from '@/utils/format'
 import NavBar from '@/components/NavBar.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import CouponQrPopup from '@/components/CouponQrPopup.vue'
 
-const router = useRouter()
 const tabs = [
   { label: '未使用', value: 'UNUSED' as const },
   { label: '已使用', value: 'USED' as const },
@@ -80,12 +90,21 @@ const tabs = [
 const status = ref<'UNUSED' | 'USED' | 'EXPIRED'>('UNUSED')
 const loading = ref(false)
 const list = ref<CouponRecord[]>([])
+const refreshing = ref(false)
 
 async function load() {
   loading.value = true
   try { list.value = await h5Api.myCoupons(status.value) }
   catch { showToast('加载失败') }
   finally { loading.value = false }
+}
+
+async function onRefresh() {
+  try {
+    await load()
+    showToast({ message: '已刷新', position: 'top' })
+  } catch {/* 静默 */}
+  finally { refreshing.value = false }
 }
 
 function onTab(v: 'UNUSED' | 'USED' | 'EXPIRED') {
@@ -99,12 +118,13 @@ function dotClass(s: string) {
   return ({ UNUSED: 'success', USED: 'info', EXPIRED: 'danger' } as any)[s] || 'info'
 }
 
-// 跳转目标：商品相关券跳商城，其他（到店核销类）跳门店
+// 出示券码：未使用券点击后弹二维码，供门店核销
+const qrVisible = ref(false)
+const qrCoupon = ref<CouponRecord | null>(null)
 function onUse(c: CouponRecord) {
   if (c.status !== 'UNUSED') return
-  // EXPERIENCE / BIRTHDAY / FULL_CUT 一般到店使用；其他跳商城
-  const toStore = c.type === 'EXPERIENCE' || c.type === 'BIRTHDAY' || c.type === 'FULL_CUT' || c.type === 'PERCENT'
-  router.push(toStore ? '/stores' : '/mall')
+  qrCoupon.value = c
+  qrVisible.value = true
 }
 
 onMounted(load)
@@ -113,6 +133,7 @@ onActivated(load)
 
 <style scoped>
 .tab-bar { display: flex; gap: 6px; margin-bottom: 14px; padding: 0 2px; }
+.pr-wrap { min-height: 60vh; }
 .tab {
   padding: 6px 14px;
   font-size: 12.5px;

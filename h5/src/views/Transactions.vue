@@ -1,6 +1,7 @@
 <template>
   <div class="page transactions">
     <NavBar title="消费记录" back />
+    <van-pull-refresh v-model="refreshing" class="pr-wrap" @refresh="onRefresh">
     <div class="page-padding">
       <div class="tip">每一笔流水都是一段日常。</div>
 
@@ -28,7 +29,9 @@
             <div class="tx-content">
               <div class="tx-top">
                 <span class="tx-type">{{ typeText(tx.type) }}</span>
-                <span v-if="tx.type === 'POINT'" class="tx-amount pos">+{{ tx.amount }} 分</span>
+                <span v-if="tx.type === 'POINT'" class="tx-amount" :class="(tx.amount || 0) >= 0 ? 'pos' : 'neg'">
+                  {{ (tx.amount || 0) >= 0 ? '+' : '-' }}{{ Math.abs(tx.amount || 0) }} 分
+                </span>
                 <span v-else class="tx-amount" :class="tx.amount >= 0 ? 'pos' : 'neg'">
                   {{ tx.amount >= 0 ? '+' : '' }}¥{{ Math.abs(tx.amount / 100).toFixed(2) }}
                 </span>
@@ -43,11 +46,13 @@
         </div>
       </van-list>
     </div>
+    </van-pull-refresh>
   </div>
 </template>
 
 <script setup lang="ts">
 import { onActivated, onMounted, ref } from 'vue'
+import { showToast } from 'vant'
 import { h5Api, type TransactionRecord } from '@/api/h5'
 import { formatDateTime } from '@/utils/format'
 import NavBar from '@/components/NavBar.vue'
@@ -58,6 +63,7 @@ const finished = ref(false)
 const page = ref(1)
 const list = ref<TransactionRecord[]>([])
 const currentType = ref('')
+const refreshing = ref(false)
 const typeTabs = [
   { label: '全部', value: '' },
   { label: '充值', value: 'RECHARGE' },
@@ -82,7 +88,7 @@ async function load() {
       finished.value = true
     }
   } catch {
-    finished.value = true
+    // 加载失败: 不标 finished(避免把错误伪装成"暂无流水"), 由拦截器已提示错误
   } finally {
     pending = false
     loading.value = false
@@ -97,6 +103,15 @@ function reset() {
 }
 
 function onTab(t: string) { currentType.value = t; reset(); load() }
+
+async function onRefresh() {
+  reset()
+  try {
+    await load()
+    showToast({ message: '已刷新', position: 'top' })
+  } catch {/* 静默 */}
+  finally { refreshing.value = false }
+}
 function typeText(t: string) {
   return ({ RECHARGE: '充值', CONSUME: '消费', GIFT: '赠送', POINT: '积分', REFUND: '退款' } as any)[t] || t
 }
@@ -112,12 +127,13 @@ onActivated(() => { reset(); load() })
 .tip {
   font-size: 12px; color: var(--muted);
   letter-spacing: 0.04em; margin-bottom: 14px;
-  font-family: 'Songti SC', serif; opacity: 0.85;
+  font-family: var(--font-serif); opacity: 0.85;
   padding-left: 2px;
 }
 
 .type-tabs { display: flex; gap: 6px; margin-bottom: 14px; padding: 0 2px; overflow-x: auto; }
 .type-tabs::-webkit-scrollbar { display: none; }
+.pr-wrap { min-height: 60vh; }
 .tab {
   padding: 6px 14px;
   font-size: 12.5px;

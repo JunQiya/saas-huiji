@@ -331,11 +331,12 @@ public class MallService {
         return null;
     }
 
-    /** 我的商城订单列表(含 OrderExtend) */
-    public Map<String, Object> myOrders(Long tenantId, Long memberId, String status, int page, int size) {
+    /** 我的商城订单列表(含 OrderExtend)。keyword 支持按订单号模糊搜索 */
+    public Map<String, Object> myOrders(Long tenantId, Long memberId, String status, String keyword, int page, int size) {
         Pageable pageable = PageRequest.of(Math.max(0, page - 1), size <= 0 ? 20 : size);
         String st = (status == null || status.isBlank()) ? null : status.trim();
-        Page<Order> p = orderRepository.listByMember(tenantId, memberId, st, pageable);
+        String kw = (keyword == null || keyword.isBlank()) ? null : keyword.trim();
+        Page<Order> p = orderRepository.listByMember(tenantId, memberId, st, kw, pageable);
         List<Map<String, Object>> list = p.getContent().stream()
                 .map(o -> toOrderVO(o, true))
                 .collect(Collectors.toList());

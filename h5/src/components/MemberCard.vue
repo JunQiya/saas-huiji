@@ -1,6 +1,14 @@
 <template>
-  <div class="member-card" :class="`level-${level}`">
+  <div class="member-card" :class="[`level-${level}`, { loading: loading }]" @click="$emit('click')">
     <div class="card-content">
+      <!-- 加载骨架 -->
+      <template v-if="loading">
+        <div class="sk sk-top"></div>
+        <div class="sk sk-name"></div>
+        <div class="sk sk-phone"></div>
+        <div class="sk sk-stats"></div>
+      </template>
+      <template v-else>
       <div class="row-top">
         <div class="brand-mark" aria-hidden="true">
           <svg viewBox="0 0 24 24" width="20" height="20">
@@ -38,6 +46,7 @@
           <div class="stat-lbl">到店</div>
         </div>
       </div>
+      </template>
     </div>
   </div>
 </template>
@@ -51,8 +60,10 @@ interface Props {
   balance: number | string
   points?: number
   consumeCount?: number
+  loading?: boolean
 }
-withDefaults(defineProps<Props>(), { level: 1, levelName: '普通会员', points: 0, consumeCount: 0 })
+withDefaults(defineProps<Props>(), { level: 1, levelName: '普通会员', points: 0, consumeCount: 0, loading: false })
+defineEmits<{ (e: 'click'): void }>()
 
 const hour = new Date().getHours()
 const greeting = hour < 6 ? '夜深了' : hour < 11 ? '早安' : hour < 14 ? '午安' : hour < 18 ? '下午好' : '晚上好'
@@ -83,6 +94,24 @@ function formatPhone(p: string) {
 .member-card.level-4 { background: #2e4863; }
 
 .card-content { position: relative; z-index: 1; }
+
+/* 骨架屏 */
+.sk {
+  height: 14px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.16) 25%, rgba(255,255,255,0.34) 50%, rgba(255,255,255,0.16) 75%);
+  background-size: 200% 100%;
+  animation: sk-shimmer 1.4s ease-in-out infinite;
+  margin: 10px 0;
+}
+.sk-top { width: 45%; height: 12px; margin-bottom: 26px; }
+.sk-name { width: 62%; height: 20px; margin-bottom: 10px; }
+.sk-phone { width: 34%; height: 12px; margin-bottom: 24px; }
+.sk-stats { width: 100%; height: 42px; margin-top: 14px; }
+@keyframes sk-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
 .row-top { display: flex; align-items: center; gap: 8px; margin-bottom: 22px; }
 .brand-mark {
   width: 22px; height: 22px;

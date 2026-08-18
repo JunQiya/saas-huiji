@@ -108,6 +108,14 @@ export const h5Api = {
   balance() {
     return request.get<{ balance: number; recent: TransactionRecord[] }>('/api/h5/balance')
   },
+  // 充值规则（充 X 送 Y）
+  walletRules() {
+    return request.get<{ recharge: number; gift: number }[]>('/api/h5/wallet/rules')
+  },
+  // 会员充值（演示环境直接到账）
+  recharge(body: { amount: number; payMethod?: string }) {
+    return request.post<{ balance: number; gift: number }>('/api/h5/wallet/recharge', body)
+  },
   async myCoupons(status: 'UNUSED' | 'USED' | 'EXPIRED'): Promise<CouponRecord[]> {
     const data = await request.get<CouponRecord[] | PageData<CouponRecord>>('/api/h5/coupons', {
       status
@@ -137,8 +145,8 @@ export const h5Api = {
     const data = await request.get<Store[] | PageData<Store>>('/api/h5/stores')
     return pickList(data)
   },
-  async myOrders(status: string | undefined, page: number = 1, size: number = 20): Promise<OrderInfo[] | PageData<OrderInfo>> {
-    return request.get<OrderInfo[] | PageData<OrderInfo>>('/api/h5/orders', { status, page, size })
+  async myOrders(status: string | undefined, keyword: string | undefined, page: number = 1, size: number = 20): Promise<OrderInfo[] | PageData<OrderInfo>> {
+    return request.get<OrderInfo[] | PageData<OrderInfo>>('/api/h5/orders', { status, keyword, page, size })
   },
   orderDetail(id: number | string) {
     return request.get<OrderInfo>(`/api/h5/orders/${id}`)
@@ -151,6 +159,10 @@ export const h5Api = {
   },
   campaignDetail(id: number | string) {
     return request.get<CampaignDetail>(`/api/h5/campaigns/${id}`)
+  },
+  async campaigns(): Promise<CampaignDetail[]> {
+    const data = await request.get<CampaignDetail[] | PageData<CampaignDetail>>('/api/h5/campaigns')
+    return pickList(data)
   }
 }
 

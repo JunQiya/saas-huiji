@@ -1,8 +1,22 @@
 <template>
   <div class="page my-orders">
     <NavBar title="我的订单" back />
+    <van-pull-refresh v-model="refreshing" class="pr-wrap" @refresh="onRefresh">
     <div class="page-padding">
       <div class="tip">每张订单都是一次到访的注脚。</div>
+
+      <!-- 搜索 -->
+      <div class="search-box">
+        <van-icon name="search" class="s-ic" />
+        <input
+          v-model="keyword"
+          type="search"
+          placeholder="按订单号搜索"
+          class="s-input"
+          @keyup.enter="onSearch"
+        />
+        <span v-if="keyword" class="s-clear" @click="onClear">×</span>
+      </div>
 
       <div class="status-tabs">
         <div v-for="t in tabs" :key="t.value"
@@ -42,12 +56,14 @@
         </div>
       </van-list>
     </div>
+    </van-pull-refresh>
   </div>
 </template>
 
 <script setup lang="ts">
 import { onActivated, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { showToast } from 'vant'
 import { h5Api, type OrderInfo as Order } from '@/api/h5'
 import NavBar from '@/components/NavBar.vue'
 import EmptyState from '@/components/EmptyState.vue'
@@ -59,6 +75,8 @@ const finished = ref(false)
 const page = ref(1)
 const list = ref<Order[]>([])
 const status = ref('')
+const keyword = ref('')
+const refreshing = ref(false)
 const tabs = [
   { label: '全部', value: '' },
   { label: '待支付', value: 'PENDING' },
@@ -73,7 +91,7 @@ async function load() {
   pending = true
   loading.value = true
   try {
-    const r: any = await h5Api.myOrders(status.value || undefined, page.value, 20)
+    const r: any = await h5Api.myOrders(status.value || undefined, keyword.value.trim() || undefined, page.value, 20)
     const items = Array.isArray(r) ? r : (r?.list || r?.records || [])
     list.value.push(...items)
     page.value++
@@ -82,7 +100,7 @@ async function load() {
       finished.value = true
     }
   } catch {
-    finished.value = true
+    // 加载失败: 不标 finished(避免伪装成"暂无订单")
   } finally {
     pending = false
     loading.value = false
@@ -97,6 +115,17 @@ function reset() {
 }
 
 function onTab(v: string) { status.value = v; reset(); load() }
+function onSearch() { reset(); load() }
+function onClear() { keyword.value = ''; reset(); load() }
+
+async function onRefresh() {
+  reset()
+  try {
+    await load()
+    showToast({ message: '已刷新', position: 'top' })
+  } catch {/* 静默 */}
+  finally { refreshing.value = false }
+}
 function open(o: any) { router.push(`/order/${o.id}`) }
 function statusLabel(s: string) {
   return ({ PENDING: '待支付', PAID: '已支付', REFUNDED: '已退款', VOID: '已作废' } as any)[s] || s
@@ -115,12 +144,39 @@ onActivated(() => { reset(); load() })
 .tip {
   font-size: 12px; color: var(--muted);
   letter-spacing: 0.04em; margin-bottom: 14px;
-  font-family: 'Songti SC', serif; opacity: 0.85;
+  font-family: var(--font-serif); opacity: 0.85;
   padding-left: 2px;
 }
 
 .status-tabs { display: flex; gap: 6px; margin-bottom: 14px; padding: 0 2px; overflow-x: auto; }
 .status-tabs::-webkit-scrollbar { display: none; }
+.pr-wrap { min-height: 60vh; }
+
+/* 搜索框 */
+.search-box {
+  display: flex; align-items: center; gap: 8px;
+  height: 38px;
+  padding: 0 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  margin-bottom: 12px;
+  transition: border-color var(--dur) var(--ease);
+}
+.search-box:focus-within { border-color: var(--brand); }
+.s-ic { color: var(--muted); font-size: 14px; }
+.s-input {
+  flex: 1; border: none; background: transparent; outline: none;
+  font-size: 13px; color: var(--ink);
+  font-family: inherit; letter-spacing: 0.02em;
+}
+.s-input::placeholder { color: var(--muted-2); }
+.s-clear {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--surface-3); color: var(--muted);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; line-height: 1; cursor: pointer;
+}
 .tab {
   padding: 6px 14px;
   font-size: 12.5px;

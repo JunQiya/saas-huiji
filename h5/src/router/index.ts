@@ -44,6 +44,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '消费记录' }
   },
   {
+    path: '/recharge',
+    name: 'Recharge',
+    component: () => import('@/views/Recharge.vue'),
+    meta: { title: '余额充值' }
+  },
+  {
     path: '/stores',
     name: 'Stores',
     component: () => import('@/views/Stores.vue'),
@@ -101,7 +107,13 @@ const routes: RouteRecordRaw[] = [
     path: '/promotion/:id',
     name: 'Promotion',
     component: () => import('@/views/Promotion.vue'),
-    meta: { title: '活动详情' }
+    meta: { title: '活动详情', public: true }
+  },
+  {
+    path: '/campaigns',
+    name: 'Campaigns',
+    component: () => import('@/views/Campaigns.vue'),
+    meta: { title: '全部活动', public: true }
   },
   {
     path: '/about',

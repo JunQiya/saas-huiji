@@ -36,12 +36,15 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
                        @Param("end") LocalDateTime end,
                        Pageable pageable);
 
-    /** 某会员的订单(分页, 不区分删除), H5 端"我的订单"使用 */
+    /** 某会员的订单(分页, 不区分删除), H5 端"我的订单"使用。keyword 支持按订单号模糊搜索 */
     @Query("select o from Order o where o.tenantId = :tenantId and o.memberId = :memberId and o.deleted = false " +
-            "and (:status is null or :status = '' or o.status = :status) order by o.id desc")
+            "and (:status is null or :status = '' or o.status = :status) " +
+            "and (:keyword is null or :keyword = '' or o.orderNo like concat('%', :keyword, '%')) " +
+            "order by o.id desc")
     Page<Order> listByMember(@Param("tenantId") Long tenantId,
                              @Param("memberId") Long memberId,
                              @Param("status") String status,
+                             @Param("keyword") String keyword,
                              Pageable pageable);
 
     /** 今日订单统计(storeId 为 null 时不过滤门店) */

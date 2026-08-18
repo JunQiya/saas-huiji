@@ -124,7 +124,7 @@ function onlineChat() { window.location.href = CONTACT.emailHref }
   color: var(--muted);
   letter-spacing: 0.04em;
   margin-bottom: 14px;
-  font-family: 'Songti SC', serif;
+  font-family: var(--font-serif);
   opacity: 0.85;
   padding-left: 2px;
 }

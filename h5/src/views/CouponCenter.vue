@@ -1,6 +1,7 @@
 <template>
   <div class="page coupon-center">
     <NavBar title="领券中心" back />
+    <van-pull-refresh v-model="refreshing" class="pr-wrap" @refresh="onRefresh">
     <div class="page-padding">
       <div class="page-tip">把好券先收下，到店时正好用上。</div>
 
@@ -12,7 +13,7 @@
           <div class="grid-top" :class="`type-${c.type}`">
             <div class="top-amount">
               <template v-if="c.type === 'PERCENT'">
-                {{ c.faceValue }}<span class="unit">折</span>
+                {{ ((c.faceValue || 0) / 10).toFixed(1).replace(/\.0$/, '') }}<span class="unit">折</span>
               </template>
               <template v-else-if="c.type === 'EXPERIENCE' || c.type === 'BIRTHDAY'">
                 <span class="unit gift">免费</span>
@@ -23,7 +24,7 @@
             </div>
             <div class="top-cond">
               <template v-if="c.type === 'FULL_CUT'">满 {{ ((c.threshold || 0) / 100).toFixed(0) }} 元可用</template>
-              <template v-else-if="c.type === 'PERCENT'">{{ ((c.faceValue || 0) / 10).toFixed(1) }} 折</template>
+              <template v-else-if="c.type === 'PERCENT'">全场通用</template>
               <template v-else-if="c.type === 'EXPERIENCE'">到店体验</template>
               <template v-else>生日专享</template>
             </div>
@@ -51,6 +52,7 @@
         </div>
       </div>
     </div>
+    </van-pull-refresh>
   </div>
 </template>
 
@@ -64,11 +66,21 @@ import EmptyState from '@/components/EmptyState.vue'
 
 const loading = ref(false)
 const list = ref<AvailableCoupon[]>([])
+const refreshing = ref(false)
+const claiming = ref<Set<string>>(new Set())
 
 async function load() {
   loading.value = true
   try { list.value = await h5Api.availableCoupons() } catch (e: any) { showToast(e?.message || '加载失败') }
   finally { loading.value = false }
+}
+
+async function onRefresh() {
+  try {
+    await load()
+    showToast({ message: '已刷新', position: 'top' })
+  } catch {/* 静默 */}
+  finally { refreshing.value = false }
 }
 
 function percent(c: AvailableCoupon) {
@@ -77,12 +89,15 @@ function percent(c: AvailableCoupon) {
 }
 
 async function onClaim(c: AvailableCoupon) {
-  if (c.claimed || c.remain === 0) return
+  if (c.claimed || c.remain === 0 || claiming.value.has(String(c.id))) return
+  claiming.value.add(String(c.id))
   try {
     await h5Api.claimCoupon(c.id)
     showToast('领取成功')
     await load()
-  } catch { showToast('领取失败') }
+  } catch { showToast('领取失败') } finally {
+    claiming.value.delete(String(c.id))
+  }
 }
 
 onMounted(load)
@@ -93,11 +108,12 @@ onActivated(load)
 .page-tip {
   font-size: 12px; color: var(--muted);
   letter-spacing: 0.04em; margin-bottom: 14px;
-  font-family: 'Songti SC', serif; opacity: 0.85;
+  font-family: var(--font-serif); opacity: 0.85;
   padding-left: 2px;
 }
 
 .loading { display: flex; justify-content: center; padding: 40px 0; }
+.pr-wrap { min-height: 60vh; }
 .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
 .grid-card {
   background: var(--surface);

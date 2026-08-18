@@ -72,7 +72,7 @@ public class ReferralService {
             code = genCode();
             tries++;
             if (tries > 50) throw new BizException(ErrorCode.SERVER_ERROR, "推荐码生成失败");
-        } while (referralRepository.findByCodeAndDeletedFalse(code).isPresent());
+        } while (referralRepository.findFirstByCodeAndDeletedFalse(code).isPresent());
         Referral r = new Referral();
         r.setReferrerId(memberId);
         r.setRefereeId(memberId); // 自占
@@ -103,7 +103,7 @@ public class ReferralService {
             throw new BizException(ErrorCode.BIZ_ERROR, "您已绑定过推荐人");
         }
         // 反查推荐人
-        Referral referrerRecord = referralRepository.findByCodeAndDeletedFalse(code.trim().toUpperCase())
+        Referral referrerRecord = referralRepository.findFirstByCodeAndDeletedFalse(code.trim().toUpperCase())
                 .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "推荐码无效"));
         Long referrerId = referrerRecord.getReferrerId();
         if (referrerId.equals(memberId)) {
@@ -180,6 +180,21 @@ public class ReferralService {
             return vo;
         }).toList();
         return PageData.of(rows, p.getTotalElements(), page, size);
+    }
+
+    /** 全局裂变汇总(全租户, 独立于分页) */
+    public Map<String, Object> globalSummary() {
+        Long tenantId = LoginUserHolder.currentTenantId();
+        LocalDateTime monthStart = LocalDateTime.now().withDayOfMonth(1).toLocalDate().atStartOfDay();
+        Map<String, Object> vo = new LinkedHashMap<>();
+        vo.put("total", referralRepository.countByTenantIdAndDeletedFalse(tenantId));
+        vo.put("monthCount", referralRepository.countByTenantIdAndCreatedAtAfterAndDeletedFalse(tenantId, monthStart));
+        vo.put("boundCount", referralRepository.countByTenantIdAndStatusAndDeletedFalse(tenantId, "ACTIVE")
+                + referralRepository.countByTenantIdAndStatusAndDeletedFalse(tenantId, "REWARDED"));
+        vo.put("rewardedCount", referralRepository.countByTenantIdAndStatusAndDeletedFalse(tenantId, "REWARDED"));
+        Long reward = referralRepository.sumRewardByTenant(tenantId);
+        vo.put("totalReward", reward == null ? 0L : reward);
+        return vo;
     }
 
     public List<Map<String, Object>> listByReferrer(Long memberId) {

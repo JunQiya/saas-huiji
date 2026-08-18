@@ -8,6 +8,7 @@ import com.huiji.entity.Game;
 import com.huiji.entity.GamePlay;
 import com.huiji.entity.GamePrize;
 import com.huiji.entity.Member;
+import com.huiji.repository.GamePlayRepository;
 import com.huiji.repository.MemberRepository;
 import com.huiji.security.LoginUser;
 import com.huiji.security.LoginUserHolder;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -39,33 +41,38 @@ public class H5GameController {
     private final GameService gameService;
     private final MemberTokenUtil memberTokenUtil;
     private final MemberRepository memberRepository;
+    private final GamePlayRepository playRepository;
 
-    /** 可玩的游戏列表(状态 ENABLED 且在有效期内) */
+    /** 可玩的游戏列表(状态 ENABLED 且在有效期内)，带当前会员剩余次数 */
     @GetMapping
-    public Result<List<Game>> list(@RequestParam(required = false) Long tenantId,
-                                   @RequestParam(required = false) String type,
-                                   HttpServletRequest req) {
+    public Result<List<Map<String, Object>>> list(@RequestParam(required = false) Long tenantId,
+                                                  @RequestParam(required = false) String type,
+                                                  HttpServletRequest req) {
         Long tid = resolveTenantId(tenantId, req);
+        Long memberId = MemberContext.tryMemberId(req, memberTokenUtil);
         List<Game> all = gameService.list(tid, "ENABLED");
         LocalDateTime now = LocalDateTime.now();
-        List<Game> result = all.stream()
+        List<Map<String, Object>> result = all.stream()
                 .filter(g -> now.isAfter(g.getStartTime()) && now.isBefore(g.getEndTime()))
                 .filter(g -> type == null || type.isBlank() || type.equalsIgnoreCase(g.getType()))
+                .map(g -> gameVO(g, remainingOf(tid, memberId, g)))
                 .collect(Collectors.toList());
         return Result.success(result);
     }
 
-    /** 游戏详情(含奖品列表) */
+    /** 游戏详情(含奖品列表与剩余次数) */
     @GetMapping("/{id}")
     public Result<Map<String, Object>> get(@PathVariable Long id,
                                            @RequestParam(required = false) Long tenantId,
                                            HttpServletRequest req) {
         Long tid = resolveTenantId(tenantId, req);
+        Long memberId = MemberContext.tryMemberId(req, memberTokenUtil);
         Game g = gameService.get(tid, id);
         List<GamePrize> prizes = gameService.prizes(tid, id);
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("game", g);
+        data.put("game", gameVO(g, remainingOf(tid, memberId, g)));
         data.put("prizes", prizes);
+        data.put("remaining", remainingOf(tid, memberId, g));
         return Result.success(data);
     }
 
@@ -93,6 +100,36 @@ public class H5GameController {
     }
 
     // ---- 内部方法 ----
+
+    /** 计算会员当日剩余可玩次数（未登录返回每日上限） */
+    private long remainingOf(Long tenantId, Long memberId, Game g) {
+        int dailyLimit = g.getDailyLimit() == null ? 1 : g.getDailyLimit();
+        if (memberId == null) return dailyLimit;
+        String dayKey = LocalDate.now().toString();
+        long todayCount = playRepository.countByTenantIdAndGameIdAndMemberIdAndDayKey(tenantId, g.getId(), memberId, dayKey);
+        return Math.max(0, dailyLimit - todayCount);
+    }
+
+    /** 游戏视图: 序列化常用字段并附带剩余次数 */
+    private Map<String, Object> gameVO(Game g, long remaining) {
+        Map<String, Object> vo = new LinkedHashMap<>();
+        vo.put("id", g.getId());
+        vo.put("name", g.getName());
+        vo.put("type", g.getType());
+        vo.put("subtitle", g.getSubtitle());
+        vo.put("coverImage", g.getCoverImage());
+        vo.put("bgImage", g.getBgImage());
+        vo.put("dailyLimit", g.getDailyLimit());
+        vo.put("totalLimit", g.getTotalLimit());
+        vo.put("pointsCost", g.getPointsCost());
+        vo.put("rules", g.getRules());
+        vo.put("startTime", g.getStartTime());
+        vo.put("endTime", g.getEndTime());
+        vo.put("status", g.getStatus());
+        vo.put("storeId", g.getStoreId());
+        vo.put("remaining", remaining);
+        return vo;
+    }
 
     /** 从 query 参数或 member token 推断 tenantId */
     private Long resolveTenantId(Long tenantId, HttpServletRequest req) {

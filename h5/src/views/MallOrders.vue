@@ -2,8 +2,22 @@
   <div class="page mall-orders">
     <NavBar title="我的订单" back />
 
+    <van-pull-refresh v-model="refreshing" class="pr-wrap" @refresh="onRefresh">
     <div class="page-padding">
       <div class="tip">每一笔订单，都是一份心意的托付。</div>
+
+      <!-- 搜索 -->
+      <div class="search-box">
+        <van-icon name="search" class="s-ic" />
+        <input
+          v-model="keyword"
+          type="search"
+          placeholder="按订单号搜索"
+          class="s-input"
+          @keyup.enter="onSearch"
+        />
+        <span v-if="keyword" class="s-clear" @click="onClear">×</span>
+      </div>
 
       <!-- 状态 tab -->
       <div class="status-tabs">
@@ -69,6 +83,7 @@
         </div>
       </van-list>
     </div>
+    </van-pull-refresh>
 
     <!-- 订单详情弹层 -->
     <van-popup v-model:show="detailVisible" position="bottom" round :style="{ maxHeight: '80%' }">
@@ -217,7 +232,9 @@ const finished = ref(false)
 const page = ref(1)
 const list = ref<MallOrder[]>([])
 const status = ref('')
+const keyword = ref('')
 const highlightId = ref<number | string>('')
+const refreshing = ref(false)
 
 const tabs = [
   { label: '全部', value: '' },
@@ -237,6 +254,7 @@ async function load() {
   try {
     const data: any = await mallApi.myOrders({
       status: status.value || undefined,
+      keyword: keyword.value.trim() || undefined,
       page: page.value,
       size: 20
     })
@@ -252,7 +270,7 @@ async function load() {
       setTimeout(() => { highlightId.value = '' }, 2000)
     }
   } catch {
-    finished.value = true
+    // 加载失败: 不标 finished(避免伪装成"暂无订单")
   } finally {
     pending = false
     loading.value = false
@@ -270,6 +288,18 @@ function onTab(v: string) {
   status.value = v
   reset()
   load()
+}
+
+function onSearch() { reset(); load() }
+function onClear() { keyword.value = ''; reset(); load() }
+
+async function onRefresh() {
+  reset()
+  try {
+    await load()
+    showToast({ message: '已刷新', position: 'top' })
+  } catch {/* 静默 */}
+  finally { refreshing.value = false }
 }
 
 // 订单详情弹层
@@ -387,7 +417,6 @@ const fmt = formatDateTime
 
 onMounted(() => {
   if (route.query.highlight) highlightId.value = String(route.query.highlight)
-  load()
 })
 
 onActivated(() => {
@@ -402,6 +431,7 @@ onActivated(() => {
   font-family: var(--font-serif); opacity: 0.85;
   padding-left: 2px;
 }
+.pr-wrap { min-height: 60vh; }
 
 .status-tabs {
   display: flex; gap: 6px;
@@ -410,6 +440,32 @@ onActivated(() => {
   overflow-x: auto;
 }
 .status-tabs::-webkit-scrollbar { display: none; }
+
+/* 搜索框 */
+.search-box {
+  display: flex; align-items: center; gap: 8px;
+  height: 38px;
+  padding: 0 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  margin-bottom: 12px;
+  transition: border-color var(--dur) var(--ease);
+}
+.search-box:focus-within { border-color: var(--brand); }
+.s-ic { color: var(--muted); font-size: 14px; }
+.s-input {
+  flex: 1; border: none; background: transparent; outline: none;
+  font-size: 13px; color: var(--ink);
+  font-family: inherit; letter-spacing: 0.02em;
+}
+.s-input::placeholder { color: var(--muted-2); }
+.s-clear {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--surface-3); color: var(--muted);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; line-height: 1; cursor: pointer;
+}
 .tab {
   padding: 6px 14px;
   font-size: 12.5px;

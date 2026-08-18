@@ -69,4 +69,15 @@ public final class MemberContext {
             return DEFAULT_TENANT_ID;
         }
     }
+
+    /**
+     * 尽力解析 memberId（用于公开接口，未登录返回 null）。
+     */
+    public static Long tryMemberId(HttpServletRequest req, MemberTokenUtil tokenUtil) {
+        try {
+            return require(req, tokenUtil)[0];
+        } catch (Exception e) {
+            return null;
+        }
+    }
 }

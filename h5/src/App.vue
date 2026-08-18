@@ -11,8 +11,21 @@ onMounted(() => {
 
 <template>
   <router-view v-slot="{ Component }">
-    <keep-alive :include="['Home', 'Profile', 'MallOrders', 'Dining']">
-      <component :is="Component" />
-    </keep-alive>
+    <transition name="page-fade" mode="out-in">
+      <keep-alive :include="['Home', 'Profile', 'MallOrders', 'Dining']">
+        <component :is="Component" />
+      </keep-alive>
+    </transition>
   </router-view>
 </template>
+
+<style>
+.page-fade-enter-active,
+.page-fade-leave-active {
+  transition: opacity var(--dur) var(--ease-out);
+}
+.page-fade-enter-from,
+.page-fade-leave-to {
+  opacity: 0;
+}
+</style>

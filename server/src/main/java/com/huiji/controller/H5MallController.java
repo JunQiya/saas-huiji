@@ -157,10 +157,11 @@ public class H5MallController {
     @GetMapping("/my-orders")
     public Result<Map<String, Object>> myOrders(HttpServletRequest req,
                                                  @RequestParam(required = false) String status,
+                                                 @RequestParam(required = false) String keyword,
                                                  @RequestParam(defaultValue = "1") int page,
                                                  @RequestParam(defaultValue = "20") int size) {
         long[] ctx = currentMember(req);
-        return Result.success(mallService.myOrders(ctx[1], ctx[0], status, page, size));
+        return Result.success(mallService.myOrders(ctx[1], ctx[0], status, keyword, page, size));
     }
 
     /** 订单详情 */

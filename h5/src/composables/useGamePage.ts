@@ -31,7 +31,7 @@ export function useGamePage() {
       const d = await gameApi.detail(gameId)
       game.value = d?.game ?? d
       prizes.value = d?.prizes || []
-      remaining.value = d?.game?.dailyLimit ?? 0
+      remaining.value = Number(d?.remaining ?? d?.game?.remaining ?? d?.game?.dailyLimit ?? 0)
     } catch (e: any) { console.warn('loadDetail failed', e) }
     finally { loading.value = false }
   }

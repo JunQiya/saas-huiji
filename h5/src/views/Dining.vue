@@ -242,6 +242,12 @@ function changeQty(id: string | number, delta: number) {
   if (!p) return
   const cur = cart.value[id]?.qty || 0
   const next = Math.max(0, cur + delta)
+  // 库存上限
+  const stock = p.stock != null ? Number(p.stock) : null
+  if (stock != null && next > stock) {
+    showToast(`库存仅 ${stock}`)
+    return
+  }
   if (next === 0) {
     delete cart.value[id]
   } else {
@@ -315,8 +321,8 @@ async function submitOrder() {
     if (orderId) {
       setTimeout(() => router.replace(`/order/${orderId}`), 500)
     }
-  } catch {
-    // 错误已在拦截器提示
+  } catch (e: any) {
+    showToast(e?.message || '点餐失败，请稍后再试')
   } finally {
     submitting.value = false
   }

@@ -195,6 +195,10 @@ public class DataInitializer {
         // 2. 门店
         Store s1 = store("星河·会记 旗舰店", "上海市黄浦区南京东路 100 号", "021-63008888", "09:00-22:00", tid);
         Store s2 = store("星河·会记 静安店", "上海市静安区南京西路 200 号", "021-62886666", "10:00-21:30", tid);
+        s1.setLatitude(31.2397);
+        s1.setLongitude(121.4757);
+        s2.setLatitude(31.2286);
+        s2.setLongitude(121.4581);
 
         // 3. 员工
         user(tid, "admin", "123456", "超级管理员", "13800000000", "TENANT_ADMIN", List.of());

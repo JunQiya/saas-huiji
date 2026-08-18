@@ -13,6 +13,7 @@ import com.huiji.security.MemberContext;
 import com.huiji.security.MemberTokenUtil;
 import com.huiji.service.H5Service;
 import com.huiji.service.MallService;
+import com.huiji.service.MemberService;
 import com.huiji.service.OrderService;
 import com.huiji.service.ProductService;
 import com.huiji.service.SmsCodeService;
@@ -32,6 +33,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /** H5 会员端接口(公开, 凭 memberToken) */
 @RestController
@@ -44,6 +46,7 @@ public class H5Controller {
     private final OrderService orderService;
     private final ProductService productService;
     private final MallService mallService;
+    private final MemberService memberService;
     private final CampaignRepository campaignRepository;
     private final SmsCodeService smsCodeService;
 
@@ -117,17 +120,40 @@ public class H5Controller {
         return Result.success(h5Service.stores(tenantId));
     }
 
+    // ============ 储值钱包(H5 会员端) ============
+
+    /** 充值规则(充 X 送 Y) */
+    @GetMapping("/wallet/rules")
+    public Result<List<Map<String, Object>>> walletRules(HttpServletRequest req) {
+        long[] ctx = currentMember(req);
+        return Result.success(h5Service.rechargeRules(ctx[1]));
+    }
+
+    /** 会员充值(演示环境直接到账) */
+    @PostMapping("/wallet/recharge")
+    public Result<Map<String, Object>> recharge(HttpServletRequest req,
+                                                @Valid @RequestBody H5Dto.RechargeRequest body) {
+        long[] ctx = currentMember(req);
+        bindAsMember(ctx[0], ctx[1]);
+        try {
+            return Result.success(memberService.recharge(ctx[0], body.toMemberRecharge()));
+        } finally {
+            LoginUserHolder.clear();
+        }
+    }
+
     // ============ 新增: 我的订单 ============
 
     @GetMapping("/orders")
     public Result<PageData<Map<String, Object>>> orders(HttpServletRequest req,
                                                         @RequestParam(required = false) String status,
+                                                        @RequestParam(required = false) String keyword,
                                                         @RequestParam(defaultValue = "1") int page,
                                                         @RequestParam(defaultValue = "20") int size) {
         long[] ctx = currentMember(req);
         bindAsMember(ctx[0], ctx[1]);
         try {
-            return Result.success(orderService.listByMember(ctx[0], status, page, size));
+            return Result.success(orderService.listByMember(ctx[0], status, keyword, page, size));
         } finally {
             LoginUserHolder.clear();
         }
@@ -181,6 +207,19 @@ public class H5Controller {
         }
     }
 
+    /** 活动列表(公开, 按租户隔离): 仅返回启用且在有效期内的活动 */
+    @GetMapping("/campaigns")
+    public Result<List<Map<String, Object>>> campaigns(HttpServletRequest req) {
+        Long tenantId = tryTenantId(req);
+        LocalDateTime now = LocalDateTime.now();
+        List<Map<String, Object>> list = campaignRepository.listByTenant(tenantId, "ENABLED").stream()
+                .filter(c -> (c.getStartAt() == null || !c.getStartAt().isAfter(now))
+                        && (c.getEndAt() == null || !c.getEndAt().isBefore(now)))
+                .map(this::campaignVO)
+                .collect(Collectors.toList());
+        return Result.success(list);
+    }
+
     /** 活动详情(公开, 无需 member token, 按租户隔离) */
     @GetMapping("/campaigns/{id}")
     public Result<Map<String, Object>> campaignDetail(@PathVariable Long id, HttpServletRequest req) {
@@ -189,6 +228,11 @@ public class H5Controller {
                 .filter(x -> !Boolean.TRUE.equals(x.getDeleted()))
                 .filter(x -> tenantId.equals(x.getTenantId()))
                 .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "活动不存在"));
+        return Result.success(campaignVO(c));
+    }
+
+    /** 活动视图对象(与 H5 前端契约一致) */
+    private Map<String, Object> campaignVO(Campaign c) {
         Map<String, Object> vo = new LinkedHashMap<>();
         vo.put("id", c.getId());
         vo.put("name", c.getName());
@@ -201,7 +245,7 @@ public class H5Controller {
         vo.put("couponId", null);
         vo.put("link", null);
         vo.put("status", Boolean.TRUE.equals(c.getEnabled()) ? "ENABLED" : "DISABLED");
-        return Result.success(vo);
+        return vo;
     }
 
     private String buildCampaignTimeText(LocalDateTime start, LocalDateTime end) {

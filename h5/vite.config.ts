@@ -4,7 +4,7 @@ import Components from 'unplugin-vue-components/vite'
 import { VantResolver } from '@vant/auto-import-resolver'
 import { fileURLToPath, URL } from 'node:url'
 
-// Vite 配置：H5 会员端，端口 5174，dev 代理 /api → 后端 8080
+// Vite 配置：H5 会员端，端口 5174，dev 代理 /api → 后端 8081
 export default defineConfig({
   plugins: [
     vue(),
@@ -22,7 +22,7 @@ export default defineConfig({
     port: 5174,
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'http://localhost:8081',
         changeOrigin: true
       }
     }
@@ -32,6 +32,14 @@ export default defineConfig({
     target: 'es2015',
     cssCodeSplit: true,
     sourcemap: false,
-    chunkSizeWarningLimit: 800
+    chunkSizeWarningLimit: 800,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vue-vendor': ['vue', 'vue-router', 'pinia'],
+          'lib-vendor': ['axios', 'qrcode']
+        }
+      }
+    }
   }
 })

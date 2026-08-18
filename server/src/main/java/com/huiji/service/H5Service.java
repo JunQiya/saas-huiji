@@ -124,6 +124,16 @@ public class H5Service {
                 .map(this::storeVO).collect(Collectors.toList());
     }
 
+    /** 储值充值规则(充 X 送 Y) */
+    public List<Map<String, Object>> rechargeRules(Long tenantId) {
+        return settingsService.rechargeRules(tenantId).stream().map(r -> {
+            Map<String, Object> vo = new LinkedHashMap<>();
+            vo.put("recharge", r.getRecharge());
+            vo.put("gift", r.getGift());
+            return vo;
+        }).collect(Collectors.toList());
+    }
+
     private Map<String, Object> txVO(WalletTransaction t) {
         Map<String, Object> vo = new LinkedHashMap<>();
         vo.put("id", t.getId());
@@ -144,6 +154,15 @@ public class H5Service {
         vo.put("grantedAt", r.getGrantedAt());
         vo.put("usedAt", r.getUsedAt());
         vo.put("expireAt", r.getExpireAt());
+        // 附带券模板类型/面值/门槛, 供 H5 正确渲染金额与折扣
+        if (r.getCouponId() != null) {
+            couponRepository.findById(r.getCouponId()).ifPresent(c -> {
+                vo.put("type", c.getType());
+                vo.put("faceValue", c.getFaceValue());
+                vo.put("threshold", c.getThreshold());
+                vo.put("validType", c.getValidType());
+            });
+        }
         return vo;
     }
 
@@ -155,6 +174,8 @@ public class H5Service {
         vo.put("phone", s.getPhone());
         vo.put("businessHours", s.getBusinessHours());
         vo.put("status", s.getStatus());
+        vo.put("latitude", s.getLatitude());
+        vo.put("longitude", s.getLongitude());
         return vo;
     }
 }

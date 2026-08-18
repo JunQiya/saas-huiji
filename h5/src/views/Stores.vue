@@ -39,6 +39,15 @@
             <a v-if="s.phone" :href="`tel:${s.phone}`" class="action-link">
               <van-icon name="phone-o" /> 拨号
             </a>
+            <a
+              v-if="s.latitude != null && s.longitude != null"
+              :href="mapHref(s)"
+              target="_blank"
+              rel="noopener"
+              class="action-link"
+            >
+              <van-icon name="location-o" /> 导航
+            </a>
             <span v-if="s.distance" class="distance">{{ formatDist(s.distance) }}</span>
             <span v-else class="distance">—</span>
           </div>
@@ -80,18 +89,19 @@ function haversine(lat1: number, lng1: number, lat2: number, lng2: number): numb
   return Math.round(2 * R * Math.asin(Math.sqrt(a)))
 }
 
-// 获取用户定位后为每个门店计算距离
+// 获取用户定位后为每个门店计算距离并按远近排序
 function calcDistances() {
   if (!navigator.geolocation) return
   navigator.geolocation.getCurrentPosition(
     (pos) => {
       const { latitude: ulat, longitude: ulng } = pos.coords
-      list.value = list.value.map(s => {
+      const withDist = list.value.map(s => {
         if (s.latitude != null && s.longitude != null) {
           return { ...s, distance: haversine(ulat, ulng, s.latitude, s.longitude) }
         }
         return s
       })
+      list.value = withDist.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
     },
     () => {/* 用户拒绝或获取失败，静默处理 */},
     { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
@@ -106,6 +116,15 @@ function formatDist(m: number) {
   return `${(m / 1000).toFixed(1)} km`
 }
 
+// 地图导航：iOS 用 Apple 地图，其余用高德（微信内可唤起）
+function mapHref(s: any): string {
+  const { latitude, longitude, name } = s
+  if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+    return `http://maps.apple.com/?ll=${latitude},${longitude}&q=${encodeURIComponent(name || '')}`
+  }
+  return `https://uri.amap.com/marker?position=${longitude},${latitude}&name=${encodeURIComponent(name || '')}`
+}
+
 onMounted(load)
 onActivated(load)
 </script>
@@ -116,7 +135,7 @@ onActivated(load)
   color: var(--muted);
   letter-spacing: 0.04em;
   margin-bottom: 14px;
-  font-family: 'Songti SC', serif;
+  font-family: var(--font-serif);
   opacity: 0.85;
   padding-left: 2px;
 }

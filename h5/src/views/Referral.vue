@@ -93,6 +93,7 @@ import { onMounted, ref, watch, nextTick } from 'vue'
 import { showSuccessToast, showFailToast, showToast } from 'vant'
 import QRCode from 'qrcode'
 import { referralApi } from '@/api/h5'
+import { initWxSdk, wxShare } from '@/utils/wx-sdk'
 import { formatDate, fenToYuan } from '@/utils/format'
 
 function formatMoney(fen?: number) { return fenToYuan(fen || 0) }
@@ -106,7 +107,8 @@ const qrCanvas = ref<HTMLCanvasElement>()
 
 async function drawQr() {
   if (!qrCanvas.value || !info.value.code) return
-  const url = `${window.location.origin}/#/login?ref=${info.value.code}`
+  // 路由为 createWebHistory(无 hash), 使用 /login?ref=xxx 分享链接
+  const url = `${window.location.origin}/login?ref=${info.value.code}`
   try {
     await QRCode.toCanvas(qrCanvas.value, url, {
       width: 200,
@@ -172,6 +174,12 @@ function chipClass(s: string) {
 onMounted(async () => {
   await loadAll()
   nextTick(drawQr)
+  // 设置微信分享：带上邀请码，朋友打开即引导绑定
+  try {
+    await initWxSdk()
+    const shareLink = `${window.location.origin}/login?ref=${info.value.code || ''}`
+    wxShare('星河·会记 · 邀请有礼', '老带新，双向各得 30 元券', shareLink, '')
+  } catch {/* 非微信环境静默失败 */}
 })
 </script>
 
@@ -269,7 +277,7 @@ onMounted(async () => {
   background: linear-gradient(135deg, #f4f2ec, #e8e3d6);
   color: var(--brand-deep); font-weight: 500;
   display: flex; align-items: center; justify-content: center;
-  font-family: 'Songti SC', serif; font-size: 15px;
+  font-family: var(--font-serif); font-size: 15px;
   flex-shrink: 0;
 }
 .li-main { flex: 1; min-width: 0; }

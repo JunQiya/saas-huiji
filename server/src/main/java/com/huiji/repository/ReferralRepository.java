@@ -14,7 +14,8 @@ public interface ReferralRepository extends JpaRepository<Referral, Long> {
 
     Optional<Referral> findByRefereeIdAndDeletedFalse(Long refereeId);
 
-    Optional<Referral> findByCodeAndDeletedFalse(String code);
+    /** 按邀请码反查推荐人记录：同一邀请码可能出现在多条被绑记录上，取最早一条（本人占位记录） */
+    Optional<Referral> findFirstByCodeAndDeletedFalse(String code);
 
     List<Referral> findByReferrerIdAndDeletedFalseOrderByIdDesc(Long referrerId);
 
@@ -27,6 +28,15 @@ public interface ReferralRepository extends JpaRepository<Referral, Long> {
     long countByReferrerIdAndDeletedFalse(Long referrerId);
 
     long countByReferrerIdAndStatusAndDeletedFalse(Long referrerId, String status);
+
+    long countByTenantIdAndDeletedFalse(Long tenantId);
+
+    long countByTenantIdAndStatusAndDeletedFalse(Long tenantId, String status);
+
+    long countByTenantIdAndCreatedAtAfterAndDeletedFalse(Long tenantId, java.time.LocalDateTime after);
+
+    @Query("select coalesce(sum(r.rewardAmount),0) from Referral r where r.tenantId = :tenantId and r.deleted = false")
+    Long sumRewardByTenant(@Param("tenantId") Long tenantId);
 
     @Query("select coalesce(sum(r.rewardAmount),0) from Referral r where r.referrerId = :referrerId " +
             "and r.deleted = false")

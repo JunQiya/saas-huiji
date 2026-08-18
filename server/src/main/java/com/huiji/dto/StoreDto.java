@@ -14,5 +14,9 @@ public class StoreDto {
         private String phone;
         private String businessHours;
         private String status;
+        /** 纬度(用于 H5 附近门店距离与导航) */
+        private Double latitude;
+        /** 经度 */
+        private Double longitude;
     }
 }

@@ -258,7 +258,7 @@ function findPrizeIndex(res: any): number {
 .wheel-outer {
   width: 100%; height: 100%;
   border-radius: 50%;
-  background: #fff;
+  background: var(--surface);
   border: 4px solid var(--surface-3);
   box-shadow: 0 6px 24px rgba(31, 29, 24, 0.10);
   overflow: hidden;
@@ -300,7 +300,7 @@ function findPrizeIndex(res: any): number {
   box-shadow: 0 4px 14px rgba(61, 89, 122, 0.35);
   cursor: pointer;
   transition: transform var(--dur) var(--ease-out);
-  border: 3px solid #fff;
+  border: 3px solid var(--surface);
 }
 .wheel-pointer:active { transform: translate(-50%, -50%) scale(0.94); }
 .ptr-text {

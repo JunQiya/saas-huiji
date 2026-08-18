@@ -16,7 +16,7 @@
           @click="enter(g)"
         >
           <div class="gc-cover">
-            <img v-if="g.coverImage" :src="g.coverImage" :alt="g.name" />
+            <img v-if="g.coverImage" :src="g.coverImage" :alt="g.name" loading="lazy" />
             <van-icon v-else :name="typeIcon(g.type)" size="36" />
           </div>
           <div class="gc-body">

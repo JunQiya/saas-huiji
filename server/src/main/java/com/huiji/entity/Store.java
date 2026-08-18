@@ -28,4 +28,12 @@ public class Store extends BaseEntity {
     /** ACTIVE / DISABLED */
     @Column
     private String status = "ACTIVE";
+
+    /** 纬度(用于 H5 端距离计算与地图导航) */
+    @Column
+    private Double latitude;
+
+    /** 经度 */
+    @Column
+    private Double longitude;
 }

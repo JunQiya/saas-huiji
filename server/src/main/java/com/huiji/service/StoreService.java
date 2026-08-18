@@ -83,6 +83,8 @@ public class StoreService {
         if (req.getPhone() != null) s.setPhone(req.getPhone());
         if (req.getBusinessHours() != null) s.setBusinessHours(req.getBusinessHours());
         if (req.getStatus() != null) s.setStatus(req.getStatus());
+        if (req.getLatitude() != null) s.setLatitude(req.getLatitude());
+        if (req.getLongitude() != null) s.setLongitude(req.getLongitude());
     }
 
     public Map<String, Object> toVO(Store s) {
@@ -93,6 +95,8 @@ public class StoreService {
         vo.put("phone", s.getPhone());
         vo.put("businessHours", s.getBusinessHours());
         vo.put("status", s.getStatus());
+        vo.put("latitude", s.getLatitude());
+        vo.put("longitude", s.getLongitude());
         vo.put("createdAt", s.getCreatedAt());
         return vo;
     }

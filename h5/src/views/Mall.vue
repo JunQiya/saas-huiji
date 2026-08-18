@@ -87,6 +87,9 @@
     </div>
 
     <div class="footnote">星河好物 · 一份心意</div>
+
+    <!-- 底部 tabbar -->
+    <TabBar :items="TAB_ITEMS" />
   </div>
 </template>
 
@@ -98,6 +101,8 @@ import { mallApi } from '@/api/h5'
 import { useMemberStore } from '@/stores/member'
 import NavBar from '@/components/NavBar.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import TabBar from '@/components/TabBar.vue'
+import { TAB_ITEMS } from '@/constants/tabs'
 import { fenToYuan } from '@/utils/format'
 
 const router = useRouter()
@@ -152,7 +157,7 @@ async function load() {
       finished.value = true
     }
   } catch {
-    finished.value = true
+    // 加载失败: 不标 finished(避免伪装成空列表)
   } finally {
     pending = false
     loading.value = false
@@ -232,7 +237,7 @@ onActivated(() => { loadCartCount(); reset(); load() })
 </script>
 
 <style scoped>
-.mall { padding-bottom: 96px; }
+.mall { padding-bottom: 130px; }
 
 .search-bar { padding: 6px 12px 0; }
 .search-bar :deep(.van-search) { padding: 0; background: transparent; }
@@ -355,11 +360,11 @@ onActivated(() => { loadCartCount(); reset(); load() })
   transition: transform var(--dur) var(--ease);
 }
 .cart-fab {
-  bottom: 28px;
+  bottom: 92px;
   background: var(--brand-deep);
 }
 .orders-fab {
-  bottom: 88px;
+  bottom: 152px;
   background: var(--surface);
   border: 1px solid var(--line);
 }

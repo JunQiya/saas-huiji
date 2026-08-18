@@ -309,10 +309,10 @@ public class OrderService {
         return PageData.of(list, p.getTotalElements(), page, size);
     }
 
-    public PageData<Map<String, Object>> listByMember(Long memberId, String status, int page, int size) {
+    public PageData<Map<String, Object>> listByMember(Long memberId, String status, String keyword, int page, int size) {
         Long tenantId = LoginUserHolder.currentTenantId();
         Pageable pageable = PageRequest.of(Math.max(0, page - 1), size <= 0 ? 20 : size);
-        Page<Order> p = orderRepository.listByMember(tenantId, memberId, blank(status), pageable);
+        Page<Order> p = orderRepository.listByMember(tenantId, memberId, blank(status), keyword, pageable);
         List<Map<String, Object>> list = p.getContent().stream().map(this::toVO).toList();
         return PageData.of(list, p.getTotalElements(), page, size);
     }

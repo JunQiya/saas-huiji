@@ -3,9 +3,10 @@
     <!-- 顶部 blog header -->
     <BlogHeader :slogan="slogan" />
 
+    <van-pull-refresh v-model="refreshing" class="profile-refresh" @refresh="onRefresh">
     <!-- 用户卡 -->
     <div class="user-wrap">
-      <div class="user-card" :class="`lv-${memberInfo?.level || 1}`">
+      <div class="user-card" :class="`lv-${memberInfo?.level || 1}`" @click="openMemberQr">
         <div class="uc-content">
           <div class="uc-top">
             <div class="uc-avatar">{{ avatarText }}</div>
@@ -16,7 +17,7 @@
               </div>
               <div class="uc-phone">{{ memberInfo?.phone || '点击登录' }}</div>
             </div>
-            <van-icon name="setting-o" class="uc-set" @click="router.push('/profile')" />
+            <van-icon name="setting-o" class="uc-set" @click.stop="openSettings" />
           </div>
           <div class="uc-progress" v-if="memberInfo">
             <div class="prog-row">
@@ -26,6 +27,10 @@
             <div class="prog-bar">
               <div class="prog-fill" :style="{ width: progressPct + '%' }"></div>
             </div>
+          </div>
+          <div class="uc-qr-hint">
+            <van-icon name="qr" size="12" />
+            <span>点击出示会员码</span>
           </div>
         </div>
       </div>
@@ -110,6 +115,7 @@
         <van-switch :model-value="isDark" size="20px" @update:model-value="toggleDark" />
       </div>
     </div>
+    </van-pull-refresh>
 
     <!-- 退出 -->
     <div class="logout-btn" @click="onLogout">
@@ -118,6 +124,24 @@
     </div>
 
     <div class="version">v 1.0 · 星河·会记</div>
+
+    <!-- 设置动作面板 -->
+    <van-action-sheet
+      v-model:show="settingsVisible"
+      :actions="settingsActions"
+      cancel-text="取消"
+      description="账号与帮助"
+      @select="onSettingsSelect"
+    />
+
+    <!-- 会员码弹窗 -->
+    <MemberQrPopup
+      v-model:show="memberQrVisible"
+      :member-id="memberInfo?.id"
+      :name="memberInfo?.name"
+      :phone="memberInfo?.phone"
+      :level-name="memberInfo?.levelName"
+    />
 
     <TabBar :items="TAB_ITEMS" />
     <div class="bottom-placeholder"></div>
@@ -132,6 +156,7 @@ import { useMemberStore } from '@/stores/member'
 import { h5Api } from '@/api/h5'
 import BlogHeader from '@/components/BlogHeader.vue'
 import TabBar from '@/components/TabBar.vue'
+import MemberQrPopup from '@/components/MemberQrPopup.vue'
 import { TAB_ITEMS } from '@/constants/tabs'
 
 const router = useRouter()
@@ -139,6 +164,14 @@ const memberStore = useMemberStore()
 const memberInfo = computed(() => memberStore.memberInfo)
 const isDark = ref(localStorage.getItem('theme') === 'dark')
 const recentTx = ref<any[]>([])
+const refreshing = ref(false)
+const memberQrVisible = ref(false)
+const settingsVisible = ref(false)
+const settingsActions = [
+  { name: '帮助中心', path: '/help' },
+  { name: '关于星河', path: '/about' },
+  { name: '退出登录', danger: true }
+]
 
 function toggleDark(val: boolean) {
   isDark.value = val
@@ -159,10 +192,13 @@ const avatarText = computed(() => memberInfo.value?.name?.charAt(0) || '星')
 // 等级门槛（元）：普通 0 / 银卡 500 / 金卡 2000 / 钻石 5000
 const LEVEL_THRESHOLDS = [0, 500, 2000, 5000]
 
-// 下一等级门槛（元）：优先用后端返回的 nextLevelThreshold，否则按等级规则推算
+// 下一等级门槛（元）：优先用后端返回的 nextLevelThreshold(分)，否则按等级规则推算
 const nextThreshold = computed(() => {
   const p = memberInfo.value as any
-  if (p?.nextLevelThreshold != null) return p.nextLevelThreshold
+  if (p?.nextLevelThreshold != null) {
+    // 后端按「分」返回, 转元展示, 与 totalAmount 一致
+    return Number(p.nextLevelThreshold) / 100
+  }
   const v = (p?.totalAmount || 0) / 100
   return LEVEL_THRESHOLDS.find(t => t > v) ?? 0
 })
@@ -181,15 +217,17 @@ const gapToNext = computed(() => {
 })
 
 const mineMenus: { label: string; icon: string; tone: string; path: string; badge?: string }[] = [
-  { label: '我的券', icon: 'coupon-o', tone: 'brand', path: '/my-coupons' },
+  { label: '余额充值', icon: 'gold-coin-o', tone: 'brand', path: '/recharge' },
+  { label: '我的券', icon: 'coupon-o', tone: 'rose', path: '/coupons' },
   { label: '消费记录', icon: 'balance-list-o', tone: 'mist', path: '/transactions' },
-  { label: '我的订单', icon: 'orders-o', tone: 'rose', path: '/my-orders' },
+  { label: '我的订单', icon: 'orders-o', tone: 'twilight', path: '/my-orders' },
   { label: '商城订单', icon: 'gift-o', tone: 'brand', path: '/mall/orders' },
   { label: '门店点餐', icon: 'shop-o', tone: 'clay', path: '/dining' },
   { label: '附近门店', icon: 'location-o', tone: 'mist', path: '/stores' }
 ]
 
 const serviceMenus: { label: string; icon: string; tone: string; path: string; badge?: string }[] = [
+  { label: '营销活动', icon: 'megaphone-o', tone: 'clay', path: '/campaigns' },
   { label: '积分商城', icon: 'star-o', tone: 'brand', path: '/mall' },
   { label: '赢奖游戏', icon: 'point-gift-o', tone: 'twilight', path: '/games' },
   { label: '邀请有礼', icon: 'share-o', tone: 'rose', path: '/referral', badge: '双向 30' },
@@ -199,6 +237,36 @@ const serviceMenus: { label: string; icon: string; tone: string; path: string; b
 
 function onClick(m: any) {
   if (m.path) router.push(m.path)
+}
+
+function openSettings() {
+  settingsVisible.value = true
+}
+
+function onSettingsSelect(action: any) {
+  if (action?.name === '退出登录') {
+    onLogout()
+  } else if (action?.path) {
+    settingsVisible.value = false
+    router.push(action.path)
+  }
+}
+
+function openMemberQr() {
+  if (!memberStore.isLogin) {
+    showToast('请先登录')
+    setTimeout(() => router.push({ path: '/login', query: { redirect: '/profile' } }), 600)
+    return
+  }
+  memberQrVisible.value = true
+}
+
+async function onRefresh() {
+  try {
+    await Promise.allSettled([loadProfile(), loadRecentTx()])
+    showToast({ message: '已刷新', position: 'top' })
+  } catch {/* 静默 */}
+  finally { refreshing.value = false }
 }
 
 async function onLogout() {
@@ -259,8 +327,9 @@ function txAmountClass(t: any) {
   return 'out'
 }
 function txAmountText(t: any) {
-  const sign = (t.type === 'RECHARGE' || t.type === 'REFUND' || t.type === 'POINT') ? '+' : '-'
-  if (t.type === 'POINT') return `${sign}${t.amount} 分`
+  const pos = t.amount != null && t.amount >= 0
+  if (t.type === 'POINT') return `${pos ? '+' : '-'}${Math.abs(t.amount || 0)} 分`
+  const sign = (t.type === 'RECHARGE' || t.type === 'REFUND' || pos) ? '+' : '-'
   return `${sign}¥${(Math.abs(t.amount || 0) / 100).toFixed(2)}`
 }
 function formatTime(s: any) {
@@ -282,6 +351,7 @@ onActivated(() => {
 
 <style scoped>
 .profile { padding-bottom: 24px; }
+.profile-refresh { min-height: 60vh; }
 
 .user-wrap { padding: 0 16px 12px; }
 .user-card {
@@ -306,7 +376,7 @@ onActivated(() => {
   border: 2px solid rgba(255, 255, 255, 0.30);
   display: flex; align-items: center; justify-content: center;
   font-size: 22px; font-weight: 500;
-  font-family: 'Songti SC', serif;
+  font-family: var(--font-serif);
 }
 .uc-info { flex: 1; min-width: 0; }
 .uc-name {
@@ -336,6 +406,16 @@ onActivated(() => {
 }
 
 .uc-progress { margin-top: 14px; }
+.uc-qr-hint {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin-top: 12px;
+  font-size: 10.5px;
+  opacity: 0.75;
+  background: rgba(255, 255, 255, 0.16);
+  padding: 3px 10px;
+  border-radius: 999px;
+  letter-spacing: 0.08em;
+}
 .prog-row { display: flex; justify-content: space-between; font-size: 11px; opacity: 0.85; margin-bottom: 6px; }
 .prog-tip { opacity: 0.7; }
 .prog-bar { height: 4px; background: rgba(255, 255, 255, 0.18); border-radius: 2px; overflow: hidden; }

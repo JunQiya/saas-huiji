@@ -54,11 +54,13 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast } from 'vant'
 import { h5Api, type CampaignDetail } from '@/api/h5'
+import { useMemberStore } from '@/stores/member'
 import NavBar from '@/components/NavBar.vue'
 import EmptyState from '@/components/EmptyState.vue'
 
 const route = useRoute()
 const router = useRouter()
+const memberStore = useMemberStore()
 const id = computed(() => String(route.params.id || ''))
 const loading = ref(false)
 const detail = ref<CampaignDetail | null>(null)
@@ -102,6 +104,12 @@ async function onJoin() {
   const d = detail.value
   if (!d) return
   if (isClaimed.value) return
+  // 未登录先引导登录(登录后带回本页)
+  if (!memberStore.isLogin) {
+    showToast('请先登录')
+    setTimeout(() => router.push({ path: '/login', query: { redirect: route.fullPath } }), 600)
+    return
+  }
   if (d.couponId) {
     try {
       await h5Api.claimCoupon(d.couponId)
@@ -154,7 +162,7 @@ onMounted(load)
   font-weight: 600;
   margin: 0 0 6px;
   letter-spacing: 0.04em;
-  font-family: 'Songti SC', 'STSong', serif;
+  font-family: var(--font-serif);
 }
 .hero-sub { font-size: 13px; opacity: 0.85; letter-spacing: 0.04em; }
 

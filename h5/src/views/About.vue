@@ -24,7 +24,7 @@
         </div>
         <div class="brand-name">星河·会记</div>
         <div class="brand-en">XINGHE HUIJI</div>
-        <div class="brand-version">v 1.0.0 · iOS · Android</div>
+        <div class="brand-version">v 1.0.0 · 手机端</div>
         <div class="brand-slogan">在细碎的会员日常里，做一支温热的笔。</div>
       </div>
 
@@ -88,7 +88,7 @@
       </div>
 
       <div class="copyright">
-        © 2026 星河·会记 · All rights reserved
+        © 2026 星河·会记 · 版权所有
       </div>
     </div>
   </div>
@@ -120,7 +120,7 @@ import { CONTACT } from '@/constants/config'
 .brand-name {
   font-size: 20px; font-weight: 600; color: var(--ink);
   letter-spacing: 0.08em;
-  font-family: 'Songti SC', 'STSong', serif;
+  font-family: var(--font-serif);
 }
 .brand-en {
   font-size: 10.5px; color: var(--muted);
@@ -135,7 +135,7 @@ import { CONTACT } from '@/constants/config'
   font-size: 12.5px;
   color: var(--ink-2);
   letter-spacing: 0.12em;
-  font-family: 'Songti SC', serif;
+  font-family: var(--font-serif);
   opacity: 0.85;
   line-height: 1.7;
 }
@@ -156,7 +156,7 @@ import { CONTACT } from '@/constants/config'
   font-size: 13px; color: var(--ink-2);
   line-height: 1.95;
   margin: 0;
-  font-family: 'Songti SC', 'STSong', serif;
+  font-family: var(--font-serif);
   letter-spacing: 0.04em;
   text-align: center;
 }

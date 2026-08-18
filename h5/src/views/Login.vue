@@ -116,14 +116,14 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { showToast, showDialog } from 'vant'
-import { h5Api } from '@/api/h5'
+import { h5Api, referralApi } from '@/api/h5'
 import { CONTACT } from '@/constants/config'
 import { useMemberStore } from '@/stores/member'
 
 const router = useRouter()
 const route = useRoute()
 const memberStore = useMemberStore()
-const phone = ref('')
+const phone = ref(localStorage.getItem('lastPhone') || '')
 const code = ref('')
 const loading = ref(false)
 const codeCountdown = ref(0)
@@ -186,12 +186,36 @@ async function onLogin() {
         localStorage.setItem('tenantId', String(payload.tenantId))
       }
     } catch {/* token 解析失败时忽略，沿用 URL/localStorage 中的值 */}
+    // 记住本次登录手机号，下次登录自动填充
+    localStorage.setItem('lastPhone', phone.value)
+    // 扫码邀请：登录后自动绑定推荐码
+    await bindReferralIfPresent()
     showToast({ type: 'success', message: '登录成功' })
-    setTimeout(() => router.replace('/'), 400)
+    setTimeout(() => router.replace(resolveRedirect()), 400)
   } catch (e: any) {
     showToast(e?.message || '登录失败')
   } finally {
     loading.value = false
+  }
+}
+
+// 跳转目标：优先回到来源页（redirect 参数），默认首页
+function resolveRedirect(): string {
+  const r = route.query.redirect as string | undefined
+  if (r && r.startsWith('/') && !r.startsWith('/login')) return r
+  return '/'
+}
+
+// URL 携带 ref 邀请码时，登录成功后自动绑定推荐关系
+async function bindReferralIfPresent() {
+  const code = route.query.ref as string | undefined
+  if (!code) return
+  try {
+    await referralApi.bind(String(code).trim().toUpperCase())
+    showToast({ type: 'success', message: '已领取新人礼' })
+  } catch (e: any) {
+    // 绑定失败不阻塞登录（可能已绑定过）
+    console.warn('bind referral failed', e?.message)
   }
 }
 
