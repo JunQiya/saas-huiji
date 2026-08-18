@@ -36,7 +36,7 @@
 
 | 子项目 | 说明 | 端口 |
 |---|---|---|
-| `server/` | 后端服务（Java 17 + Spring Boot 3.2） | 8080 |
+| `server/` | 后端服务（Java 17 + Spring Boot 3.2） | 8081 |
 | `admin/` | 商户后台管理端（Vue 3 + Element Plus + ECharts） | 5173 |
 | `h5/` | 会员移动端 H5（Vue 3 + Vant，适配微信内打开） | 5174 |
 
@@ -130,7 +130,7 @@
           └─────────────┬──────────────┘
                         ▼
                 ┌────────────────┐
-                │   huiji-server  │  Spring Boot :8080
+                │   huiji-server  │  Spring Boot :8081
                 │  JWT 无状态鉴权   │
                 │  RBAC 角色控制   │
                 │  多租户数据隔离   │
@@ -231,7 +231,7 @@ mvn spring-boot:run -Dspring-boot.run.profiles=test
 ```
 
 - `test` profile：H2 内存库（MySQL 兼容模式）+ 自动种子数据，**无需安装 MySQL**，适合快速体验与联调。
-- H2 控制台：`http://localhost:8080/h2-console`（JDBC URL `jdbc:h2:mem:huiji`，用户 `sa`，无密码）。
+- H2 控制台：`http://localhost:8081/h2-console`（JDBC URL `jdbc:h2:mem:huiji`，用户 `sa`，无密码）。
 
 ### 5.3 启动后端（dev：本地 MySQL）
 
@@ -258,7 +258,7 @@ npm install
 npm run dev
 ```
 
-> 两个前端均通过 Vite dev proxy 将 `/api` 转发到后端 `localhost:8080`，无需额外配置跨域。
+> 两个前端均通过 Vite dev proxy 将 `/api` 转发到后端 `localhost:8081`，无需额外配置跨域。
 
 ### 5.6 默认演示账号
 

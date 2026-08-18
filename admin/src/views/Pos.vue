@@ -95,7 +95,7 @@
           <div v-for="(c, idx) in cart" :key="c.productId" class="cart-item">
             <div class="ci-name">{{ c.name }}</div>
             <el-input-number v-model="c.quantity" :min="1" size="small" style="width: 110px" />
-            <div class="ci-sub val">¥ {{ yuan(c.subtotal) }}</div>
+            <div class="ci-sub val">¥ {{ yuan((c.unitPrice || 0) * c.quantity) }}</div>
             <el-button link type="danger" :icon="Delete" @click="cart.splice(idx, 1)" />
           </div>
           <div v-if="cart.length === 0" class="empty-state">点击左侧商品加入购物车</div>
@@ -162,9 +162,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { usePolling } from '@/composables/usePolling'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Refresh, Search, User, Delete, Printer, Money } from '@element-plus/icons-vue'
 import { productsApi, ordersApi, membersApi, settingsPlanApi, statsApi, storesApi } from '@/api'
 import { fenToYuan, yuanToFen } from '@/utils/format'
@@ -214,7 +214,7 @@ const filteredProducts = computed(() => {
   return list
 })
 
-const subtotalAmount = computed(() => cart.value.reduce((s, c) => s + (c.subtotal || 0), 0))
+const subtotalAmount = computed(() => cart.value.reduce((s, c) => s + ((c.unitPrice || 0) * c.quantity), 0))
 const subtotalAmountYuan = computed(() => Number(fenToYuan(subtotalAmount.value)))
 const discountFen = computed(() => yuanToFen(discountYuan.value || 0))
 const selectedCouponObj = computed(() => memberCoupons.value.find((c: any) => c.code === selectedCoupon.value) || null)
@@ -261,7 +261,7 @@ async function loadCurrentStore() {
 }
 async function onStoreChange() {
   // 切换门店：清空购物车（商品可能不属于新门店），刷新商品与今日统计
-  clearCart()
+  clearCart(true)
   member.value = null
   memberCoupons.value = []
   selectedCoupon.value = undefined
@@ -280,24 +280,52 @@ async function loadAll() {
 function addToCart(p: any) {
   const exist = cart.value.find(c => c.productId === p.id)
   if (exist) {
+    if (p.category === 'GOODS' && (p.stock ?? 0) <= exist.quantity) {
+      ElMessage.warning(`「${p.name}」库存不足`)
+      return
+    }
     exist.quantity += 1
     exist.subtotal = (exist.unitPrice || 0) * exist.quantity
   } else {
+    if (p.category === 'GOODS' && (p.stock ?? 0) < 1) {
+      ElMessage.warning(`「${p.name}」库存为 0`)
+      return
+    }
     cart.value.push({
       productId: p.id,
       name: p.name,
+      category: p.category,
       unitPrice: p.price || 0,
       quantity: 1,
+      stock: p.category === 'GOODS' ? (p.stock ?? 0) : null,
       subtotal: (p.price || 0) * 1
     })
   }
 }
 
-function clearCart() {
+function clearCart(confirmed = false) {
+  if (!confirmed && cart.value.length) {
+    ElMessageBox.confirm('确定清空购物车？', '提示', { type: 'warning', confirmButtonText: '清空', cancelButtonText: '取消' })
+      .then(() => clearCart(true))
+      .catch(() => {})
+    return
+  }
   cart.value = []
   discountYuan.value = 0
   selectedCoupon.value = undefined
 }
+
+// 数量修改后同步小计, 并限制不超过库存(仅商品 GOODS)
+watch(cart, (list) => {
+  for (const c of list) {
+    c.subtotal = (c.unitPrice || 0) * c.quantity
+    if (c.stock != null && c.quantity > c.stock) {
+      ElMessage.warning(`「${c.name}」库存仅 ${c.stock}`)
+      c.quantity = c.stock
+      c.subtotal = (c.unitPrice || 0) * c.quantity
+    }
+  }
+}, { deep: true })
 
 async function searchMember() {
   if (!memberKeyword.value) { member.value = null; memberCoupons.value = []; return }

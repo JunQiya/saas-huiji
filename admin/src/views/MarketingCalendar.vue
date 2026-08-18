@@ -16,12 +16,12 @@
       </div>
     </div>
 
-    <div class="x-card calendar-card">
+    <div v-loading="loading" class="x-card calendar-card">
       <div class="week-row">
         <div v-for="w in weeks" :key="w" class="week-cell">{{ w }}</div>
       </div>
       <div class="day-grid">
-        <div v-for="(d, idx) in days" :key="idx" class="day-cell x-card" :class="{ today: d.isToday, other: d.otherMonth, selected: d.isSelected }" @click="select(d)">
+        <div v-for="(d, idx) in days" :key="idx" class="day-cell x-card" :class="{ today: d.isToday, other: d.otherMonth, selected: `${d.year}-${d.month}-${d.day}` === selectedKey }" @click="select(d)">
           <div class="d-head">
             <span class="d-num" :class="{ 'lunar': !d.isToday }">{{ d.day }}</span>
             <span v-if="d.festival" class="d-festival">{{ d.festival }}</span>
@@ -68,9 +68,11 @@ const weeks = ['日', '一', '二', '三', '四', '五', '六']
 const members = ref<any[]>([])
 const coupons = ref<any[]>([])
 const campaigns = ref<any[]>([])
+const loading = ref(false)
 
 const drawer = ref(false)
 const selected = ref<any>(null)
+const selectedKey = ref('')
 
 // 节日表(简化: 仅常用节日)
 const festivals: Record<string, string> = {
@@ -91,16 +93,19 @@ const festivals: Record<string, string> = {
 }
 
 async function loadAll() {
+  loading.value = true
   try {
-    const data: any = await membersApi.list({ page: 1, size: 200 })
-    members.value = data?.records || data?.list || data?.content || []
-  } catch { members.value = [] }
-  try {
-    coupons.value = await couponsApi.list({ page: 1, size: 200 }) || []
-  } catch { coupons.value = [] }
-  try {
-    campaigns.value = await campaignsApi.list({ page: 1, size: 200 }) || []
-  } catch { campaigns.value = [] }
+    const [m, c, cp] = await Promise.all([
+      membersApi.list({ page: 1, size: 1000 }).catch(() => null),
+      couponsApi.list({ page: 1, size: 1000 }).catch(() => []),
+      campaignsApi.list({ page: 1, size: 1000 }).catch(() => [])
+    ])
+    members.value = (m as any)?.records || (m as any)?.list || (m as any)?.content || []
+    coupons.value = Array.isArray(c) ? c : []
+    campaigns.value = Array.isArray(cp) ? cp : []
+  } finally {
+    loading.value = false
+  }
 }
 
 const days = computed(() => {
@@ -129,6 +134,11 @@ const days = computed(() => {
   return result
 })
 
+function localDateStr(d: Date) {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
 function buildDay(y: number, m: number, d: number, other: boolean) {
   const key = `${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
   const events: any[] = []
@@ -152,8 +162,8 @@ function buildDay(y: number, m: number, d: number, other: boolean) {
       } else if (c.validType === 'DAYS' && c.validDays && c.createdAt) {
         const created = new Date(String(c.createdAt))
         if (!isNaN(created.getTime())) {
-          const expire = new Date(created.getTime() + c.validDays * 86400000)
-          expireDate = expire.toISOString().slice(0, 10)
+          const expire = new Date(created.getFullYear(), created.getMonth(), created.getDate() + c.validDays)
+          expireDate = localDateStr(expire)
         }
       }
       if (expireDate && expireDate === `${y}-${key}`) {
@@ -168,7 +178,7 @@ function buildDay(y: number, m: number, d: number, other: boolean) {
     }
   }
   const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-  const isToday = dateStr === today.toISOString().slice(0, 10)
+  const isToday = dateStr === localDateStr(today)
   return { year: y, month: m, day: d, otherMonth: other, isToday, festival: festivals[key], events }
 }
 
@@ -185,9 +195,11 @@ function shift(delta: number) {
 function goToday() {
   year.value = today.getFullYear()
   month.value = today.getMonth() + 1
+  loadAll()
 }
 
 function select(d: any) {
+  selectedKey.value = `${d.year}-${d.month}-${d.day}`
   selected.value = { ...d, isSelected: true }
   drawer.value = true
 }

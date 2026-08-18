@@ -346,9 +346,12 @@ const orderQuery = reactive<any>({ status: '', keyword: '', page: 1, size: 20 })
 
 const statusOptions = [
   { label: '待付款', value: 'PENDING_PAY' },
+  { label: '已付款', value: 'PAID' },
   { label: '待发货', value: 'PENDING_SHIP' },
+  { label: '已发货', value: 'SHIPPED' },
   { label: '待收货', value: 'PENDING_RECEIVE' },
   { label: '已完成', value: 'COMPLETED' },
+  { label: '已退款', value: 'REFUNDED' },
   { label: '已取消', value: 'CANCELLED' }
 ]
 
@@ -362,7 +365,7 @@ async function loadOrders() {
       size: orderQuery.size
     })
     orders.value = data?.records || data?.list || data?.content || (Array.isArray(data) ? data : [])
-    orderTotal.value = data?.total || orders.value.length
+    orderTotal.value = data?.total != null ? data.total : (Array.isArray(data) ? data.length : 0)
   } catch { orders.value = [] }
   finally { orderLoading.value = false }
 }

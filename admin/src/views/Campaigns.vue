@@ -169,7 +169,7 @@
               <div v-for="b in previewData.audience.breakdown" :key="b.key" class="bd-item">
                 <span class="bd-key">{{ b.key }}</span>
                 <div class="bd-bar">
-                  <div class="bd-fill" :style="{ width: Math.min(100, b.count / Math.max(...previewData!.audience.breakdown.map(x=>x.count)) * 100) + '%' }"></div>
+                  <div class="bd-fill" :style="{ width: bdWidth(b.count, previewData.audience.breakdown) + '%' }"></div>
                 </div>
                 <span class="bd-count val">{{ b.count }}</span>
               </div>
@@ -235,6 +235,7 @@ const campaignSlogan = [
 const loading = ref(false)
 const list = ref<Campaign[]>([])
 const query = reactive({ status: undefined as number | undefined })
+const statsCache = ref<Record<number, any>>({})
 
 async function loadList() {
   loading.value = true
@@ -242,9 +243,16 @@ async function loadList() {
     const params: any = {}
     if (query.status !== undefined) params.status = query.status === 1 ? 'ENABLED' : 'DISABLED'
     list.value = (await campaignsApi.list(params)) || []
-    for (const c of list.value) {
-      campaignsApi.stats(c.id).then((s) => { c.stats = s }).catch(() => {})
+    // 并行拉取各活动统计(仅缓存缺失的, 避免每次刷新重复 N+1)
+    const missing = list.value.filter(c => !statsCache.value[c.id])
+    if (missing.length) {
+      await Promise.all(missing.map(c =>
+        campaignsApi.stats(c.id)
+          .then((s) => { statsCache.value[c.id] = s || {} })
+          .catch(() => {})
+      ))
     }
+    list.value.forEach(c => { c.stats = statsCache.value[c.id] })
   } finally {
     loading.value = false
   }
@@ -252,6 +260,11 @@ async function loadList() {
 
 function typeText(t: string) {
   return ({ BIRTHDAY: '生日营销', DORMANT: '沉睡唤醒', REPURCHASE: '复购促达', MANUAL: '手动触达' } as any)[t] || t
+}
+function bdWidth(count: number, breakdown: Array<{ count: number }>) {
+  const max = Math.max(0, ...breakdown.map(x => x.count || 0))
+  if (max <= 0) return 0
+  return Math.min(100, Math.round((count || 0) / max * 100))
 }
 function channelText(c?: string) {
   return ({ SMS: '短信', WECHAT: '微信', IN_APP: '站内' } as any)[c || 'SMS'] || '短信'
@@ -314,7 +327,8 @@ function openEdit(row: Campaign) {
   formVisible.value = true
 }
 async function submitForm() {
-  await formRef.value?.validate()
+  const valid = await formRef.value?.validate().catch(() => false)
+  if (!valid) return
   saving.value = true
   try {
     const payload: any = {

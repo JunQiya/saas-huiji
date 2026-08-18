@@ -229,7 +229,8 @@ function openEdit(row: any) {
   formVisible.value = true
 }
 async function submitForm() {
-  await formRef.value?.validate()
+  const valid = await formRef.value?.validate().catch(() => false)
+  if (!valid) return
   saving.value = true
   try {
     await diningApi.saveTable({ ...form })
@@ -241,7 +242,9 @@ async function submitForm() {
   }
 }
 async function onRemove(row: any) {
-  await ElMessageBox.confirm(`确认删除桌台「${row.name}」？`, '提示', { type: 'warning' })
+  try {
+    await ElMessageBox.confirm(`确认删除桌台「${row.name}」？`, '提示', { type: 'warning' })
+  } catch { return }
   await diningApi.removeTable(row.id)
   ElMessage.success('已删除')
   loadList()
@@ -252,6 +255,9 @@ async function onOccupy(row: any) {
   loadList()
 }
 async function onFree(row: any) {
+  try {
+    await ElMessageBox.confirm(`确认释放桌台「${row.name}」？`, '提示', { type: 'warning' })
+  } catch { return }
   await diningApi.freeTable(row.id)
   ElMessage.success('已释放桌台')
   loadList()
@@ -319,7 +325,9 @@ async function saveCategory() {
   }
 }
 async function removeCategory(row: any) {
-  await ElMessageBox.confirm(`确认删除分类「${row.name}」？已绑定商品将解除关联。`, '提示', { type: 'warning' })
+  try {
+    await ElMessageBox.confirm(`确认删除分类「${row.name}」？已绑定商品将解除关联。`, '提示', { type: 'warning' })
+  } catch { return }
   await diningApi.removeCategory(row.id)
   ElMessage.success('已删除')
   loadCategories()

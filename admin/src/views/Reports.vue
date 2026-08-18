@@ -160,6 +160,27 @@ const stats = reactive<any>({ todayRuns: 0, todayFiles: 0, tasksTotal: 0, tasksE
 
 function loadAll() { loadList(); loadStats(); drawCharts() }
 
+function cssVar(name: string): string {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+}
+function chartColors() {
+  return {
+    ink2: cssVar('--ink-2') || '#3d4250',
+    ink3: cssVar('--ink-3') || '#6b7280',
+    muted: cssVar('--muted') || '#9ca3af',
+    line: cssVar('--line') || 'rgba(30,40,60,0.08)',
+    line2: cssVar('--line-2') || 'rgba(30,40,60,0.14)',
+    lineSoft: cssVar('--line-soft') || 'rgba(30,40,60,0.04)',
+    lineStrong: cssVar('--line-strong') || 'rgba(30,40,60,0.24)',
+    surface: cssVar('--surface') || '#fff',
+    brand: cssVar('--brand') || '#5a7a9c',
+    twilight: cssVar('--accent-twilight') || '#8b7ea3',
+    rose: cssVar('--accent-rose') || '#b89692',
+    clay: cssVar('--accent-clay') || '#b8845c',
+    sage: cssVar('--accent-sage') || '#94a89a',
+  }
+}
+
 function drawCharts() {
   // 复用或重建 echarts 实例，避免内存泄漏和图表叠加
   const getChart = (el: HTMLElement) => {
@@ -170,46 +191,49 @@ function drawCharts() {
   // 趋势（柱状图）
   if (trendEl.value) {
     const c = getChart(trendEl.value)
+    const col = chartColors()
     statsApi.trend({ range: '7d', metric: 'revenue' }).then((d: any) => {
       c.setOption({
         grid: { left: 50, right: 12, top: 16, bottom: 24 },
         tooltip: { trigger: 'axis', backgroundColor: 'rgba(31,29,24,0.92)', borderWidth: 0, textStyle: { color: '#fff' } },
-        xAxis: { type: 'category', data: (d || []).map((x: any) => x.date?.slice(5) || ''), axisLine: { lineStyle: { color: 'rgba(70,64,56,0.18)' } }, axisTick: { show: false }, axisLabel: { color: '#8a8578', fontSize: 10 } },
-        yAxis: { type: 'value', axisLine: { show: false }, splitLine: { lineStyle: { color: 'rgba(70,64,56,0.06)', type: 'dashed' } }, axisLabel: { color: '#8a8578', fontSize: 10 } },
+        xAxis: { type: 'category', data: (d || []).map((x: any) => x.date?.slice(5) || ''), axisLine: { lineStyle: { color: col.line2 } }, axisTick: { show: false }, axisLabel: { color: col.ink3, fontSize: 10 } },
+        yAxis: { type: 'value', axisLine: { show: false }, splitLine: { lineStyle: { color: col.lineSoft, type: 'dashed' } }, axisLabel: { color: col.ink3, fontSize: 10 } },
         series: [{
           type: 'bar', barWidth: 14,
-          itemStyle: { color: '#5a7a9c', borderRadius: [3, 3, 0, 0] },
+          itemStyle: { color: col.brand, borderRadius: [3, 3, 0, 0] },
           data: (d || []).map((x: any) => (x.value || 0) / 100)
         }]
       })
     }).catch(() => {
-      c.setOption({ title: { text: '暂无数据', left: 'center', top: 'middle', textStyle: { color: '#b3ad9f', fontSize: 12, fontFamily: 'serif' } }, grid: { show: false }, xAxis: { show: false }, yAxis: { show: false }, series: [] })
+      c.setOption({ title: { text: '暂无数据', left: 'center', top: 'middle', textStyle: { color: col.muted, fontSize: 12, fontFamily: 'serif' } }, grid: { show: false }, xAxis: { show: false }, yAxis: { show: false }, series: [] })
     })
   }
   // 热销 TOP 5
   if (topEl.value) {
     const c = getChart(topEl.value)
+    const col = chartColors()
     statsApi.topServices().then((d: any) => {
       const list = (d || []).slice(0, 5)
       c.setOption({
         grid: { left: 80, right: 16, top: 8, bottom: 20 },
         tooltip: { trigger: 'axis', backgroundColor: 'rgba(31,29,24,0.92)', borderWidth: 0, textStyle: { color: '#fff' } },
-        xAxis: { type: 'value', axisLine: { show: false }, splitLine: { lineStyle: { color: 'rgba(70,64,56,0.06)', type: 'dashed' } }, axisLabel: { color: '#8a8578', fontSize: 10 } },
-        yAxis: { type: 'category', data: list.map((x: any) => x.name).reverse(), axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#43403a', fontSize: 11, fontFamily: 'serif' } },
+        xAxis: { type: 'value', axisLine: { show: false }, splitLine: { lineStyle: { color: col.lineSoft, type: 'dashed' } }, axisLabel: { color: col.ink3, fontSize: 10 } },
+        yAxis: { type: 'category', data: list.map((x: any) => x.name).reverse(), axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: col.ink2, fontSize: 11, fontFamily: 'serif' } },
         series: [{
           type: 'bar', barWidth: 8,
-          itemStyle: { color: '#b89692', borderRadius: [0, 4, 4, 0] },
+          itemStyle: { color: col.rose, borderRadius: [0, 4, 4, 0] },
           data: list.map((x: any) => x.count || 0).reverse()
         }]
       })
     }).catch(() => {
-      c.setOption({ title: { text: '暂无数据', left: 'center', top: 'middle', textStyle: { color: '#b3ad9f', fontSize: 12, fontFamily: 'serif' } }, grid: { show: false }, xAxis: { show: false }, yAxis: { show: false }, series: [] })
+      c.setOption({ title: { text: '暂无数据', left: 'center', top: 'middle', textStyle: { color: col.muted, fontSize: 12, fontFamily: 'serif' } }, grid: { show: false }, xAxis: { show: false }, yAxis: { show: false }, series: [] })
     })
   }
   // 会员 RFM 分布
   if (rfmEl.value) {
     const c = getChart(rfmEl.value)
-    const emptyOption = { title: { text: '暂无数据', left: 'center', top: 'middle', textStyle: { color: '#b3ad9f', fontSize: 12, fontFamily: 'serif' } }, grid: { show: false }, xAxis: { show: false }, yAxis: { show: false }, series: [] }
+    const col = chartColors()
+    const emptyOption = { title: { text: '暂无数据', left: 'center', top: 'middle', textStyle: { color: col.muted, fontSize: 12, fontFamily: 'serif' } }, grid: { show: false }, xAxis: { show: false }, yAxis: { show: false }, series: [] }
     statsApi.rfm().then((d: any) => {
       // 用 RfmStats 的 high/mid/low/dormant 字段构造饼图数据
       const hasData = d && (d.high !== undefined || d.mid !== undefined || d.low !== undefined || d.dormant !== undefined)
@@ -225,15 +249,15 @@ function drawCharts() {
       ]
       c.setOption({
         tooltip: { trigger: 'item', backgroundColor: 'rgba(31,29,24,0.92)', borderWidth: 0, textStyle: { color: '#fff' } },
-        legend: { bottom: 0, textStyle: { color: '#6a655c', fontSize: 10, fontFamily: 'serif' } },
+        legend: { bottom: 0, textStyle: { color: col.muted, fontSize: 10, fontFamily: 'serif' } },
         series: [{
           type: 'pie', radius: ['46%', '72%'], center: ['50%', '46%'],
           avoidLabelOverlap: true,
-          itemStyle: { borderColor: '#fff', borderWidth: 2, borderRadius: 4 },
-          label: { show: true, formatter: '{b}\n{d}%', fontFamily: 'serif', color: '#43403a', fontSize: 10 },
-          labelLine: { length: 6, length2: 6, lineStyle: { color: 'rgba(70,64,56,0.30)' } },
+          itemStyle: { borderColor: col.surface, borderWidth: 2, borderRadius: 4 },
+          label: { show: true, formatter: '{b}\n{d}%', fontFamily: 'serif', color: col.ink2, fontSize: 10 },
+          labelLine: { length: 6, length2: 6, lineStyle: { color: col.lineStrong } },
           data: data,
-          color: ['#5a7a9c', '#8b7ea3', '#b89692', '#b8845c']
+          color: [col.brand, col.twilight, col.rose, col.clay]
         }]
       })
     }).catch(() => {
@@ -324,7 +348,8 @@ async function submitForm() {
     .split(/[,，\s]+/)
     .map(s => s.trim())
     .filter(s => s && /.+@.+\..+/.test(s))
-  await formRef.value?.validate()
+  const valid = await formRef.value?.validate().catch(() => false)
+  if (!valid) return
   if (form.recipients.length === 0) {
     ElMessage.error('请填写至少 1 个合法邮箱')
     return

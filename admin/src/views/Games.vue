@@ -293,11 +293,11 @@ async function loadStores() {
   try { stores.value = (await storesApi.list()) || [] } catch {/* */}
 }
 
-// 切换状态：保存后刷新
+// 切换状态：调用专用端点, 避免整对象回传造成意外字段覆盖
 async function onToggleStatus(row: any, status: boolean) {
   const newStatus = status ? 'ENABLED' : 'DISABLED'
   try {
-    await gameApi.save({ ...row, status: newStatus })
+    await gameApi.toggleStatus(row.id, newStatus)
     row.status = newStatus
     ElMessage.success(status ? '已启用' : '已停用')
   } catch {/* 容错 */}
@@ -363,7 +363,8 @@ function openEdit(row: any) {
 }
 
 async function submitForm() {
-  await formRef.value?.validate()
+  const valid = await formRef.value?.validate().catch(() => false)
+  if (!valid) return
   saving.value = true
   try {
     const payload: any = {
@@ -458,7 +459,8 @@ function openPrizeEdit(row: any) {
 }
 
 async function submitPrizeForm() {
-  await prizeFormRef.value?.validate()
+  const valid = await prizeFormRef.value?.validate().catch(() => false)
+  if (!valid) return
   if (!currentGame.value) return
   prizeSaving.value = true
   try {

@@ -47,6 +47,45 @@ public class CouponService {
         return toVO(c);
     }
 
+    /** 批量导入优惠券(每条独立事务, 单条失败不阻塞其它) */
+    @Transactional
+    public Map<String, Object> importBatch(List<CouponDto.CouponRequest> reqs) {
+        Long tenantId = com.huiji.security.LoginUserHolder.currentTenantId();
+        int success = 0;
+        List<String> errors = new ArrayList<>();
+        if (reqs == null || reqs.isEmpty()) {
+            throw new BizException(ErrorCode.VALIDATION, "导入列表不能为空");
+        }
+        for (int i = 0; i < reqs.size(); i++) {
+            CouponDto.CouponRequest req = reqs.get(i);
+            try {
+                if (req.getName() == null || req.getName().isBlank()) {
+                    throw new BizException(ErrorCode.VALIDATION, "券名称不能为空");
+                }
+                if (req.getType() == null || req.getType().isBlank()) {
+                    throw new BizException(ErrorCode.VALIDATION, "券类型不能为空");
+                }
+                Coupon c = new Coupon();
+                c.setTenantId(tenantId);
+                applyReq(c, req);
+                if (c.getValidType() == null) c.setValidType("DAYS");
+                if (c.getValidDays() == null) c.setValidDays(30);
+                if (c.getPerLimit() == null) c.setPerLimit(1);
+                if (c.getScope() == null) c.setScope("ALL");
+                couponRepository.save(c);
+                success++;
+            } catch (Exception ex) {
+                errors.add("第" + (i + 1) + "条(" + (req == null ? "?" : req.getName() == null ? "?" : req.getName()) + "): " + ex.getMessage());
+            }
+        }
+        auditHelper.record("导入优惠券", "coupons", "成功" + success + ",失败" + errors.size());
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("success", success);
+        resp.put("failed", errors.size());
+        resp.put("errors", errors.size() > 50 ? errors.subList(0, 50) : errors);
+        return resp;
+    }
+
     @Transactional
     public Map<String, Object> update(Long id, CouponDto.CouponRequest req) {
         Long tenantId = com.huiji.security.LoginUserHolder.currentTenantId();
@@ -307,6 +346,14 @@ public class CouponService {
         vo.put("grantedAt", r.getGrantedAt());
         vo.put("usedAt", r.getUsedAt());
         vo.put("expireAt", r.getExpireAt());
+        // 附带券模板类型/面值/门槛
+        if (r.getCouponId() != null) {
+            couponRepository.findById(r.getCouponId()).ifPresent(c -> {
+                vo.put("type", c.getType());
+                vo.put("faceValue", c.getFaceValue());
+                vo.put("threshold", c.getThreshold());
+            });
+        }
         return vo;
     }
 }

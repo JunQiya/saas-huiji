@@ -43,6 +43,12 @@ public class ReferralController {
         return Result.success(referralService.stats(memberId));
     }
 
+    /** 全局裂变汇总(全租户) */
+    @GetMapping("/admin/summary")
+    public Result<Map<String, Object>> globalSummary() {
+        return Result.success(referralService.globalSummary());
+    }
+
     @Data
     public static class BindRequest {
         private Long memberId;

@@ -184,7 +184,8 @@ function openEdit(row: any) {
   formVisible.value = true
 }
 async function submitForm() {
-  await formRef.value?.validate()
+  const valid = await formRef.value?.validate().catch(() => false)
+  if (!valid) return
   saving.value = true
   try {
     if (editing.value) {
@@ -201,7 +202,9 @@ async function submitForm() {
   }
 }
 async function onRemove(row: any) {
-  await ElMessageBox.confirm(`确认删除代理商「${row.name}」？关联商家将解除挂靠`, '提示', { type: 'warning' })
+  try {
+    await ElMessageBox.confirm(`确认删除代理商「${row.name}」？关联商家将解除挂靠`, '提示', { type: 'warning' })
+  } catch { return }
   await agentsApi.remove(row.id)
   ElMessage.success('已删除')
   loadList()

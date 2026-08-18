@@ -427,7 +427,7 @@
         <div class="detail-section">
           <div class="ds-title">
             <span>资金流水</span>
-            <el-button link type="primary" size="small" @click="loadMoreTx">查看更多</el-button>
+            <el-button link type="primary" size="small" :loading="txLoading" @click="loadMoreTx">查看更多</el-button>
           </div>
           <el-table :data="transactions" size="small" max-height="220">
             <el-table-column label="时间" width="135">
@@ -448,6 +448,26 @@
         </div>
       </div>
     </el-drawer>
+
+    <!-- 导入结果弹窗 -->
+    <el-dialog v-model="importResultVisible" title="导入结果" width="520px">
+      <div v-if="importResult" class="import-result">
+        <div class="ir-summary">
+          <div class="ir-item"><span class="ir-num val">{{ importResult.success }}</span><span class="ir-label">成功</span></div>
+          <div class="ir-item"><span class="ir-num val neg">{{ importResult.failed }}</span><span class="ir-label">失败</span></div>
+        </div>
+        <div v-if="importResult.errors?.length" class="ir-errors">
+          <div class="ir-errors-title">失败明细（{{ importResult.errors.length }} 条）：</div>
+          <el-scrollbar max-height="240">
+            <div v-for="(e, i) in importResult.errors" :key="i" class="ir-error">{{ e }}</div>
+          </el-scrollbar>
+        </div>
+        <div v-else class="ir-ok">全部导入成功</div>
+      </div>
+      <template #footer>
+        <el-button type="primary" @click="importResultVisible = false">知道了</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -537,6 +557,8 @@ function genderText(g?: string) {
 
 // ============ 导入 / 导出 ============
 const fileInputRef = ref<HTMLInputElement>()
+const importResultVisible = ref(false)
+const importResult = ref<any>(null)
 function onImportClick() {
   fileInputRef.value?.click()
 }
@@ -548,8 +570,12 @@ async function onFileChange(e: Event) {
   fd.append('file', file)
   try {
     const res = await membersApi.import(fd)
-    ElMessage.success(`导入完成：成功 ${res.success}，失败 ${res.failed}`)
-    if (res.errors?.length) console.warn('导入错误：', res.errors)
+    importResult.value = res
+    if (res.failed > 0 || res.errors?.length) {
+      importResultVisible.value = true
+    } else {
+      ElMessage.success(`导入完成：成功 ${res.success} 条`)
+    }
     loadList()
   } catch (e: any) {
     ElMessage.error(e?.message || '导入失败')
@@ -564,7 +590,8 @@ async function onExport() {
     if (query.level) params.level = query.level
     if (query.tag) params.tag = query.tag
     const blob: any = await membersApi.export(params)
-    const url = URL.createObjectURL(new Blob([blob]))
+    if (!blob) { ElMessage.error('导出失败：无数据'); return }
+    const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
     a.download = `会员列表-${Date.now()}.csv`
@@ -617,7 +644,8 @@ function openEdit(row: Member) {
   formVisible.value = true
 }
 async function submitForm() {
-  await formRef.value?.validate()
+  const valid = await formRef.value?.validate().catch(() => false)
+  if (!valid) return
   saving.value = true
   try {
     const payload: any = {
@@ -678,7 +706,8 @@ function openRecharge(row: Member) {
   rechargeVisible.value = true
 }
 async function submitRecharge() {
-  await rechargeFormRef.value?.validate()
+  const valid = await rechargeFormRef.value?.validate().catch(() => false)
+  if (!valid) return
   if (!rechargeTarget.value) return
   recharging.value = true
   try {
@@ -737,6 +766,8 @@ const detail = ref<Member>()
 const transactions = ref<Transaction[]>([])
 const memberCoupons = ref<CouponRecord[]>([])
 const txQuery = reactive({ page: 1, size: 10 })
+const txTotal = ref(0)
+const txLoading = ref(false)
 
 // 画像
 const profileLoading = ref(false)
@@ -774,6 +805,7 @@ async function openDetail(row: Member) {
     ])
     detail.value = d
     transactions.value = tx.list || []
+    txTotal.value = tx.total || 0
     memberCoupons.value = (cp as any) || []
   } finally {
     detailLoading.value = false
@@ -812,10 +844,17 @@ function renderProfileTrend() {
   }, true)
 }
 async function loadMoreTx() {
-  if (!detail.value) return
-  txQuery.page += 1
-  const res = await membersApi.transactions(detail.value.id, { page: txQuery.page, size: txQuery.size })
-  transactions.value = transactions.value.concat(res.list || [])
+  if (!detail.value || txLoading.value) return
+  if (transactions.value.length >= txTotal.value) { ElMessage.info('已加载全部流水'); return }
+  txLoading.value = true
+  try {
+    txQuery.page += 1
+    const res = await membersApi.transactions(detail.value.id, { page: txQuery.page, size: txQuery.size })
+    transactions.value = transactions.value.concat(res.list || [])
+    if (res.total != null) txTotal.value = res.total
+  } catch { /* 拦截器处理 */ } finally {
+    txLoading.value = false
+  }
 }
 
 // ============ 标签编辑 ============
@@ -855,7 +894,8 @@ function openPointsAdjust() {
 }
 async function submitPoints() {
   if (!detail.value) return
-  await pointsFormRef.value?.validate()
+  const valid = await pointsFormRef.value?.validate().catch(() => false)
+  if (!valid) return
   pointsSaving.value = true
   try {
     const delta = pointsForm.mode === 'add' ? pointsForm.amount : -pointsForm.amount
@@ -964,6 +1004,18 @@ onBeforeUnmount(() => {
 .m-tag { margin-right: 4px; }
 .muted { color: var(--muted); }
 .pager { display: flex; justify-content: flex-end; margin-top: 14px; }
+.import-result .ir-summary { display: flex; gap: 24px; margin-bottom: 14px; }
+.import-result .ir-item { display: flex; flex-direction: column; gap: 2px; }
+.import-result .ir-num { font-size: 26px; font-weight: 600; color: var(--success); }
+.import-result .ir-num.neg { color: var(--danger); }
+.import-result .ir-label { font-size: 12px; color: var(--muted); }
+.import-result .ir-ok { color: var(--success); font-size: 13px; padding: 12px 0; }
+.import-result .ir-errors-title { font-size: 12.5px; color: var(--muted); margin-bottom: 8px; }
+.import-result .ir-error {
+  font-size: 12.5px; color: var(--danger-deep);
+  padding: 5px 8px; border-left: 2px solid var(--danger-soft);
+  background: var(--surface-2); border-radius: 4px; margin-bottom: 4px;
+}
 .recharge-member {
   display: flex; align-items: center; gap: 10px;
   padding: 10px 12px; background: var(--surface-2); border-radius: 8px;

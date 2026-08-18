@@ -41,7 +41,10 @@
           ></canvas>
         </div>
         <div class="scratch-tip">用手指刮开灰色区域</div>
-        <button class="btn-reset" v-if="revealed" @click="onReset">再刮一次</button>
+        <div class="scratch-actions">
+          <button class="btn-reset" v-if="revealed" @click="onReset">再刮一次</button>
+          <button class="btn-result" v-if="!revealed && result && played" @click="reveal()">查看结果</button>
+        </div>
       </div>
 
       <div v-else-if="!loading" class="empty-box">
@@ -229,6 +232,7 @@ function checkReveal() {
 
 // 揭示结果
 function reveal() {
+  if (revealed.value) return
   revealed.value = true
   // 清空 canvas 剩余部分
   const canvas = canvasRef.value
@@ -388,7 +392,8 @@ onMounted(async () => {
   font-size: 12px; color: var(--muted);
   margin-top: 12px; letter-spacing: 0.04em;
 }
-.btn-reset {
+.scratch-actions { display: flex; gap: 10px; justify-content: center; margin-top: 6px; }
+.btn-reset, .btn-result {
   margin-top: 14px;
   padding: 8px 24px;
   border: 1px solid var(--brand);
@@ -401,7 +406,8 @@ onMounted(async () => {
   cursor: pointer;
   transition: transform var(--dur) var(--ease-out);
 }
-.btn-reset:active { transform: scale(0.97); }
+.btn-result { background: var(--brand); color: #fff; border-color: var(--brand); }
+.btn-reset:active, .btn-result:active { transform: scale(0.97); }
 
 /* 记录 */
 .records { padding: 6px 14px; }

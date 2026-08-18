@@ -65,7 +65,7 @@
         row-key="id"
         @selection-change="onSelectionChange"
       >
-        <el-table-column type="selection" width="48" :selectable="() => true" reserve-selection />
+        <el-table-column type="selection" width="48" reserve-selection />
         <el-table-column label="名称" prop="name" min-width="160" />
         <el-table-column label="类型" width="84">
           <template #default="{ row }">
@@ -101,6 +101,12 @@
         </el-form-item>
         <el-form-item label="营业时间">
           <el-input v-model="form.businessHours" placeholder="如 09:00-22:00" />
+        </el-form-item>
+        <el-form-item label="纬度">
+          <el-input-number v-model="form.latitude" :min="-90" :max="90" :precision="6" :step="0.0001" controls-position="right" style="width: 180px" placeholder="可选" />
+        </el-form-item>
+        <el-form-item label="经度">
+          <el-input-number v-model="form.longitude" :min="-180" :max="180" :precision="6" :step="0.0001" controls-position="right" style="width: 180px" placeholder="可选" />
         </el-form-item>
         <el-form-item label="状态">
           <el-radio-group v-model="form.status">
@@ -153,14 +159,16 @@ const form = reactive({
   address: '',
   phone: '',
   businessHours: '',
-  status: 'OPEN'
+  status: 'OPEN',
+  latitude: undefined as number | undefined,
+  longitude: undefined as number | undefined
 })
 const formRules: FormRules = {
   name: [{ required: true, message: '请输入门店名称', trigger: 'blur' }]
 }
 function openCreate() {
   editing.value = false
-  Object.assign(form, { id: 0, name: '', address: '', phone: '', businessHours: '', status: 'OPEN' })
+  Object.assign(form, { id: 0, name: '', address: '', phone: '', businessHours: '', status: 'OPEN', latitude: undefined, longitude: undefined })
   formVisible.value = true
 }
 function openEdit(row: Store) {
@@ -171,12 +179,15 @@ function openEdit(row: Store) {
     address: row.address || '',
     phone: row.phone || '',
     businessHours: row.businessHours || '',
-    status: row.status || 'OPEN'
+    status: row.status || 'OPEN',
+    latitude: (row as any).latitude ?? undefined,
+    longitude: (row as any).longitude ?? undefined
   })
   formVisible.value = true
 }
 async function submitForm() {
-  await formRef.value?.validate()
+  const valid = await formRef.value?.validate().catch(() => false)
+  if (!valid) return
   saving.value = true
   try {
     if (editing.value) {
@@ -193,7 +204,9 @@ async function submitForm() {
   }
 }
 async function onRemove(row: Store) {
-  await ElMessageBox.confirm(`确认删除门店「${row.name}」？有会员/员工关联时将禁用`, '提示', { type: 'warning' })
+  try {
+    await ElMessageBox.confirm(`确认删除门店「${row.name}」？有会员/员工关联时将禁用`, '提示', { type: 'warning' })
+  } catch { return }
   await storesApi.remove(row.id)
   ElMessage.success('已删除')
   loadList()

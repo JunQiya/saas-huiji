@@ -10,6 +10,7 @@ import com.huiji.entity.Member;
 import com.huiji.entity.MemberTag;
 import com.huiji.entity.WalletTransaction;
 import com.huiji.repository.CouponRecordRepository;
+import com.huiji.repository.CouponRepository;
 import com.huiji.repository.MemberRepository;
 import com.huiji.repository.MemberTagRepository;
 import com.huiji.repository.WalletTransactionRepository;
@@ -47,6 +48,7 @@ public class MemberService {
     private final MemberTagRepository memberTagRepository;
     private final WalletTransactionRepository walletRepository;
     private final CouponRecordRepository couponRecordRepository;
+    private final CouponRepository couponRepository;
     private final CouponService couponService;
     private final SettingsService settingsService;
     private final AuditHelper auditHelper;
@@ -586,6 +588,15 @@ public class MemberService {
         vo.put("grantedAt", r.getGrantedAt());
         vo.put("usedAt", r.getUsedAt());
         vo.put("expireAt", r.getExpireAt());
+        // 附带券模板类型/面值/门槛, 供收银台正确计算抵扣
+        if (r.getCouponId() != null) {
+            couponRepository.findById(r.getCouponId()).ifPresent(c -> {
+                vo.put("type", c.getType());
+                vo.put("faceValue", c.getFaceValue());
+                vo.put("threshold", c.getThreshold());
+                vo.put("amount", c.getFaceValue());
+            });
+        }
         return vo;
     }
 

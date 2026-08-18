@@ -39,6 +39,12 @@ public class CouponController {
         return Result.success(couponService.create(req));
     }
 
+    /** 批量导入优惠券 */
+    @PostMapping("/import")
+    public Result<Map<String, Object>> importBatch(@RequestBody List<CouponDto.CouponRequest> reqs) {
+        return Result.success(couponService.importBatch(reqs));
+    }
+
     @PutMapping("/{id}")
     public Result<Map<String, Object>> update(@PathVariable Long id, @RequestBody CouponDto.CouponRequest req) {
         return Result.success(couponService.update(id, req));

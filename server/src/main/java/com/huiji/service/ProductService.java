@@ -46,8 +46,14 @@ public class ProductService {
         Pageable pageable = PageRequest.of(Math.max(0, page - 1), size <= 0 ? 20 : size);
         Page<Product> p = productRepository.search(tenantId, trim(keyword), trim(category), trim(status),
                 pageable);
+        // 未按门店过滤时, 直接使用数据库分页(总数准确)
+        if (storeId == null || storeId.isBlank()) {
+            return PageData.of(p.getContent().stream().map(this::toVO).toList(),
+                    p.getTotalElements(), page, size);
+        }
+        // 门店过滤在内存完成(商品 storeIds 以 JSON 存于同一行, 无法用 SQL 高效过滤)
         List<Map<String, Object>> list = p.getContent().stream()
-                .filter(prod -> storeId == null || storeId.isBlank() || storeIdMatch(prod, storeId))
+                .filter(prod -> storeIdMatch(prod, storeId))
                 .map(this::toVO)
                 .toList();
         return PageData.of(list, (long) list.size(), page, size);

@@ -29,7 +29,7 @@
           <el-option label="上架" value="ACTIVE" />
           <el-option label="下架" value="DISABLED" />
         </el-select>
-        <el-button @click="load">查询</el-button>
+        <el-button @click="onSearch">查询</el-button>
       </div>
     </div>
 
@@ -61,6 +61,17 @@
         <el-icon><DocumentRemove /></el-icon>
         <div>暂无商品, 先添加一个吧</div>
       </div>
+      <el-pagination
+        v-if="!loading && total > size"
+        class="pager"
+        v-model:current-page="page"
+        v-model:page-size="size"
+        :total="total"
+        :page-sizes="[20, 50, 100]"
+        layout="total, sizes, prev, pager, next, jumper"
+        @current-change="load"
+        @size-change="onSizeChange"
+      />
     </div>
 
     <div v-else class="x-card">
@@ -98,6 +109,16 @@
           </template>
         </el-table-column>
       </el-table>
+      <el-pagination
+        class="pager"
+        v-model:current-page="page"
+        v-model:page-size="size"
+        :total="total"
+        :page-sizes="[20, 50, 100]"
+        layout="total, sizes, prev, pager, next, jumper"
+        @current-change="load"
+        @size-change="onSizeChange"
+      />
     </div>
 
     <el-dialog v-model="editVisible" :title="form.id ? '编辑商品' : '新建商品'" width="540px" destroy-on-close>
@@ -194,6 +215,9 @@ const view = ref<'card' | 'table'>('card')
 const loading = ref(false)
 const saving = ref(false)
 const list = ref<any[]>([])
+const total = ref(0)
+const page = ref(1)
+const size = ref(20)
 
 const query = reactive({ keyword: '', category: '', status: '' })
 
@@ -226,13 +250,22 @@ async function load() {
       keyword: query.keyword || undefined,
       category: query.category || undefined,
       status: query.status || undefined,
-      page: 1,
-      size: 200
+      page: page.value,
+      size: size.value
     })
     list.value = data?.records || data?.list || data?.content || []
+    total.value = data?.total || data?.totalElements || 0
   } finally {
     loading.value = false
   }
+}
+function onSearch() {
+  page.value = 1
+  load()
+}
+function onSizeChange() {
+  page.value = 1
+  load()
 }
 
 function openEdit(row?: any) {
@@ -297,7 +330,9 @@ async function toggleStatus(row: any) {
 }
 
 async function remove(row: any) {
-  await ElMessageBox.confirm(`确定删除「${row.name}」?`, '提示', { type: 'warning' })
+  try {
+    await ElMessageBox.confirm(`确定删除「${row.name}」?`, '提示', { type: 'warning' })
+  } catch { return }
   await productsApi.remove(row.id)
   ElMessage.success('已删除')
   load()
@@ -313,6 +348,14 @@ function openStock(row: any) {
 }
 
 async function saveStock() {
+  if (stockForm.mode === 'SET' && (Number(stockForm.value) || 0) < 0) {
+    ElMessage.warning('设为模式库存不能为负数')
+    return
+  }
+  if (stockForm.mode === 'INC' && !Number(stockForm.value)) {
+    ElMessage.warning('请输入增减数量')
+    return
+  }
   saving.value = true
   try {
     await productsApi.stock(stockForm.id, stockForm.mode, Number(stockForm.value) || 0)
@@ -326,10 +369,6 @@ async function saveStock() {
 
 const yuan = fenToYuan
 
-function coverColor(cat: string) {
-  return cat === 'GOODS' ? 'var(--accent-clay)' : 'var(--brand)'
-}
-
 onMounted(() => {
   load()
   mallApi.categories().then((d: any) => { mallCategories.value = d || [] }).catch(() => {})
@@ -339,6 +378,7 @@ onMounted(() => {
 
 <style scoped>
 .filter-card { padding: 12px 16px; margin-bottom: 14px; }
+.pager { display: flex; justify-content: flex-end; padding: 12px 6px 0; }
 .product-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));

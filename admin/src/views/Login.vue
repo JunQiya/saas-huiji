@@ -92,7 +92,8 @@ const tips = [
 const todayTip = tips[Math.floor(Math.random() * tips.length)]
 
 async function submit() {
-  await formRef.value?.validate()
+  const valid = await formRef.value?.validate().catch(() => false)
+  if (!valid) return
   loading.value = true
   try {
     await userStore.login(form.username.trim(), form.password)

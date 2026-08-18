@@ -57,7 +57,9 @@ service.interceptors.response.use(
     const status = error.response?.status
     const body = error.response?.data
     const code = body?.code
-    const msg = body?.message || error.message || '网络异常'
+    // 将 axios 的英文错误文案统一转成中文, 避免暴露给用户
+    const msg = body?.message || zhHttpError(error)
+    error.message = msg
     if (status === 401 || code === 'SESSION_EXPIRED') {
       handleSessionExpired(msg)
     } else if (status === 403 || code === 'FORBIDDEN') {
@@ -68,6 +70,40 @@ service.interceptors.response.use(
     return Promise.reject(error)
   }
 )
+
+// 把 axios/浏览器产生的英文错误转成中文文案
+function zhHttpError(error: any): string {
+  const status = error?.response?.status
+  if (status != null) {
+    const map: Record<number, string> = {
+      400: '请求参数有误',
+      401: '登录已过期，请重新登录',
+      403: '无权限执行该操作',
+      404: '请求的资源不存在',
+      405: '请求方式不支持',
+      408: '请求超时，请重试',
+      409: '数据冲突，请刷新后重试',
+      422: '参数校验失败',
+      429: '请求过于频繁，请稍后再试',
+      500: '服务异常，请稍后重试',
+      502: '网关异常，请稍后重试',
+      503: '服务暂不可用，请稍后重试',
+      504: '网关超时，请稍后重试'
+    }
+    return map[status] || '网络异常，请稍后重试'
+  }
+  const code = (error?.code || '') as string
+  if (code === 'ECONNABORTED' || /timeout/i.test(error?.message || '')) {
+    return '请求超时，请重试'
+  }
+  if (code === 'ERR_NETWORK' || /network error/i.test(error?.message || '')) {
+    return '网络异常，请检查网络连接'
+  }
+  if (code === 'ERR_CANCELED') {
+    return '请求已取消'
+  }
+  return '网络异常，请稍后重试'
+}
 
 function handleSessionExpired(message: string) {
   if (isRedirecting) return

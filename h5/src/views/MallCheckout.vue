@@ -284,12 +284,14 @@ async function loadCoupons() {
   try {
     const data = await h5Api.myCoupons('UNUSED')
     const list = (data as any)?.list || (Array.isArray(data) ? data : [])
-    coupons.value = list
+    // 商城仅支持满减券(FULL_CUT), 过滤掉折扣/体验/生日券
+    coupons.value = list.filter((c: CouponRecord) => c.type === 'FULL_CUT')
   } catch { coupons.value = [] }
   finally { couponLoading.value = false }
 }
 
 function isCouponUsable(c: CouponRecord): boolean {
+  if (c.type !== 'FULL_CUT') return false
   if (c.threshold && totalAmount.value < c.threshold) return false
   return true
 }

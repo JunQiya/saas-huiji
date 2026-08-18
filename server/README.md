@@ -95,8 +95,8 @@ $JAVA_HOME/bin/java -jar target/huiji-server-1.0.0.jar --spring.profiles.active=
 
 ## 端口与 CORS
 
-- 服务端口：`8080`
-- H2 控制台（dev）：`http://localhost:8080/h2-console`（JDBC URL `jdbc:h2:mem:huiji`，用户 `sa`，无密码）
+- 服务端口：`8081`
+- H2 控制台（dev）：`http://localhost:8081/h2-console`（JDBC URL `jdbc:h2:mem:huiji`，用户 `sa`，无密码）
 - CORS 允许来源：
   - 后台管理端 `http://localhost:5173`
   - H5 会员端 `http://localhost:5174`

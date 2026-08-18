@@ -79,6 +79,17 @@ public class GameService {
         return g;
     }
 
+    /** 切换启停状态(无需回传整对象) */
+    @Transactional
+    public Game toggleStatus(Long tenantId, Long id, String status) {
+        Game g = gameRepository.findByIdAndTenantIdAndDeletedFalse(id, tenantId)
+                .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "游戏不存在"));
+        g.setStatus("ENABLED".equals(status) ? "ENABLED" : "DISABLED");
+        gameRepository.save(g);
+        auditHelper.record("切换游戏状态", "game:" + id, g.getStatus());
+        return g;
+    }
+
     /** 删除游戏(连带删奖品) */
     @Transactional
     public void remove(Long tenantId, Long id) {

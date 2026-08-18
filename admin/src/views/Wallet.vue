@@ -106,7 +106,8 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Search, RefreshLeft, Download } from '@element-plus/icons-vue'
 import { walletApi, storesApi } from '@/api'
-import { formatMoney, formatDateTime } from '@/utils/format'
+import { formatMoney, formatDateTime, fenToYuan } from '@/utils/format'
+import { quickCsv } from '@/utils/csv'
 import type { Transaction, Store } from '@/types'
 
 const walletSlogan = [
@@ -178,24 +179,18 @@ function exportCsv() {
     ElMessage.info('暂无数据可导出')
     return
   }
-  const head = ['时间', '类型', '会员', '门店', '金额(元)', '余额(元)', '备注']
-  const rows = list.value.map((t) => [
-    t.createdAt,
-    t.type,
+  quickCsv(`储值流水-${new Date().toLocaleDateString('zh-CN')}`, [
+    '时间', '类型', '会员', '门店', '金额(元)', '余额(元)', '备注'
+  ], list.value.map(t => [
+    formatDateTime(t.createdAt),
+    txTypeText(t.type),
     t.memberName || `#${t.memberId}`,
     t.storeName || '',
-    formatMoney(t.amount),  // 后端以「分」存储，这里除以 100 转为元
-    t.balanceAfter != null ? formatMoney(t.balanceAfter) : '',
-    (t.remark || '').replace(/[\n,]/g, ' ')
-  ])
-  const csv = [head, ...rows].map((r) => r.join(',')).join('\n')
-  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `wallet-${Date.now()}.csv`
-  a.click()
-  URL.revokeObjectURL(url)
+    fenToYuan(t.amount),
+    t.balanceAfter != null ? fenToYuan(t.balanceAfter) : '',
+    t.remark || ''
+  ]))
+  ElMessage.success('已导出 CSV')
 }
 
 function txTypeText(t: string) {
@@ -238,10 +233,10 @@ onMounted(async () => {
   margin-top: 4px;
 }
 .pos {
-  color: #d97757;
+  color: var(--success);
 }
 .neg {
-  color: var(--accent);
+  color: var(--danger);
 }
 .link {
   color: var(--primary);

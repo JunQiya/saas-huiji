@@ -122,7 +122,8 @@ async function load() {
 async function onQtyChange(item: CartItem, v: any) {
   const qty = Number(v) || 0
   if (qty <= 0) {
-    await onRemove(item, true)
+    // 减到 0 视为移除, 先确认避免误删
+    await onRemove(item, false)
     return
   }
   try {

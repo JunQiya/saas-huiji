@@ -6,6 +6,7 @@ import com.huiji.repository.WxAccountRepository;
 import com.huiji.security.LoginUserHolder;
 import com.huiji.service.WxMpConfigService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.mp.api.WxMpService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -17,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /** 微信公众号配置管理 */
+@Slf4j
 @RestController
 @RequestMapping("/api/wx/account")
 @RequiredArgsConstructor
@@ -73,7 +75,8 @@ public class WxAccountController {
             vo.put("accessToken", accessToken);
             return Result.success(vo);
         } catch (Exception e) {
-            return Result.fail("TEST_FAIL", "连通性测试失败: " + e.getMessage());
+            log.warn("微信连通性测试失败", e);
+            return Result.fail("TEST_FAIL", "连通性测试失败，请检查 AppID / AppSecret 是否正确");
         }
     }
 

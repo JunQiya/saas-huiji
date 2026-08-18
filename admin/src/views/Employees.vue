@@ -62,7 +62,9 @@
             <el-button link type="primary" @click="openPerf(row)">业绩</el-button>
             <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
             <el-button link type="warning" @click="onResetPwd(row)">重置密码</el-button>
-            <el-button link type="danger" @click="onDisable(row)">禁用</el-button>
+            <el-button link :type="row.status === 'DISABLED' ? 'primary' : 'danger'" @click="onToggleStatus(row)">
+              {{ row.status === 'DISABLED' ? '启用' : '禁用' }}
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -309,7 +311,8 @@ function openEdit(row: Employee) {
   formVisible.value = true
 }
 async function submitForm() {
-  await formRef.value?.validate()
+  const valid = await formRef.value?.validate().catch(() => false)
+  if (!valid) return
   saving.value = true
   try {
     if (editing.value) {
@@ -327,18 +330,32 @@ async function submitForm() {
   }
 }
 async function onResetPwd(row: Employee) {
-  const { value } = await ElMessageBox.prompt(`为「${row.name}」重置密码`, '重置密码', {
-    inputPattern: /^.{6,}$/,
-    inputErrorMessage: '至少 6 位',
-    inputPlaceholder: '输入新密码'
-  })
+  let value: string | null = null
+  try {
+    const res = await ElMessageBox.prompt(`为「${row.name}」重置密码`, '重置密码', {
+      inputPattern: /^.{6,}$/,
+      inputErrorMessage: '至少 6 位',
+      inputPlaceholder: '输入新密码'
+    })
+    value = res.value
+  } catch { return }
   await employeesApi.resetPassword(row.id, value)
   ElMessage.success('密码已重置')
 }
-async function onDisable(row: Employee) {
-  await ElMessageBox.confirm(`确认禁用员工「${row.name}」？`, '提示', { type: 'warning' })
-  await employeesApi.remove(row.id)
-  ElMessage.success('已禁用')
+async function onToggleStatus(row: Employee) {
+  const disabling = row.status !== 'DISABLED'
+  const verb = disabling ? '禁用' : '启用'
+  try {
+    await ElMessageBox.confirm(`确认${verb}员工「${row.name}」？`, '提示', {
+      type: disabling ? 'warning' : 'info'
+    })
+  } catch { return }
+  if (disabling) {
+    await employeesApi.remove(row.id)
+  } else {
+    await employeesApi.update(row.id, { status: 'ACTIVE' })
+  }
+  ElMessage.success(`已${verb}`)
   loadList()
 }
 

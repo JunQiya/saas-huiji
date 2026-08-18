@@ -17,6 +17,7 @@
             <el-date-picker v-model="opsRange" type="daterange" range-separator="—" start-placeholder="开始" end-placeholder="结束" value-format="YYYY-MM-DD" @change="loadOps" />
             <el-button type="primary" :icon="Search" @click="loadOps">查询</el-button>
             <el-button :icon="RefreshLeft" @click="resetOps">重置</el-button>
+            <el-button :icon="Download" @click="exportOps" :disabled="!opsList.length">导出</el-button>
           </div>
           <el-table v-loading="opsLoading" :data="opsList" stripe size="small">
             <el-table-column label="时间" width="155">
@@ -48,6 +49,7 @@
             <el-date-picker v-model="loginRange" type="daterange" range-separator="—" start-placeholder="开始" end-placeholder="结束" value-format="YYYY-MM-DD" @change="loadLogins" />
             <el-button type="primary" :icon="Search" @click="loadLogins">查询</el-button>
             <el-button :icon="RefreshLeft" @click="resetLogin">重置</el-button>
+            <el-button :icon="Download" @click="exportLogins" :disabled="!loginList.length">导出</el-button>
           </div>
           <el-table v-loading="loginLoading" :data="loginList" stripe size="small">
             <el-table-column label="时间" width="155">
@@ -88,9 +90,11 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
-import { Search, RefreshLeft } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { Search, RefreshLeft, Download } from '@element-plus/icons-vue'
 import { auditApi } from '@/api'
 import { formatDateTime } from '@/utils/format'
+import { exportCsv } from '@/utils/csv'
 import type { AuditLog, LoginLog } from '@/types'
 
 const auditSlogan = [
@@ -176,6 +180,34 @@ function resetLogin() {
 
 function onTabChange(name: string | number) {
   if (name === 'login' && !loginList.value.length) loadLogins()
+}
+
+function exportOps() {
+  if (!opsList.value.length) { ElMessage.info('暂无可导出的操作日志'); return }
+  exportCsv(`操作日志-${new Date().toLocaleDateString('zh-CN')}`, opsList.value, [
+    { key: 'createdAt', header: '时间', format: r => formatDateTime(r.createdAt) },
+    { key: 'operatorName', header: '操作人' },
+    { key: 'action', header: '操作' },
+    { key: 'target', header: '目标' },
+    { key: 'detail', header: '详情' },
+    { key: 'ip', header: 'IP' }
+  ])
+  ElMessage.success(`已导出 ${opsList.value.length} 条`)
+}
+
+function exportLogins() {
+  if (!loginList.value.length) { ElMessage.info('暂无可导出的登录日志'); return }
+  exportCsv(`登录日志-${new Date().toLocaleDateString('zh-CN')}`, loginList.value, [
+    { key: 'createdAt', header: '时间', format: r => formatDateTime(r.createdAt) },
+    { key: 'username', header: '用户名' },
+    { key: 'ip', header: 'IP' },
+    { key: 'location', header: '归属地' },
+    { key: 'browser', header: '浏览器' },
+    { key: 'os', header: '系统' },
+    { key: 'status', header: '状态', format: r => r.status === 'SUCCESS' ? '成功' : '失败' },
+    { key: 'message', header: '消息' }
+  ])
+  ElMessage.success(`已导出 ${loginList.value.length} 条`)
 }
 
 onMounted(() => loadOps())

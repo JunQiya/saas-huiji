@@ -140,8 +140,7 @@ const form = reactive<any>({
   mchKey: '',
   apiV3Key: '',
   certPath: '',
-  templateIds: '',
-  agentId: null
+  templateIds: ''
 })
 
 // 模板消息本地对象（与 templateIds JSON 字符串互转）
@@ -168,8 +167,7 @@ async function loadDetail() {
         mchKey: data.mchKey || '',
         apiV3Key: data.apiV3Key || '',
         certPath: data.certPath || '',
-        templateIds: data.templateIds || '',
-        agentId: data.agentId ?? null
+        templateIds: data.templateIds || ''
       })
       // 解析 templateIds JSON 字符串到 templates 对象
       Object.keys(templates).forEach(k => delete templates[k])
@@ -200,7 +198,13 @@ async function onTest() {
   testing.value = true
   try {
     const res: any = await wxAccountApi.test()
-    ElMessage.success(res?.message || res?.ok ? '连通性测试通过' : '测试完成')
+    if (res?.accessToken) {
+      ElMessage.success(`连通性测试通过（${res.appId}）`)
+    } else {
+      ElMessage.success('测试完成')
+    }
+  } catch {
+    // 失败提示已由拦截器展示
   } finally {
     testing.value = false
   }

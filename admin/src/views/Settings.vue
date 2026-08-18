@@ -240,12 +240,34 @@ const form = reactive({
   rechargeRules: [] as any[]
 })
 
-// 品牌色实时生效
+// 品牌色实时生效：同步所有衍生 token，保持深浅/柔和/高亮一致
+function hexToRgba(hex: string, alpha: number): string {
+  const h = hex.replace('#', '')
+  if (h.length !== 6) return hex
+  const r = parseInt(h.slice(0, 2), 16)
+  const g = parseInt(h.slice(2, 4), 16)
+  const b = parseInt(h.slice(4, 6), 16)
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+function shade(hex: string, factor: number): string {
+  const h = hex.replace('#', '')
+  if (h.length !== 6) return hex
+  const chan = (c: string) => Math.max(0, Math.min(255, Math.round(parseInt(c, 16) * factor)))
+  const r = chan(h.slice(0, 2)), g = chan(h.slice(2, 4)), b = chan(h.slice(4, 6))
+  return `#${[r, g, b].map(x => x.toString(16).padStart(2, '0')).join('')}`
+}
 watch(() => form.brandColor, (color) => {
-  if (color) {
-    document.documentElement.style.setProperty('--brand', color)
-    document.documentElement.style.setProperty('--primary-action', color)
-  }
+  if (!color || !/^#[0-9a-fA-F]{6}$/.test(color)) return
+  const root = document.documentElement.style
+  root.setProperty('--brand', color)
+  root.setProperty('--primary', color)
+  root.setProperty('--primary-action', color)
+  root.setProperty('--brand-deep', shade(color, 0.72))
+  root.setProperty('--brand-ink', shade(color, 0.82))
+  root.setProperty('--brand-soft', hexToRgba(color, 0.10))
+  root.setProperty('--brand-softer', hexToRgba(color, 0.05))
+  root.setProperty('--brand-glow', hexToRgba(color, 0.15))
+  root.setProperty('--primary-action-soft', hexToRgba(color, 0.10))
 }, { immediate: true })
 
 const plans = [
@@ -318,6 +340,20 @@ function addRecharge() {
 
 async function saveBasic() {
   if (!form.tenantName.trim()) { ElMessage.warning('请填写租户名称'); return }
+  // 校验等级阈值逐级递增
+  const levels = [...form.levelRules].sort((a, b) => a.level - b.level)
+  for (let i = 1; i < levels.length; i++) {
+    if (levels[i].thresholdYuan <= levels[i - 1].thresholdYuan) {
+      ElMessage.error(`等级规则「${levels[i].name || levels[i].level}」的阈值需大于上一级（${levels[i - 1].name || levels[i - 1].level}: ¥${levels[i - 1].thresholdYuan}）`)
+      return
+    }
+  }
+  // 校验等级 level 不能重复
+  const seen = new Set<number>()
+  for (const r of form.levelRules) {
+    if (seen.has(r.level)) { ElMessage.error('等级序号不能重复'); return }
+    seen.add(r.level)
+  }
   saving.value = true
   try {
     const payload: TenantSettings = {

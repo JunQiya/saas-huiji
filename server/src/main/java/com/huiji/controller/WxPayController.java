@@ -109,7 +109,7 @@ public class WxPayController {
             return Result.success(payParams);
         } catch (WxPayException e) {
             log.error("微信支付下单失败 orderNo={}", order.getOrderNo(), e);
-            return Result.fail("PAY_FAIL", "微信支付下单失败: " + e.getMessage());
+            return Result.fail("PAY_FAIL", "微信支付下单失败，请稍后重试");
         }
     }
 
@@ -153,7 +153,7 @@ public class WxPayController {
             return WxPayNotifyResponse.success("OK");
         } catch (Exception e) {
             log.error("微信支付回调处理异常", e);
-            return WxPayNotifyResponse.fail(e.getMessage());
+            return WxPayNotifyResponse.fail("处理失败");
         }
     }
 
@@ -180,7 +180,7 @@ public class WxPayController {
             return Result.success(vo);
         } catch (WxPayException e) {
             log.error("微信支付查询失败 orderNo={}", order.getOrderNo(), e);
-            return Result.fail("QUERY_FAIL", "查询支付状态失败: " + e.getMessage());
+            return Result.fail("QUERY_FAIL", "查询支付状态失败，请稍后重试");
         }
     }
 

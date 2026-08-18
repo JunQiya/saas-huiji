@@ -147,7 +147,8 @@ import * as echarts from '@/utils/echarts'
 import KpiCard from '@/components/KpiCard.vue'
 import ChartCard from '@/components/ChartCard.vue'
 import { useUserStore } from '@/stores/user'
-import { statsApi, productsApi, membersApi, ordersApi, walletApi, diningApi, campaignsApi, settingsPlanApi } from '@/api'
+import { usePolling } from '@/composables/usePolling'
+import { statsApi, membersApi, ordersApi, walletApi, diningApi, campaignsApi, settingsPlanApi, couponsApi } from '@/api'
 
 const userStore = useUserStore()
 const loading = ref(false)
@@ -212,34 +213,29 @@ async function load() {
     try {
       const trend = await statsApi.trend({ range: '7d', metric: 'revenue' })
       const orderTrend = await statsApi.trend({ range: '7d', metric: 'orders' })
-      const merge = trend.map((t: any, i: number) => ({
+      const orderMap = new Map((orderTrend || []).map((t: any) => [t.date, t.value]))
+      const merge = (trend || []).map((t: any) => ({
         date: t.date,
         amount: t.value,
-        orders: orderTrend[i]?.value || 0
+        orders: orderMap.get(t.date) || 0
       }))
       drawTrend(merge)
     } catch { drawTrend([]) }
-    // 3. 会员等级分布
+    // 3. 会员等级分布（按真实会员 levelName 聚合）
     try {
-      const mg = await statsApi.memberGrowth()
-      const total = (mg || []).reduce((s: number, x: any) => s + (x.value || 0), 0)
-      const pie = (mg || []).map((x: any) => ({ name: x.date?.slice(5) || '', value: x.value || 0 }))
-      if (pie.length && total) drawPie(pie)
-      else drawPie([
-        { name: '普通', value: 6 }, { name: '银卡', value: 3 },
-        { name: '金卡', value: 2 }, { name: '钻石', value: 1 }
-      ])
-    } catch {
-      drawPie([
-        { name: '普通', value: 6 }, { name: '银卡', value: 3 },
-        { name: '金卡', value: 2 }, { name: '钻石', value: 1 }
-      ])
-    }
-    // 4. 热销
+      const levelPie = await loadLevelDistribution()
+      if (levelPie.length) drawPie(levelPie)
+      else drawPie([])
+    } catch { drawPie([]) }
+    // 4. 热销商品(按销量, 真实订单商品聚合)
     try {
-      const top = await statsApi.topServices()
+      const top = await statsApi.productsTop({ limit: 5 })
       hotProducts.value = (top || []).slice(0, 5).map((t: any, i: number) => ({
-        id: t.id || i, name: t.name || '—', sold: t.count || 0, amount: t.amount || 0, category: t.category || '服务'
+        id: t.productId || i,
+        name: t.productName || '—',
+        sold: t.quantity || 0,
+        amount: t.subtotal || 0,
+        category: '热销'
       }))
     } catch { hotProducts.value = [] }
     // 5. 时段分布
@@ -247,7 +243,7 @@ async function load() {
       const hour = await statsApi.hour()
       drawHour(hour || [])
     } catch { drawHour([]) }
-    // 6. 第三行指标: 月度积分 / 厨房工单 / 活动 / 沉睡
+    // 6. 第三行指标: 月度积分 / 厨房工单 / 活动 / 沉睡 + 券核销率/复购率
     loadExtendedKpi()
     // 7. 实时动态: 从最近订单 + 流水
     loadActivity()
@@ -265,6 +261,17 @@ async function load() {
   } catch (e) {
     drawTrend([]); drawPie([]); drawHour([])
   } finally { loading.value = false }
+}
+
+async function loadLevelDistribution() {
+  const members: any = await membersApi.list({ page: 1, size: 500 })
+  const list = (members?.list || members?.data?.list || []) as any[]
+  const agg = new Map<string, number>()
+  for (const m of list) {
+    const name = m.levelName || `L${m.level || 1}`
+    agg.set(name, (agg.get(name) || 0) + 1)
+  }
+  return Array.from(agg.entries()).map(([name, value]) => ({ name, value }))
 }
 
 async function loadExtendedKpi() {
@@ -301,15 +308,25 @@ async function loadExtendedKpi() {
     kpi.value.activeCampaigns = (cps || []).length
   } catch { kpi.value.activeCampaigns = 0 }
 
-  // 沉睡会员: 90 天未消费
+  // 券核销率: used / granted
   try {
-    const all: any = await membersApi.list({ page: 1, size: 200 })
-    const list = (all?.list || all?.data?.list || []) as any[]
-    const cutoff = Date.now() - 90 * 86400_000
-    kpi.value.dormantMembers = list.filter((m: any) => {
-      const t = m.lastConsumeAt ? new Date(m.lastConsumeAt).getTime() : 0
-      return t < cutoff
-    }).length
+    const cs: any = await couponsApi.list({})
+    const arr = Array.isArray(cs) ? cs : []
+    const granted = arr.reduce((s, c) => s + (c.granted ?? c.grantedCount ?? 0), 0)
+    const used = arr.reduce((s, c) => s + (c.used ?? c.usedCount ?? 0), 0)
+    kpi.value.couponUseRate = granted > 0 ? Number(((used / granted) * 100).toFixed(1)) : 0
+  } catch { kpi.value.couponUseRate = 0 }
+
+  // 沉睡会员(RFM) + 复购率
+  try {
+    const rfm: any = await statsApi.rfm()
+    if (rfm) {
+      kpi.value.dormantMembers = rfm.dormant?.count ?? 0
+      const active = (rfm.high?.count ?? 0) + (rfm.mid?.count ?? 0) + (rfm.low?.count ?? 0)
+      const total = active + (rfm.dormant?.count ?? 0)
+      // 复购率 = 近30天高频 + 近90天中频 占总会员比例(近似)
+      kpi.value.repurchase = total > 0 ? Number((((rfm.high?.count ?? 0) + (rfm.mid?.count ?? 0)) / total * 100).toFixed(1)) : 0
+    }
   } catch { kpi.value.dormantMembers = 0 }
 }
 
@@ -502,6 +519,22 @@ function drawHour(data: any[]) {
 }
 
 onMounted(load)
+
+// 60s 轮询刷新实时动态与今日指标(不重载整页, 避免图表闪烁)
+usePolling({
+  interval: 60000,
+  tick: () => {
+    if (document.visibilityState === 'visible') {
+      loadActivity()
+      statsApi.ordersToday().then((t: any) => {
+        if (t) {
+          kpi.value.todayOrders = t.count || 0
+          kpi.value.todayRevenue = t.amount || kpi.value.todayRevenue
+        }
+      }).catch(() => {})
+    }
+  }
+})
 </script>
 
 <style scoped>

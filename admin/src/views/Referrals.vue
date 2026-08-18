@@ -17,24 +17,28 @@
       </div>
     </div>
 
-    <!-- KPI 卡片区：因后端 adminStats 必传 memberId，无法取全局统计，这里基于列表数据汇总 -->
+    <!-- KPI 卡片区：后端全局汇总(独立于分页与筛选) -->
     <div class="x-card kpi-wrap">
       <div class="kpi-strip">
         <div class="kpi-item">
           <div class="k">总推荐数</div>
-          <div class="v val">{{ total }}</div>
+          <div class="v val">{{ summary.total ?? 0 }}</div>
         </div>
         <div class="kpi-item">
           <div class="k">本月新增</div>
-          <div class="v val">{{ monthCount }}</div>
+          <div class="v val">{{ summary.monthCount ?? 0 }}</div>
         </div>
         <div class="kpi-item">
           <div class="k">成功绑定</div>
-          <div class="v val">{{ boundCount }}</div>
+          <div class="v val">{{ summary.boundCount ?? 0 }}</div>
         </div>
         <div class="kpi-item">
           <div class="k">已发奖励</div>
-          <div class="v val">{{ rewardedCount }}</div>
+          <div class="v val">{{ summary.rewardedCount ?? 0 }}</div>
+        </div>
+        <div class="kpi-item">
+          <div class="k">奖励总额</div>
+          <div class="v val">¥{{ summary.totalReward ? (summary.totalReward / 100).toFixed(0) : 0 }}</div>
         </div>
       </div>
     </div>
@@ -125,7 +129,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, RefreshRight, Share, Download, Link } from '@element-plus/icons-vue'
 import { referralsApi } from '@/api'
@@ -141,6 +145,7 @@ const refSlogan = [
 const loading = ref(false)
 const list = ref<any[]>([])
 const total = ref(0)
+const summary = ref<any>({})
 const query = reactive({ memberId: '' as any, page: 1, size: 20 })
 const detailVisible = ref(false)
 const detail = ref<any>(null)
@@ -164,6 +169,13 @@ async function loadList() {
     total.value = res?.total || 0
   } catch {/* */}
   finally { loading.value = false }
+  loadSummary()
+}
+
+async function loadSummary() {
+  try {
+    summary.value = await referralsApi.adminSummary() || {}
+  } catch { summary.value = {} }
 }
 
 function onSearch() { query.page = 1; loadList() }
@@ -210,24 +222,7 @@ async function confirmBind() {
   }
 }
 
-// KPI 汇总：基于当前列表数据（后端 adminStats 必传 memberId，无法取全局统计）
-const monthCount = computed(() => {
-  const now = new Date()
-  const y = now.getFullYear()
-  const m = now.getMonth()
-  return list.value.filter(r => {
-    if (!r.createdAt) return false
-    const d = new Date(r.createdAt)
-    return d.getFullYear() === y && d.getMonth() === m
-  }).length
-})
-const boundCount = computed(() => {
-  // 已活跃 + 已奖励 视为成功绑定
-  return list.value.filter(r => r.status === 'ACTIVE' || r.status === 'REWARDED').length
-})
-const rewardedCount = computed(() => {
-  return list.value.filter(r => r.status === 'REWARDED').length
-})
+// KPI 汇总：由后端全局接口返回(独立于分页)
 
 // 导出当前列表为 CSV
 function onExport() {

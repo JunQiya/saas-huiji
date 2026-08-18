@@ -34,6 +34,7 @@
       <div class="trend-body">
         <div v-for="(p, i) in (stats.recent || [])" :key="i" class="trend-col">
           <div class="col-stack">
+            <div class="bar bar-cost" :style="{ height: costBarHeight(p.cost) + 'px' }"></div>
             <div class="bar bar-sent" :style="{ height: barHeight(p.sent, 'sent') + 'px' }"></div>
           </div>
           <div class="col-label">{{ formatTrendLabel(p.date) }}</div>
@@ -291,6 +292,11 @@ function barHeight(v: number, key: 'sent') {
   const max = Math.max(1, ...arr.map(p => p[key] || 0))
   return Math.max(4, Math.round((v / max) * 80))
 }
+function costBarHeight(cost: number) {
+  const arr = (stats.recent || []) as any[]
+  const max = Math.max(1, ...arr.map(p => p.cost || 0))
+  return Math.max(2, Math.round((cost / max) * 80))
+}
 
 // ============ 新建 ============
 const formVisible = ref(false)
@@ -352,7 +358,8 @@ async function searchMembers(keyword: string) {
 }
 
 async function submitForm() {
-  await formRef.value?.validate()
+  const valid = await formRef.value?.validate().catch(() => false)
+  if (!valid) return
   if (form.memberIds.length === 0) {
     ElMessage.error('请选择至少 1 位会员')
     return
@@ -435,6 +442,7 @@ usePolling({ interval: 20000, tick: loadList })
   width: 18px; border-radius: 4px 4px 0 0; transition: height 0.3s ease-out;
 }
 .bar-sent { background: var(--brand); }
+.bar-cost { background: var(--warning); opacity: 0.55; }
 .col-label { font-size: 11px; color: var(--muted); }
 
 .msg-title { font-size: 13px; color: var(--ink); font-weight: 500; }

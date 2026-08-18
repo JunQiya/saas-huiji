@@ -46,7 +46,9 @@ export const statsApi = {
   topServices: () => request.get<any, TopService[]>('/stats/top-services'),
   rfm: () => request.get<any, RfmStats>('/stats/rfm'),
   hour: () => request.get<any, HourPoint[]>('/stats/hour'),
-  ordersToday: () => request.get<any, { count: number; amount: number; date: string }>('/stats/orders/today')
+  ordersToday: () => request.get<any, { count: number; amount: number; date: string }>('/stats/orders/today'),
+  productsTop: (params: { limit?: number; start?: string; end?: string }) =>
+    request.get<any, { productId: number; productName: string; quantity: number; subtotal: number }[]>('/stats/products/top', { params })
 }
 
 // ============ Members ============
@@ -85,6 +87,7 @@ export const walletApi = {
 export const couponsApi = {
   list: (params: any) => request.get<any, Coupon[]>('/coupons', { params }),
   create: (data: any) => request.post<any, Coupon>('/coupons', data),
+  import: (data: any[]) => request.post<any, { success: number; failed: number; errors: string[] }>('/coupons/import', data),
   update: (id: number, data: any) => request.put<any, Coupon>(`/coupons/${id}`, data),
   remove: (id: number) => request.delete<any, null>(`/coupons/${id}`),
   grant: (id: number, data: { memberIds: number[]; storeId?: number }) =>
@@ -210,6 +213,7 @@ export const referralsApi = {
   listByReferrer: (memberId: number) => request.get<any, any[]>(`/referrals/list?memberId=${memberId}`),
   adminAll: (params: any) => request.get<any, PageData<any>>('/referrals/admin/all', { params }),
   adminStats: (memberId: number) => request.get<any, any>(`/referrals/admin/stats?memberId=${memberId}`),
+  adminSummary: () => request.get<any, any>('/referrals/admin/summary'),
   adminBind: (memberId: number, code: string) => request.post<any, any>('/referrals/admin/bind', { memberId, code })
 }
 
@@ -256,6 +260,7 @@ export const gameApi = {
   list: (params?: any) => request.get<any, any[]>('/games', { params }),
   detail: (id: number) => request.get<any, any>(`/games/${id}`),
   save: (data: any) => request.post<any, any>('/games', data),
+  toggleStatus: (id: number, status: string) => request.post<any, any>(`/games/${id}/status`, { status }),
   remove: (id: number) => request.delete<any, null>(`/games/${id}`),
   prizes: (gameId: number) => request.get<any, any[]>(`/games/${gameId}/prizes`),
   savePrize: (gameId: number, data: any) => request.post<any, any>(`/games/${gameId}/prizes`, data),

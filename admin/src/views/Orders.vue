@@ -77,34 +77,38 @@
         v-model:current-page="page"
         v-model:page-size="size"
         :total="total"
-        layout="total, prev, pager, next, jumper"
+        :page-sizes="[20, 50, 100]"
+        layout="total, sizes, prev, pager, next, jumper"
         @current-change="load"
+        @size-change="onSizeChange"
       />
     </div>
 
     <el-drawer v-model="drawer" title="订单详情" size="420px">
-      <div v-if="current" class="detail">
-        <div class="row"><span class="k">订单号</span><span class="v">{{ current.orderNo }}</span></div>
-        <div class="row"><span class="k">状态</span><span class="v"><span class="dot" :class="statusDot(current.status)" />{{ statusLabel(current.status) }}</span></div>
-        <div class="row"><span class="k">门店</span><span class="v">{{ storeName(current.storeId) }}</span></div>
-        <div class="row"><span class="k">会员</span><span class="v">{{ current.memberName || current.memberPhone || (current.memberId ? `#${current.memberId}` : '散客') }}</span></div>
-        <div class="row"><span class="k">收银员</span><span class="v">{{ current.cashierId || '-' }}</span></div>
-        <div class="row"><span class="k">备注</span><span class="v">{{ current.remark || '-' }}</span></div>
-        <div class="divider">商品明细</div>
-        <div v-for="it in (current.items || [])" :key="it.id" class="item">
-          <span class="it-name">{{ it.productName }}</span>
-          <span class="it-qty">x{{ it.quantity }}</span>
-          <span class="it-sub val">¥ {{ yuan(it.subtotal) }}</span>
-        </div>
-        <div class="totals">
-          <div class="row"><span class="k">总额</span><span class="v val">¥ {{ yuan(current.totalAmount) }}</span></div>
-          <div class="row"><span class="k">优惠</span><span class="v val">- ¥ {{ yuan(current.discountAmount) }}</span></div>
-          <div class="row"><span class="k">实付</span><span class="v val">¥ {{ yuan(current.paidAmount) }}</span></div>
-        </div>
-        <div class="footer-actions">
-          <el-button v-if="current.status === 'PENDING'" type="primary" @click="quickPay(current)" class="btn-scale">收款</el-button>
-          <el-button v-if="current.status === 'PAID'" type="danger" @click="refund(current)" class="btn-scale">退款</el-button>
-          <el-button v-if="current.status === 'PENDING'" type="warning" @click="voidOrder(current)" class="btn-scale">作废</el-button>
+      <div v-loading="detailLoading" class="detail">
+        <div v-if="current">
+          <div class="row"><span class="k">订单号</span><span class="v">{{ current.orderNo }}</span></div>
+          <div class="row"><span class="k">状态</span><span class="v"><span class="dot" :class="statusDot(current.status)" />{{ statusLabel(current.status) }}</span></div>
+          <div class="row"><span class="k">门店</span><span class="v">{{ storeName(current.storeId) }}</span></div>
+          <div class="row"><span class="k">会员</span><span class="v">{{ current.memberName || current.memberPhone || (current.memberId ? `#${current.memberId}` : '散客') }}</span></div>
+          <div class="row"><span class="k">收银员</span><span class="v">{{ current.cashierId || '-' }}</span></div>
+          <div class="row"><span class="k">备注</span><span class="v">{{ current.remark || '-' }}</span></div>
+          <div class="divider">商品明细</div>
+          <div v-for="it in (current.items || [])" :key="it.id" class="item">
+            <span class="it-name">{{ it.productName }}</span>
+            <span class="it-qty">x{{ it.quantity }}</span>
+            <span class="it-sub val">¥ {{ yuan(it.subtotal) }}</span>
+          </div>
+          <div class="totals">
+            <div class="row"><span class="k">总额</span><span class="v val">¥ {{ yuan(current.totalAmount) }}</span></div>
+            <div class="row"><span class="k">优惠</span><span class="v val">- ¥ {{ yuan(current.discountAmount) }}</span></div>
+            <div class="row"><span class="k">实付</span><span class="v val">¥ {{ yuan(current.paidAmount) }}</span></div>
+          </div>
+          <div class="footer-actions">
+            <el-button v-if="current.status === 'PENDING'" type="primary" @click="quickPay(current)" class="btn-scale">收款</el-button>
+            <el-button v-if="current.status === 'PAID'" type="danger" @click="refund(current)" class="btn-scale">退款</el-button>
+            <el-button v-if="current.status === 'PENDING'" type="warning" @click="voidOrder(current)" class="btn-scale">作废</el-button>
+          </div>
         </div>
       </div>
     </el-drawer>
@@ -145,6 +149,10 @@ function payMethodLabel(m: string) {
   return { CASH: '现金', WECHAT: '微信', ALIPAY: '支付宝', BALANCE: '余额', MIXED: '混合' }[m] || m
 }
 function fmtDate(t: any) { if (!t) return '-'; try { return new Date(t).toLocaleString() } catch { return String(t) } }
+function localDateStr(d: Date) {
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+}
 const yuan = fenToYuan
 
 const storeMap = reactive<Record<number, string>>({})
@@ -187,6 +195,7 @@ const todayAmount = ref('0.00')
 
 const drawer = ref(false)
 const current = ref<any>(null)
+const detailLoading = ref(false)
 
 async function load() {
   loading.value = true
@@ -198,8 +207,8 @@ async function load() {
       size: size.value
     }
     if (dateRange.value && dateRange.value.length === 2) {
-      params.start = dateRange.value[0].toISOString().slice(0, 10)
-      params.end = dateRange.value[1].toISOString().slice(0, 10)
+      params.start = localDateStr(dateRange.value[0])
+      params.end = localDateStr(dateRange.value[1])
     }
     const data: any = await ordersApi.list(params)
     list.value = data?.records || data?.list || data?.content || []
@@ -218,26 +227,41 @@ async function loadToday() {
   } catch (e) { /* 静默失败 */ }
 }
 
+function onSizeChange() {
+  page.value = 1
+  load()
+}
+
 async function openDetail(row: any) {
-  const data: any = await ordersApi.detail(row.id)
-  current.value = data
   drawer.value = true
+  detailLoading.value = true
+  current.value = null
+  try {
+    const data: any = await ordersApi.detail(row.id)
+    current.value = data
+  } catch { /* 拦截器处理 */ } finally {
+    detailLoading.value = false
+  }
 }
 
 async function quickPay(row: any) {
-  const { value } = await ElMessageBox.prompt(
-    `订单 ${row.orderNo}，应付 ¥${yuan(row.totalAmount)}`,
-    '选择支付方式',
-    {
-      inputValue: 'WECHAT',
-      inputPlaceholder: '请输入: CASH / WECHAT / ALIPAY / BALANCE',
-      confirmButtonText: '确定收款',
-      cancelButtonText: '取消',
-      inputValidator: (v: string) =>
-        ['CASH', 'WECHAT', 'ALIPAY', 'BALANCE'].includes(v?.toUpperCase().trim())
-        || '请输入 CASH / WECHAT / ALIPAY / BALANCE'
-    }
-  )
+  let value: string | null = null
+  try {
+    const res = await ElMessageBox.prompt(
+      `订单 ${row.orderNo}，应付 ¥${yuan(row.totalAmount)}`,
+      '选择支付方式',
+      {
+        inputValue: 'WECHAT',
+        inputPlaceholder: '请输入: CASH / WECHAT / ALIPAY / BALANCE',
+        confirmButtonText: '确定收款',
+        cancelButtonText: '取消',
+        inputValidator: (v: string) =>
+          ['CASH', 'WECHAT', 'ALIPAY', 'BALANCE'].includes(v?.toUpperCase().trim())
+          || '请输入 CASH / WECHAT / ALIPAY / BALANCE'
+      }
+    )
+    value = res.value
+  } catch { return }
   await ordersApi.pay(row.id, { payMethod: value.toUpperCase().trim() })
   ElMessage.success('已收款')
   load()
@@ -281,14 +305,17 @@ async function refund(row: any) {
 }
 
 async function voidOrder(row: any) {
-  const { value: reason } = await ElMessageBox.prompt('请输入作废原因', '作废订单', {
-    inputValue: '管理员操作',
-    inputPlaceholder: '如：下单错误、重复订单等',
-    confirmButtonText: '确认作废',
-    cancelButtonText: '取消',
-    inputValidator: (v: string) => (v?.trim()?.length >= 2) || '请输入至少 2 个字'
-  }).catch(() => ({ value: null }))
-  if (!reason) return
+  let reason: string | null = null
+  try {
+    const res = await ElMessageBox.prompt('请输入作废原因', '作废订单', {
+      inputValue: '管理员操作',
+      inputPlaceholder: '如：下单错误、重复订单等',
+      confirmButtonText: '确认作废',
+      cancelButtonText: '取消',
+      inputValidator: (v: string) => (v?.trim()?.length >= 2) || '请输入至少 2 个字'
+    })
+    reason = res.value
+  } catch { return }
   await ordersApi.void(row.id, { reason: reason.trim() })
   ElMessage.success('已作废')
   load()

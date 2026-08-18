@@ -52,6 +52,12 @@ public class GameController {
         return Result.success(gameService.save(tenantId, req));
     }
 
+    @PostMapping("/{id}/status")
+    public Result<Game> toggleStatus(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        Long tenantId = LoginUserHolder.currentTenantId();
+        return Result.success(gameService.toggleStatus(tenantId, id, body.get("status")));
+    }
+
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
         Long tenantId = LoginUserHolder.currentTenantId();

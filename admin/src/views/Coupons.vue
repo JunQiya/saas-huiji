@@ -185,23 +185,43 @@
     <!-- 导入弹窗 -->
     <el-dialog v-model="importVisible" title="导入券" width="540px" :close-on-click-modal="false">
       <div class="import-tip">
-        CSV 列: 券名称, 类型(FULL_CUT/PERCENT/EXPERIENCE/BIRTHDAY), 面值(元), 门槛(元), 有效天数。
-        第一行为表头。
+        CSV 列: 券名称, 类型(FULL_CUT/PERCENT/EXPERIENCE/BIRTHDAY), 面值, 门槛(元), 有效天数。<br />
+        PERCENT 面值为折扣百分比(如 85 = 8.5 折)，其余为金额(元)。第一行为表头。
       </div>
       <input type="file" accept=".csv" @change="onImportFile" class="import-file" />
       <div v-if="importFileName" class="import-name">已选: {{ importFileName }}</div>
       <div v-if="importPreview.length" class="import-preview">
         <div class="ip-title">预览 ({{ importPreview.length }} 条):</div>
         <div v-for="(it, i) in importPreview.slice(0, 5)" :key="i" class="ip-row">
-          {{ it.name }} · {{ it.type }} · ¥{{ (it.faceValue / 100).toFixed(2) }} · 满 ¥{{ (it.threshold / 100).toFixed(2) }}
+          {{ it.name }} · {{ it.type }} · {{ it.type === 'PERCENT' ? (it.faceValue / 10).toFixed(1) + ' 折' : '¥' + (it.faceValue / 100).toFixed(2) }} · 满 ¥{{ (it.threshold || 0) / 100 }} · {{ it.validDays }} 天
         </div>
         <div v-if="importPreview.length > 5" class="ip-more">还有 {{ importPreview.length - 5 }} 条...</div>
       </div>
       <template #footer>
         <el-button @click="importVisible = false">取消</el-button>
-        <el-button type="primary" :disabled="!importPreview.length" @click="onImportSubmit" class="btn-scale">
+        <el-button type="primary" :loading="importing" :disabled="!importPreview.length" @click="onImportSubmit" class="btn-scale">
           确认导入
         </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 导入结果弹窗 -->
+    <el-dialog v-model="importResultVisible" title="导入结果" width="520px">
+      <div v-if="importResult" class="import-result">
+        <div class="ir-summary">
+          <div class="ir-item"><span class="ir-num val">{{ importResult.success }}</span><span class="ir-label">成功</span></div>
+          <div class="ir-item"><span class="ir-num val neg">{{ importResult.failed }}</span><span class="ir-label">失败</span></div>
+        </div>
+        <div v-if="importResult.errors?.length" class="ir-errors">
+          <div class="ir-errors-title">失败明细（{{ importResult.errors.length }} 条）：</div>
+          <el-scrollbar max-height="240">
+            <div v-for="(e, i) in importResult.errors" :key="i" class="ir-error">{{ e }}</div>
+          </el-scrollbar>
+        </div>
+        <div v-else class="ir-ok">全部导入成功</div>
+      </div>
+      <template #footer>
+        <el-button type="primary" @click="importResultVisible = false">知道了</el-button>
       </template>
     </el-dialog>
 
@@ -299,6 +319,7 @@ import {
 , Upload, Download } from '@element-plus/icons-vue'
 import { couponsApi, membersApi, storesApi } from '@/api'
 import { formatDateTime, yuanToFen, fenToYuan } from '@/utils/format'
+import { quickCsv } from '@/utils/csv'
 import type { Coupon, CouponDisplay, CouponRecord, Member, Store } from '@/types'
 
 const couponSlogan = [
@@ -335,7 +356,7 @@ function statusType(s?: string) {
 }
 function ruleText(row: Coupon) {
   if (row.type === 'FULL_CUT') return `满¥${fenToYuan(row.threshold)} 减¥${fenToYuan(row.faceValue)}`
-  if (row.type === 'PERCENT') return `${row.faceValue} 折`
+  if (row.type === 'PERCENT') return `${(Number(row.faceValue) / 10).toFixed(1).replace(/\.0$/, '')} 折`
   if (row.type === 'EXPERIENCE') return '免费体验'
   return '生日专享'
 }
@@ -391,37 +412,52 @@ function openCreate() {
 // CSV 导出当前列表
 function onExport() {
   if (!list.value.length) { ElMessage.warning('暂无可导出数据'); return }
-  const headers = ['券名称', '类型', '面值(元)', '门槛(元)', '有效天数', '发放总量', '状态', '创建时间']
-  const rows = list.value.map(c => [
+  const typeName = (t: string) => ({ FULL_CUT: '满减', PERCENT: '折扣', EXPERIENCE: '体验', BIRTHDAY: '生日' } as any)[t] || t
+  quickCsv(`优惠券-${new Date().toISOString().slice(0, 10)}`, [
+    '券名称', '类型', '面值', '门槛', '有效天数', '发放总量', '状态', '创建时间'
+  ], list.value.map(c => [
     c.name || '',
-    ({ FULL_CUT: '满减', PERCENT: '折扣', EXPERIENCE: '体验', BIRTHDAY: '生日' } as any)[c.type] || c.type,
-    ((c.faceValue || 0) / 100).toFixed(2),
-    ((c.threshold || 0) / 100).toFixed(2),
+    typeName(c.type),
+    c.type === 'PERCENT' ? `${(Number(c.faceValue) / 10).toFixed(1).replace(/\.0$/, '')} 折` : fenToYuan(c.faceValue || 0),
+    c.type === 'FULL_CUT' ? fenToYuan(c.threshold || 0) : '',
     c.validDays || '',
     c.total || 0,
-    c.status || '',
+    statusText(c.status),
     formatDateTime(c.createdAt)
-  ])
-  const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
-  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `coupons_${new Date().toISOString().slice(0, 10)}.csv`
-  a.click()
-  URL.revokeObjectURL(url)
+  ]))
   ElMessage.success('已导出 CSV')
 }
 
-// CSV 导入(本地解析预览, 后端暂无批量接口)
+// CSV 导入(本地解析预览 + 后端批量接口)
 const importVisible = ref(false)
 const importPreview = ref<any[]>([])
 const importFileName = ref('')
+const importing = ref(false)
+const importResultVisible = ref(false)
+const importResult = ref<any>(null)
 function openImport() {
   importPreview.value = []
   importFileName.value = ''
   importVisible.value = true
 }
+function parseCsvLine(line: string): string[] {
+  const result: string[] = []
+  let cur = ''
+  let inQuote = false
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+    if (ch === '"') {
+      if (inQuote && line[i + 1] === '"') { cur += '"'; i++; continue }
+      inQuote = !inQuote
+      continue
+    }
+    if (ch === ',' && !inQuote) { result.push(cur); cur = ''; continue }
+    cur += ch
+  }
+  result.push(cur)
+  return result
+}
+
 function onImportFile(ev: Event) {
   const file = (ev.target as HTMLInputElement).files?.[0]
   if (!file) return
@@ -429,17 +465,26 @@ function onImportFile(ev: Event) {
   const reader = new FileReader()
   reader.onload = (e) => {
     const text = String(e.target?.result || '')
-    const lines = text.split(/\r?\n/).filter(l => l.trim())
+    // 去掉 BOM
+    const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/).filter(l => l.trim())
     if (!lines.length) { importPreview.value = []; return }
     const data = lines.slice(1).map(line => {
-      const cells = line.match(/("([^"]|"")*"|[^,]*)/g) || []
-      const clean = (s: string) => s.replace(/^"|"$/g, '').replace(/""/g, '"').trim()
+      const cells = parseCsvLine(line)
+      const clean = (s: string) => s.trim()
       const name = clean(cells[0] || '')
       const type = clean(cells[1] || 'FULL_CUT')
       const face = Number(clean(cells[2] || '0')) || 0
       const thresh = Number(clean(cells[3] || '0')) || 0
       const days = Number(clean(cells[4] || '30')) || 30
-      return { name, type, faceValue: face * 100, threshold: thresh * 100, validDays: days }
+      // FULL_CUT/EXPERIENCE/BIRTHDAY 面值为元; PERCENT 面值为折扣百分比(如 85 = 8.5 折)
+      const payload: any = { name, type, validType: 'DAYS', validDays: days }
+      if (type === 'PERCENT') {
+        payload.faceValue = Math.min(99, Math.max(1, Math.round(face)))
+      } else {
+        payload.faceValue = face * 100
+        payload.threshold = thresh * 100
+      }
+      return payload
     }).filter(x => x.name)
     importPreview.value = data
   }
@@ -447,13 +492,22 @@ function onImportFile(ev: Event) {
 }
 async function onImportSubmit() {
   if (!importPreview.value.length) { ElMessage.warning('请先选择文件'); return }
-  let ok = 0
-  for (const it of importPreview.value) {
-    try { await couponsApi.create(it); ok++ } catch {/* */}
-  }
-  ElMessage.success(`已导入 ${ok} / ${importPreview.value.length} 条`)
   importVisible.value = false
-  loadList()
+  importing.value = true
+  try {
+    const res = await couponsApi.import(importPreview.value)
+    importResult.value = res
+    if (res.failed > 0 || res.errors?.length) {
+      importResultVisible.value = true
+    } else {
+      ElMessage.success(`已导入 ${res.success} 条优惠券`)
+    }
+    loadList()
+  } catch (e: any) {
+    ElMessage.error(e?.message || '导入失败')
+  } finally {
+    importing.value = false
+  }
 }
 function openEdit(row: Coupon) {
   editing.value = true
@@ -474,7 +528,8 @@ function openEdit(row: Coupon) {
   formVisible.value = true
 }
 async function submitForm() {
-  await formRef.value?.validate()
+  const valid = await formRef.value?.validate().catch(() => false)
+  if (!valid) return
   saving.value = true
   try {
     const payload: any = {
@@ -694,6 +749,18 @@ onBeforeUnmount(() => {
 .ip-row { font-size: 11.5px; color: var(--ink-2); padding: 3px 0; border-bottom: 1px dashed var(--line); }
 .ip-row:last-child { border-bottom: none; }
 .ip-more { font-size: 11px; color: var(--muted); margin-top: 6px; }
+.import-result .ir-summary { display: flex; gap: 24px; margin-bottom: 14px; }
+.import-result .ir-item { display: flex; flex-direction: column; gap: 2px; }
+.import-result .ir-num { font-size: 26px; font-weight: 600; color: var(--success); }
+.import-result .ir-num.neg { color: var(--danger); }
+.import-result .ir-label { font-size: 12px; color: var(--muted); }
+.import-result .ir-ok { color: var(--success); font-size: 13px; padding: 12px 0; }
+.import-result .ir-errors-title { font-size: 12.5px; color: var(--muted); margin-bottom: 8px; }
+.import-result .ir-error {
+  font-size: 12.5px; color: var(--danger-deep);
+  padding: 5px 8px; border-left: 2px solid var(--danger-soft);
+  background: var(--surface-2); border-radius: 4px; margin-bottom: 4px;
+}
 
 /* 券卡网格 */
 .coupon-grid {
