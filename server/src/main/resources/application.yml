@@ -39,13 +39,13 @@ huiji-jwt:
 
 # CORS (逗号分隔, @Value List<String> 自动拆分)
 huiji-cors:
-  allowed-origins: http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174
+  allowed-origins: http://localhost:5273,http://localhost:5274,http://127.0.0.1:5273,http://127.0.0.1:5274
 
 # 是否初始化演示数据(dev 开启, prod 关闭)
 huiji:
   init-data: false
   # H5 前端域名(微信授权回调后重定向使用), 未配置 WxAccount.domain 时回退到此值
-  h5-domain: http://localhost:5173
+  h5-domain: http://localhost:5274
   h5:
     # 短信验证码回显模式(生产必须关闭): true 时验证码直接出现在接口响应中
     sms-dev-mode: false

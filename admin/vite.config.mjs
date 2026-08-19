@@ -5,7 +5,7 @@ import Components from 'unplugin-vue-components/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import { fileURLToPath, URL } from 'node:url'
 
-// Vite 配置：dev 端口 5173，代理 /api 到后端 8081
+// Vite 配置：dev 端口 5273，代理 /api 到后端 8081
 // 使用 .mjs 避免 vite 对 TS 配置写临时打包文件（沙盒环境下 EPERM）
 export default defineConfig({
   plugins: [
@@ -19,7 +19,7 @@ export default defineConfig({
     }
   },
   server: {
-    port: 5173,
+    port: 5273,
     host: '0.0.0.0',
     proxy: {
       '/api': {

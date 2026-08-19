@@ -54,8 +54,8 @@
       </div>
 
       <div v-if="!isProd" class="demo-tip" @click="fillDemo">
-        演示会员 <b>13800000001</b> · 验证码 <b>8888</b>
-        <span class="demo-fill">点击一键填充</span>
+        演示会员 <b>13800000001</b>
+        <span class="demo-fill">点击一键登录 ›</span>
       </div>
 
       <div class="form">
@@ -148,11 +148,12 @@ const slogan = slogans[Math.floor(Math.random() * slogans.length)]
 const sendingCode = ref(false)
 const isProd = import.meta.env.PROD
 
-// 演示账号一键填充(仅非生产环境展示)
+// 演示账号一键登录(仅非生产环境展示): 填充手机号并自动获取验证码登录
 function fillDemo() {
   phone.value = '13800000001'
-  code.value = '8888'
-  showToast('已填充演示账号，点击登录即可')
+  code.value = ''
+  showToast('正在为您自动登录演示账号…')
+  setTimeout(() => onSendCode(), 200)
 }
 
 async function onSendCode() {
@@ -164,19 +165,21 @@ async function onSendCode() {
   sendingCode.value = true
   try {
     const res = await h5Api.sendSmsCode(phone.value)
-    // dev 模式接口会回显验证码（生产对接短信网关后此字段为 null）
-    if (res?.devCode) {
-      code.value = res.devCode
-      showToast({ type: 'success', message: `验证码已发送（演示：${res.devCode}）` })
-    } else {
-      showToast({ type: 'success', message: '验证码已发送' })
-    }
     codeCountdown.value = 60
     if (timer) clearInterval(timer)
     timer = setInterval(() => {
       codeCountdown.value--
       if (codeCountdown.value <= 0) clearInterval(timer)
     }, 1000)
+    // dev 模式接口会回显验证码（生产对接短信网关后此字段为 null）
+    if (res?.devCode) {
+      code.value = res.devCode
+      showToast({ type: 'success', message: '验证码已发送，正在自动登录…' })
+      // 演示环境：验证码回显后自动登录，无需手动输入
+      setTimeout(() => onLogin(), 500)
+    } else {
+      showToast({ type: 'success', message: '验证码已发送' })
+    }
   } catch (e: any) {
     showToast(e?.message || '发送失败，请稍后再试')
   } finally {
@@ -232,20 +235,20 @@ async function bindReferralIfPresent() {
   }
 }
 
-// 获取租户 ID：优先 URL 参数，其次 localStorage，默认 1
+// 获取租户 ID：优先 URL 参数，其次 localStorage；都没有时不传(后端按手机号匹配首个, 兼容演示单租户)
 // 注意：URL 参数存在被篡改风险，登录成功后会用 member token 中的 tenantId 覆盖
-function getTenantId(): string {
+function getTenantId(): string | undefined {
   const fromUrl = new URLSearchParams(window.location.search).get('tenantId')
   if (fromUrl) {
     localStorage.setItem('tenantId', fromUrl)
     return fromUrl
   }
-  return localStorage.getItem('tenantId') || '1'
+  return localStorage.getItem('tenantId') || undefined
 }
 
 // 微信授权登录：跳转到后端 OAuth 入口，由后端 302 到微信授权页
 function onWxLogin() {
-  const tenantId = getTenantId()
+  const tenantId = getTenantId() || '1'
   const redirect = window.location.href
   // state 作为透传参数，登录成功后 WxLogin 页面用它决定跳转目标
   const state = (route.query.redirect as string) || '/home'

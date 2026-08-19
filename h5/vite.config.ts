@@ -4,7 +4,7 @@ import Components from 'unplugin-vue-components/vite'
 import { VantResolver } from '@vant/auto-import-resolver'
 import { fileURLToPath, URL } from 'node:url'
 
-// Vite 配置：H5 会员端，端口 5174，dev 代理 /api → 后端 8081
+// Vite 配置：H5 会员端，端口 5274，dev 代理 /api → 后端 8081
 export default defineConfig({
   plugins: [
     vue(),
@@ -19,7 +19,7 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0',
-    port: 5174,
+    port: 5274,
     proxy: {
       '/api': {
         target: 'http://localhost:8081',
