@@ -53,7 +53,7 @@
         <div class="head-sub">手机号验证码登录，5 分钟内有效</div>
       </div>
 
-      <div v-if="!isProd" class="demo-tip" @click="fillDemo">
+      <div class="demo-tip" @click="fillDemo">
         演示会员 <b>13800000001</b>
         <span class="demo-fill">点击一键登录 ›</span>
       </div>
@@ -146,9 +146,8 @@ const slogans = [
 const slogan = slogans[Math.floor(Math.random() * slogans.length)]
 
 const sendingCode = ref(false)
-const isProd = import.meta.env.PROD
 
-// 演示账号一键登录(仅非生产环境展示): 填充手机号并自动获取验证码登录
+// 演示账号一键登录(演示系统始终展示): 填充手机号并自动获取验证码登录
 function fillDemo() {
   phone.value = '13800000001'
   code.value = ''

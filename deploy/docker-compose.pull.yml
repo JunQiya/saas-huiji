@@ -20,6 +20,9 @@ services:
     image: ${REGISTRY:-registry.cn-hangzhou.aliyuncs.com}/${ACR_NAMESPACE:-lxxno}/huiji-server:${IMAGE_TAG:-latest}
     container_name: huiji-server
     restart: unless-stopped
+    # 允许容器内用 host.docker.internal 访问宿主机(本机 MySQL 等)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     # ---- 内存/CPU 限制 ----
     mem_limit: 1024m
     memswap_limit: 1536m

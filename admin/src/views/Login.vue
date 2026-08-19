@@ -14,7 +14,7 @@
         <h1 class="slogan">{{ slogan }}</h1>
         <p class="slogan-sub">在细水长流的经营里，记住每一位会员的故事。</p>
 
-        <div v-if="!isProd" class="bottom-tip">
+        <div class="bottom-tip">
           <span class="dot"></span>
           演示账号 admin / 123456
         </div>
@@ -74,7 +74,6 @@ const rules: FormRules = {
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
 }
 const loading = ref(false)
-const isProd = import.meta.env.PROD
 
 const slogans = [
   '记住每一位会员',
