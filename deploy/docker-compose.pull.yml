@@ -1,0 +1,67 @@
+# =============================================================================
+# 星河·会记 — ECS 生产部署(拉取运行, 配合云效 Flow 构建推 ACR 后使用)
+#
+# 用法(在 /opt/huiji 下, 与本文件同目录放置 .env):
+#   cd /opt/huiji && \
+#   docker compose -f docker-compose.pull.yml pull && \
+#   docker compose -f docker-compose.pull.yml up -d && \
+#   docker image prune -f
+#
+# 说明:
+#   - 无 build 段: 镜像由云效 Flow 构建并推送到 ACR, 这里只 pull
+#   - IMAGE_TAG 控制版本: 默认 latest(云效固定推 latest); 也可 .env 里指定具体版本
+#   - 资源限制(内存/CPU): server 1Gi/1核, admin/h5 128Mi/0.25核
+#   - 生产用阿里云 RDS, 不包含 mysql 容器; 数据库连接串等敏感信息放 .env
+# =============================================================================
+name: huiji
+
+services:
+  server:
+    image: registry.cn-hangzhou.aliyuncs.com/${ACR_NAMESPACE:-huiji}/server:${IMAGE_TAG:-latest}
+    container_name: huiji-server
+    restart: unless-stopped
+    # ---- 内存/CPU 限制 ----
+    mem_limit: 1024m
+    memswap_limit: 1536m
+    cpus: 1.0
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: ${DB_URL:?请在 .env 中设置 DB_URL 指向 RDS}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      H5_DOMAIN: ${H5_DOMAIN}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      SMS_DEV_MODE: ${SMS_DEV_MODE:-false}
+      SMS_FIXED_CODE: ${SMS_FIXED_CODE:-}
+    networks: [huiji]
+
+  admin:
+    image: registry.cn-hangzhou.aliyuncs.com/${ACR_NAMESPACE:-huiji}/admin:${IMAGE_TAG:-latest}
+    container_name: huiji-admin
+    restart: unless-stopped
+    # ---- 内存/CPU 限制 ----
+    mem_limit: 128m
+    cpus: 0.25
+    ports:
+      - "${ADMIN_PORT:-8080}:80"
+    depends_on:
+      - server
+    networks: [huiji]
+
+  h5:
+    image: registry.cn-hangzhou.aliyuncs.com/${ACR_NAMESPACE:-huiji}/h5:${IMAGE_TAG:-latest}
+    container_name: huiji-h5
+    restart: unless-stopped
+    # ---- 内存/CPU 限制 ----
+    mem_limit: 128m
+    cpus: 0.25
+    ports:
+      - "${H5_PORT:-8088}:80"
+    depends_on:
+      - server
+    networks: [huiji]
+
+networks:
+  huiji:
+    driver: bridge

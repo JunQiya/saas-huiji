@@ -1,0 +1,46 @@
+# H5 会员端 (Nginx 静态 + /api 反代) — Deployment + Service
+# 资源限制: CPU limit 250m / 内存 limit 128Mi
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: huiji-h5
+  namespace: huiji
+  labels: { app: huiji-h5 }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: huiji-h5 }
+  template:
+    metadata:
+      labels: { app: huiji-h5 }
+    spec:
+      containers:
+        - name: h5
+          image: registry.cn-hangzhou.aliyuncs.com/<ACR_NAMESPACE>/h5:<IMAGE_TAG>
+          imagePullPolicy: IfNotPresent
+          ports:
+            - { containerPort: 80, name: http }
+          # ---- 内存/CPU 限制 ----
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: h5
+  namespace: huiji
+spec:
+  selector: { app: huiji-h5 }
+  ports:
+    - { port: 80, targetPort: 80, name: http }

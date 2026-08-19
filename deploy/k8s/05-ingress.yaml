@@ -1,0 +1,36 @@
+# Ingress — 域名路由到 admin / h5
+# admin 与 h5 独立域名(建议), h5 域名必须是微信支付/公众号可访问的 HTTPS 域名
+# 需在阿里云 ASK/ACK 启用 Ingress(通常是 ALB Ingress 或 nginx-ingress-controller)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: huiji
+  namespace: huiji
+  annotations:
+    # ALB Ingress 自动创建 SLB; 按集群环境调整注解
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet
+    # TLS 证书(阿里云 SSL 证书 ID), 按实际填写或改用 cert-manager
+    # alb.ingress.kubernetes.io/certificate-id: "<证书ID>"
+    # 强制 HTTPS
+    # alb.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  rules:
+    - host: admin.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: admin
+                port: { number: 80 }
+    - host: h5.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: h5
+                port: { number: 80 }

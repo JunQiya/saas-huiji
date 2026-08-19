@@ -8,7 +8,20 @@ spring:
     url: ${DB_URL:jdbc:mysql://localhost:3306/huiji?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:123456}
+    # 生产无默认密码: 未通过环境变量注入时启动即失败, 防止弱口令兜底
+    password: ${DB_PASSWORD:}
+    # ---- HikariCP 连接池(数据库缓存核心) ----
+    # 与容器资源匹配: 1核/1Gi 下 6 个连接足够; 每连接约占用 3-5MB, 避免过大撑爆 JVM 堆
+    hikari:
+      pool-name: HuijiPool
+      maximum-pool-size: ${HIKARI_POOL_SIZE:6}
+      minimum-idle: ${HIKARI_MIN_IDLE:2}
+      connection-timeout: 30000        # 获取连接超时(ms), 避免接口长时间挂起
+      idle-timeout: 600000             # 空闲连接回收(ms)
+      max-lifetime: 1800000            # 连接最大生命周期(ms), 低于 MySQL wait_timeout
+      validation-timeout: 5000
+      connection-test-query: SELECT 1  # 保活探测
+      leak-detection-threshold: 60000  # 连接泄漏检测(ms), 超时打印告警日志
   jpa:
     show-sql: false
     hibernate:

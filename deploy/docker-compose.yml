@@ -1,0 +1,92 @@
+# =============================================================================
+# 星河·会记 SaaS — 容器编排 (本地验证 / 单机 ECS 部署)
+#
+# 资源限制(内存/CPU):
+#   server:  memory 1024m / cpus 1.0   (JVM -Xmx512m, 见 server.Dockerfile)
+#   admin:   memory 128m  / cpus 0.25
+#   h5:      memory 128m  / cpus 0.25
+#   mysql:   memory 512m  / cpus 0.5   (仅本地验证; 生产用阿里云 RDS, 删除本服务)
+#
+# 使用:
+#   docker compose -f deploy/docker-compose.yml up -d --build
+#   生产环境变量通过 .env 注入(见 deploy/README.md)
+# =============================================================================
+name: huiji
+
+services:
+  server:
+    build:
+      context: ..
+      dockerfile: deploy/server.Dockerfile
+    image: registry.cn-hangzhou.aliyuncs.com/${ACR_NAMESPACE:-huiji}/server:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    # ---- 内存/CPU 限制 ----
+    mem_limit: 1024m
+    memswap_limit: 1536m
+    cpus: 1.0
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: ${DB_URL:? 需设置 DB_URL 指向 RDS/MySQL}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      H5_DOMAIN: ${H5_DOMAIN:? 需设置 H5_DOMAIN}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      SMS_DEV_MODE: ${SMS_DEV_MODE:-false}
+      SMS_FIXED_CODE: ${SMS_FIXED_CODE:-}
+    depends_on:
+      - mysql
+    networks: [huiji]
+
+  admin:
+    build:
+      context: ..
+      dockerfile: deploy/admin.Dockerfile
+    image: registry.cn-hangzhou.aliyuncs.com/${ACR_NAMESPACE:-huiji}/admin:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    # ---- 内存/CPU 限制 ----
+    mem_limit: 128m
+    cpus: 0.25
+    ports:
+      - "${ADMIN_PORT:-8080}:80"
+    depends_on:
+      - server
+    networks: [huiji]
+
+  h5:
+    build:
+      context: ..
+      dockerfile: deploy/h5.Dockerfile
+    image: registry.cn-hangzhou.aliyuncs.com/${ACR_NAMESPACE:-huiji}/h5:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    # ---- 内存/CPU 限制 ----
+    mem_limit: 128m
+    cpus: 0.25
+    ports:
+      - "${H5_PORT:-8088}:80"
+    depends_on:
+      - server
+    networks: [huiji]
+
+  # 仅本地验证用; 生产部署请删除本服务, 改用阿里云 RDS MySQL
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    mem_limit: 512m
+    cpus: 0.5
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123456}
+      MYSQL_DATABASE: huiji
+    volumes:
+      - huiji-mysql:/var/lib/mysql
+    ports:
+      - "${MYSQL_PORT:-13306}:3306"
+    networks: [huiji]
+
+volumes:
+  huiji-mysql:
+
+networks:
+  huiji:
+    driver: bridge

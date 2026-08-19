@@ -18,5 +18,9 @@ h5/node_modules/
 .vscode/
 .vite/
 
+# 部署环境变量(含数据库密码/JWT密钥, 禁止入库)
+.env
+deploy/.env
+
 # 内部测试脚本
 .test-scripts/
