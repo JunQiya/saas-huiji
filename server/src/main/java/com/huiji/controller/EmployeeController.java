@@ -48,9 +48,9 @@ public class EmployeeController {
 
     @PutMapping("/{id}/password")
     @PreAllowed({"TENANT_ADMIN"})
-    public Result<Void> resetPassword(@PathVariable Long id, @RequestBody EmployeeDto.PasswordReset req) {
-        employeeService.resetPassword(id, req);
-        return Result.success();
+    public Result<String> resetPassword(@PathVariable Long id, @RequestBody EmployeeDto.PasswordReset req) {
+        String tempPwd = employeeService.resetPassword(id, req);
+        return Result.success(tempPwd);
     }
 
     @DeleteMapping("/{id}")

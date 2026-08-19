@@ -2,6 +2,7 @@ package com.huiji.controller;
 
 import com.huiji.common.Result;
 import com.huiji.dto.CampaignDto;
+import com.huiji.security.PreAllowed;
 import com.huiji.service.CampaignService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,15 +19,17 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.Map;
 
-/** 营销活动接口 */
+/** 营销活动接口 (写操作仅超管与店长) */
 @RestController
 @RequestMapping("/api/campaigns")
 @RequiredArgsConstructor
+@PreAllowed({"TENANT_ADMIN", "STORE_MANAGER"})
 public class CampaignController {
 
     private final CampaignService campaignService;
 
     @GetMapping
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<List<Map<String, Object>>> list(@RequestParam(required = false) String status) {
         return Result.success(campaignService.list(status));
     }
@@ -58,6 +61,7 @@ public class CampaignController {
     }
 
     @GetMapping("/{id}/stats")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<Map<String, Object>> stats(@PathVariable Long id) {
         return Result.success(campaignService.stats(id));
     }

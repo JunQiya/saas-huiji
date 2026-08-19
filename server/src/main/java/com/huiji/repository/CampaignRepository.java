@@ -12,6 +12,8 @@ public interface CampaignRepository extends JpaRepository<Campaign, Long> {
 
     Optional<Campaign> findByIdAndTenantIdAndDeletedFalse(Long id, Long tenantId);
 
+    long countByTenantIdAndDeletedFalse(Long tenantId);
+
     @Query("select c from Campaign c where c.tenantId = :tenantId and c.deleted = false " +
             "and (:status is null or :status = '' or " +
             "(:status = 'ENABLED' and c.enabled = true) or " +

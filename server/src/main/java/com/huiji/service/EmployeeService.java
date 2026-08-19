@@ -12,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -21,6 +22,9 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class EmployeeService {
+
+    private static final String PWD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+    private static final SecureRandom RAND = new SecureRandom();
 
     private final UserRepository userRepository;
     private final WalletTransactionRepository walletRepository;
@@ -37,20 +41,26 @@ public class EmployeeService {
     @Transactional
     public Map<String, Object> create(EmployeeDto.EmployeeRequest req) {
         Long tenantId = com.huiji.security.LoginUserHolder.currentTenantId();
-        if (userRepository.existsByUsernameAndDeletedFalse(req.getUsername())) {
+        // 用户名租户内唯一(数据库层另有全局唯一约束, 单租户部署可忽略)
+        if (userRepository.existsByUsernameAndTenantIdAndDeletedFalse(req.getUsername(), tenantId)) {
             throw new BizException(ErrorCode.CONFLICT, "用户名已存在");
         }
         User u = new User();
         u.setTenantId(tenantId);
         u.setUsername(req.getUsername());
-        u.setPassword(passwordEncoder.encode(req.getPassword()));
+        // 未提供密码时生成随机临时密码, 禁止默认弱口令
+        String rawPwd = (req.getPassword() == null || req.getPassword().isBlank())
+                ? randomPassword() : req.getPassword();
+        u.setPassword(passwordEncoder.encode(rawPwd));
         u.setName(req.getName());
         u.setPhone(req.getPhone());
         u.setRole(req.getRole());
         u.setStoreIds(req.getStoreIds() == null ? new ArrayList<>() : req.getStoreIds());
         userRepository.save(u);
         auditHelper.record("新增员工", "user:" + u.getId(), u.getUsername());
-        return toVO(u);
+        Map<String, Object> vo = toVO(u);
+        vo.put("initialPassword", rawPwd);
+        return vo;
     }
 
     @Transactional
@@ -70,16 +80,18 @@ public class EmployeeService {
     }
 
     @Transactional
-    public void resetPassword(Long id, EmployeeDto.PasswordReset req) {
+    public String resetPassword(Long id, EmployeeDto.PasswordReset req) {
         Long tenantId = com.huiji.security.LoginUserHolder.currentTenantId();
         User u = userRepository.findById(id)
                 .filter(x -> x.getTenantId().equals(tenantId) && !Boolean.TRUE.equals(x.getDeleted()))
                 .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "员工不存在"));
+        // 未提供新密码时生成随机临时密码, 返回给管理员转交员工, 禁止默认弱口令
         String pwd = (req == null || req.getPassword() == null || req.getPassword().isBlank())
-                ? "123456" : req.getPassword();
+                ? randomPassword() : req.getPassword();
         u.setPassword(passwordEncoder.encode(pwd));
         userRepository.save(u);
         auditHelper.record("重置员工密码", "user:" + id, u.getUsername());
+        return pwd;
     }
 
     @Transactional
@@ -126,5 +138,14 @@ public class EmployeeService {
         vo.put("status", u.getStatus());
         vo.put("createdAt", u.getCreatedAt());
         return vo;
+    }
+
+    /** 生成 8 位随机密码(去易混字符) */
+    private static String randomPassword() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 8; i++) {
+            sb.append(PWD_CHARS.charAt(RAND.nextInt(PWD_CHARS.length())));
+        }
+        return sb.toString();
     }
 }

@@ -2,7 +2,11 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import 'element-plus/dist/index.css'
 import 'element-plus/theme-chalk/dark/css-vars.css'
-import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+import {
+  Avatar, Calendar, ChatDotRound, ChatLineRound, Connection, DataLine,
+  Document, Food, Goods, Grid, List, Menu, Money, Promotion, Setting,
+  Share, Shop, Ticket, Trophy, User, Wallet
+} from '@element-plus/icons-vue'
 import App from './App.vue'
 import router from './router'
 import { useUserStore } from '@/stores/user'
@@ -11,8 +15,13 @@ import './style.css'
 const app = createApp(App)
 const pinia = createPinia()
 
-// 注册全部 Element Plus 图标为全局组件
-for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+// 按需注册图标为全局组件(仅路由/菜单字符串动态引用所需), 避免全量注册破坏 tree-shaking
+const globalIcons = {
+  Avatar, Calendar, ChatDotRound, ChatLineRound, Connection, DataLine,
+  Document, Food, Goods, Grid, List, Menu, Money, Promotion, Setting,
+  Share, Shop, Ticket, Trophy, User, Wallet
+}
+for (const [key, component] of Object.entries(globalIcons)) {
   app.component(key, component)
 }
 

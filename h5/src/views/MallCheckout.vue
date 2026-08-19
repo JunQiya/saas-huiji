@@ -2,7 +2,7 @@
   <div class="page mall-checkout">
     <NavBar title="确认订单" back />
 
-    <div v-if="loading" class="loading"><van-loading color="#6f94b8" /></div>
+    <div v-if="loading" class="loading"><van-loading /></div>
 
     <template v-else>
       <div class="page-padding">
@@ -155,7 +155,7 @@
             <span class="cs-title">选择优惠券</span>
             <van-icon name="cross" size="18" class="cs-close" @click="couponVisible = false" />
           </div>
-          <div v-if="couponLoading" class="loading"><van-loading color="#6f94b8" /></div>
+          <div v-if="couponLoading" class="loading"><van-loading /></div>
           <div v-else-if="!coupons.length" class="empty-mini muted">暂无可用优惠券</div>
           <div v-else class="cs-list">
             <div
@@ -186,9 +186,12 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast } from 'vant'
-import { mallApi, h5Api, type CouponRecord } from '@/api/h5'
+import { mallApi, h5Api, wxApi, type CouponRecord } from '@/api/h5'
 import NavBar from '@/components/NavBar.vue'
 import { fenToYuan, formatDate } from '@/utils/format'
+import { initWxSdk, wxChooseWXPay } from '@/utils/wx-sdk'
+
+const isDemo = !import.meta.env.PROD
 
 const route = useRoute()
 const router = useRouter()
@@ -256,8 +259,8 @@ async function loadCartItems() {
       // 仅结算选中的购物车项
       items.value = all.filter(i => itemIds.includes(String(i.id)))
     } else if (route.query.buyNow === '1' && route.query.productId) {
-      const pid = Number(route.query.productId)
-      items.value = all.filter((it: any) => it.productId === pid)
+      const pid = String(route.query.productId)
+      items.value = all.filter((it: any) => String(it.productId) === pid)
       if (!items.value.length) {
         showToast('商品添加失败，请重试')
         setTimeout(() => router.back(), 600)
@@ -352,16 +355,54 @@ async function onSubmit() {
     }
     const data: any = await mallApi.checkout(payload)
     const orderId = data?.id || data?.orderId
-    showToast({ message: '订单已提交', position: 'top' })
-    if (orderId) {
-      router.replace(`/mall/orders?highlight=${orderId}`)
-    } else {
+    if (!orderId) {
       router.replace('/mall/orders')
+      return
+    }
+    // 提交后进入支付
+    const ok = await handlePay(orderId)
+    if (ok) {
+      router.replace(`/mall/orders?highlight=${orderId}`)
     }
   } catch (e: any) {
     showToast(e?.message || '提交失败，请稍后再试')
   }
   finally { submitting.value = false }
+}
+
+// 订单支付: 演示环境直接成功; 生产微信支付走 JSAPI 唤起 + 轮询
+async function handlePay(orderId: number | string): Promise<boolean> {
+  if (isDemo || form.payMethod === 'BALANCE') {
+    try {
+      await mallApi.payOrder(orderId)
+      showToast({ message: '支付成功', position: 'top' })
+      return true
+    } catch (e: any) {
+      showToast(e?.message || '支付失败')
+      return false
+    }
+  }
+  // 生产微信支付: JSAPI 下单 -> 唤起 -> 轮询结果
+  try {
+    await initWxSdk()
+    const params = await wxApi.pay(Number(orderId))
+    await wxChooseWXPay(params as any)
+    // 支付完成, 轮询订单状态
+    for (let i = 0; i < 12; i++) {
+      await new Promise(r => setTimeout(r, 1500))
+      const st = await wxApi.queryPay(Number(orderId))
+      if (st?.status === 'PAID') {
+        showToast({ message: '支付成功', position: 'top' })
+        return true
+      }
+      if (st?.status === 'REFUNDED' || st?.status === 'FAILED') break
+    }
+    showToast('支付处理中，请到订单页查看')
+    return true
+  } catch (e: any) {
+    showToast(e?.message || '支付失败，请重试')
+    return false
+  }
 }
 
 const yuan = fenToYuan

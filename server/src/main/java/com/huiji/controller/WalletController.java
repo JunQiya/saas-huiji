@@ -4,6 +4,7 @@ import com.huiji.common.BizException;
 import com.huiji.common.ErrorCode;
 import com.huiji.common.PageData;
 import com.huiji.common.Result;
+import com.huiji.security.PreAllowed;
 import com.huiji.service.WalletService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,10 +18,11 @@ import java.time.format.DateTimeParseException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/** 全局储值流水接口 */
+/** 全局储值流水接口 (只读) */
 @RestController
 @RequestMapping("/api/transactions")
 @RequiredArgsConstructor
+@PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
 public class WalletController {
 
     private final WalletService walletService;

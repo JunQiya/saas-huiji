@@ -103,10 +103,11 @@
         <el-table-column label="最近消费" width="150">
           <template #default="{ row }">{{ formatDateTime(row.lastConsumeAt) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="220" fixed="right" class-name="row-actions">
+        <el-table-column label="操作" width="240" fixed="right" class-name="row-actions">
           <template #default="{ row }">
             <el-button link type="primary" @click="openDetail(row)">详情</el-button>
             <el-button link type="primary" @click="openRecharge(row)">储值</el-button>
+            <el-button link type="warning" @click="openRefund(row)">退款</el-button>
             <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
             <el-button link type="danger" @click="onRemove(row)">删除</el-button>
           </template>
@@ -197,6 +198,30 @@
       <template #footer>
         <el-button @click="rechargeVisible = false">取消</el-button>
         <el-button type="primary" :loading="recharging" @click="submitRecharge">确认充值</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 储值退款弹窗 -->
+    <el-dialog v-model="refundVisible" title="储值退款" width="440px" :close-on-click-modal="false">
+      <div class="recharge-member">
+        <el-avatar :size="36" class="m-avatar">{{ refundTarget?.name?.charAt(0) }}</el-avatar>
+        <div>
+          <div class="m-name">{{ refundTarget?.name }}</div>
+          <div class="m-phone">当前余额 ¥{{ formatMoney(refundTarget?.balance) }}</div>
+        </div>
+      </div>
+      <el-form ref="refundFormRef" :model="refundForm" :rules="refundRules" label-width="84px" style="margin-top: 14px">
+        <el-form-item label="退款金额" prop="amountYuan">
+          <el-input-number v-model="refundForm.amountYuan" :min="0.01" :max="maxRefund" :precision="2" :step="100" style="width: 100%" />
+          <div class="form-tip">不可超过当前余额 ¥{{ formatMoney(refundTarget?.balance) }}</div>
+        </el-form-item>
+        <el-form-item label="退款原因">
+          <el-input v-model="refundForm.reason" type="textarea" :rows="2" placeholder="选填" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="refundVisible = false">取消</el-button>
+        <el-button type="danger" :loading="refunding" @click="submitRefund">确认退款</el-button>
       </template>
     </el-dialog>
 
@@ -725,6 +750,52 @@ async function submitRecharge() {
     }
   } finally {
     recharging.value = false
+  }
+}
+
+// ============ 储值退款 ============
+const refundVisible = ref(false)
+const refundTarget = ref<Member | null>(null)
+const refunding = ref(false)
+const refundFormRef = ref()
+const refundForm = reactive({ amountYuan: 0, reason: '' })
+const maxRefund = computed(() => refundTarget.value ? Math.max(0, (refundTarget.value.balance || 0) / 100) : 0)
+const refundRules = {
+  amountYuan: [
+    { required: true, message: '请输入退款金额', trigger: 'blur' },
+    { validator: (_: any, v: number, cb: any) => {
+      if (v == null || v <= 0) return cb(new Error('退款金额需大于 0'))
+      if (v > maxRefund.value) return cb(new Error(`不能超过当前余额 ¥${maxRefund.value.toFixed(2)}`))
+      cb()
+    }, trigger: 'blur' }
+  ]
+}
+function openRefund(row: Member) {
+  refundTarget.value = row
+  refundForm.amountYuan = 0
+  refundForm.reason = ''
+  refundVisible.value = true
+}
+async function submitRefund() {
+  const valid = await refundFormRef.value?.validate().catch(() => false)
+  if (!valid) return
+  if (!refundTarget.value) return
+  refunding.value = true
+  try {
+    const res = await membersApi.refund(refundTarget.value.id, {
+      amount: yuanToFen(refundForm.amountYuan),
+      reason: refundForm.reason || undefined
+    })
+    ElMessage.success(`退款成功，当前余额 ¥${formatMoney(res.balance)}`)
+    refundVisible.value = false
+    loadList()
+    if (detailVisible.value && detail.value?.id === refundTarget.value.id) {
+      detail.value = { ...detail.value, balance: res.balance } as Member
+    }
+  } catch (e: any) {
+    ElMessage.error(e?.message || '退款失败')
+  } finally {
+    refunding.value = false
   }
 }
 

@@ -116,7 +116,7 @@
       <el-main class="main">
         <router-view v-slot="{ Component }">
           <transition name="fade" mode="out-in">
-            <component :is="Component" />
+            <component :is="Component" :key="$route.fullPath" />
           </transition>
         </router-view>
       </el-main>
@@ -211,7 +211,8 @@ async function onStoreCmd(cmd: any) {
   }
   ElMessage.success('已切换门店')
   await loadStore()
-  router.replace('/dashboard').then(() => router.go(0))
+  // 路由级重建(dashboard + _storeTs 触发各页重拉), 替代整页 reload, 避免闪烁
+  router.replace({ path: '/dashboard', query: { _storeTs: Date.now() } })
 }
 
 async function onUserCmd(cmd: string) {

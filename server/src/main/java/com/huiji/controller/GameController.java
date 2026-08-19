@@ -5,6 +5,7 @@ import com.huiji.dto.GameDto;
 import com.huiji.entity.Game;
 import com.huiji.entity.GamePrize;
 import com.huiji.security.LoginUserHolder;
+import com.huiji.security.PreAllowed;
 import com.huiji.service.GameService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -16,26 +17,26 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-/** 管理端游戏接口 */
+/** 管理端游戏接口 (配置写操作仅超管与店长) */
 @RestController
 @RequestMapping("/api/games")
 @RequiredArgsConstructor
+@PreAllowed({"TENANT_ADMIN", "STORE_MANAGER"})
 public class GameController {
-
     private final GameService gameService;
 
     @GetMapping
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<List<Game>> list(@RequestParam(required = false) String status) {
         Long tenantId = LoginUserHolder.currentTenantId();
         return Result.success(gameService.list(tenantId, status));
     }
 
     @GetMapping("/{id}")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<Map<String, Object>> get(@PathVariable Long id) {
         Long tenantId = LoginUserHolder.currentTenantId();
         Game g = gameService.get(tenantId, id);
@@ -66,6 +67,7 @@ public class GameController {
     }
 
     @GetMapping("/{id}/prizes")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<List<GamePrize>> prizes(@PathVariable Long id) {
         Long tenantId = LoginUserHolder.currentTenantId();
         return Result.success(gameService.prizes(tenantId, id));
@@ -86,6 +88,7 @@ public class GameController {
     }
 
     @GetMapping("/{id}/stats")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<Map<String, Object>> stats(@PathVariable Long id) {
         Long tenantId = LoginUserHolder.currentTenantId();
         return Result.success(gameService.stats(tenantId, id));

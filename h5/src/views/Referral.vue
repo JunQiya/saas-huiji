@@ -1,7 +1,7 @@
 <template>
   <div class="page referral">
     <NavBar title="邀请有礼" back />
-    <div v-if="loading" class="loading"><van-loading color="#6f94b8" /></div>
+    <div v-if="loading" class="loading"><van-loading /></div>
 
     <div v-else class="ref-page">
       <!-- 推荐码卡 -->

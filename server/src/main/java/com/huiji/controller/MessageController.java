@@ -3,6 +3,7 @@ package com.huiji.controller;
 import com.huiji.common.PageData;
 import com.huiji.common.Result;
 import com.huiji.dto.MessageDto;
+import com.huiji.security.PreAllowed;
 import com.huiji.service.MessageService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,11 +23,13 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/messages")
 @RequiredArgsConstructor
+@PreAllowed({"TENANT_ADMIN", "STORE_MANAGER"})
 public class MessageController {
 
     private final MessageService messageService;
 
     @GetMapping
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<PageData<Map<String, Object>>> list(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String channel,
@@ -38,6 +41,7 @@ public class MessageController {
     }
 
     @GetMapping("/{id}")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<Map<String, Object>> detail(@PathVariable Long id) {
         return Result.success(messageService.detail(id));
     }
@@ -59,6 +63,7 @@ public class MessageController {
     }
 
     @GetMapping("/stats")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<Map<String, Object>> stats() {
         return Result.success(messageService.stats());
     }

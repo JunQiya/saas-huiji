@@ -2,7 +2,7 @@
   <div class="page order-detail">
     <NavBar title="订单详情" back />
 
-    <div v-if="loading" class="loading"><van-loading color="#5a7a9c" /></div>
+    <div v-if="loading" class="loading"><van-loading /></div>
     <EmptyState v-else-if="!order" title="订单不存在" sub="订单可能已被清理或链接有误" art="box" />
 
     <div v-else>

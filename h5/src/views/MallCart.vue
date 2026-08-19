@@ -2,7 +2,7 @@
   <div class="page mall-cart">
     <NavBar title="购物车" back />
 
-    <div v-if="loading" class="loading"><van-loading color="#6f94b8" /></div>
+    <div v-if="loading" class="loading"><van-loading /></div>
 
     <EmptyState
       v-else-if="!list.length"

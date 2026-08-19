@@ -12,15 +12,18 @@ import com.huiji.common.Result;
 import com.huiji.entity.Member;
 import com.huiji.entity.Order;
 import com.huiji.entity.OrderItem;
+import com.huiji.entity.RechargeOrder;
 import com.huiji.entity.WxAccount;
 import com.huiji.repository.MemberRepository;
 import com.huiji.repository.OrderItemRepository;
 import com.huiji.repository.OrderRepository;
+import com.huiji.repository.RechargeOrderRepository;
 import com.huiji.security.LoginUser;
 import com.huiji.security.LoginUserHolder;
 import com.huiji.security.MemberContext;
 import com.huiji.security.MemberTokenUtil;
 import com.huiji.service.OrderService;
+import com.huiji.service.RechargeService;
 import com.huiji.service.WxMpConfigService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -53,6 +56,8 @@ public class WxPayController {
     private final MemberRepository memberRepository;
     private final OrderService orderService;
     private final MemberTokenUtil memberTokenUtil;
+    private final RechargeService rechargeService;
+    private final RechargeOrderRepository rechargeOrderRepository;
 
     /** 1. JSAPI 支付下单(需要 memberToken) */
     @PostMapping("/order/{orderId}")
@@ -123,6 +128,10 @@ public class WxPayController {
                 log.warn("微信支付回调缺少 out_trade_no");
                 return WxPayNotifyResponse.fail("缺少 out_trade_no");
             }
+            // 充值单回调(RC 前缀)走充值入账
+            if (outTradeNo.startsWith("RC")) {
+                return handleRechargeNotify(xmlData, outTradeNo);
+            }
 
             Order order = orderRepository.findByOrderNoAndDeletedFalse(outTradeNo)
                     .orElse(null);
@@ -147,12 +156,57 @@ public class WxPayController {
                 return WxPayNotifyResponse.fail("支付未成功");
             }
 
+            // 金额校验: 微信实付金额必须等于订单应付, 防止金额篡改
+            long payable = order.getTotalAmount()
+                    - (order.getDiscountAmount() == null ? 0L : order.getDiscountAmount());
+            if (result.getTotalFee() == null || result.getTotalFee().intValue() != (int) payable) {
+                log.warn("微信支付回调金额不一致: orderNo={}, expected={}, actual={}",
+                        outTradeNo, payable, result.getTotalFee());
+                return WxPayNotifyResponse.fail("金额不一致");
+            }
+
             // 标记订单已支付
             orderService.markPaidByWxNotify(outTradeNo, result.getTransactionId());
             log.info("微信支付回调成功: outTradeNo={}, transactionId={}", outTradeNo, result.getTransactionId());
             return WxPayNotifyResponse.success("OK");
         } catch (Exception e) {
             log.error("微信支付回调处理异常", e);
+            return WxPayNotifyResponse.fail("处理失败");
+        }
+    }
+
+    /** 充值单支付回调: 验签 + 金额校验 + 幂等入账 */
+    private String handleRechargeNotify(String xmlData, String outTradeNo) {
+        try {
+            RechargeOrder order = rechargeOrderRepository.findByOutTradeNoAndDeletedFalse(outTradeNo)
+                    .orElse(null);
+            if (order == null) {
+                log.warn("微信支付回调充值单不存在: {}", outTradeNo);
+                return WxPayNotifyResponse.fail("充值单不存在");
+            }
+            Long tenantId = order.getTenantId();
+            WxPayService payService = wxMpConfigService.getPayService(tenantId);
+            if (payService == null) {
+                log.warn("租户 {} 未配置微信支付", tenantId);
+                return WxPayNotifyResponse.fail("未配置微信支付");
+            }
+            WxPayOrderNotifyResult result = payService.parseOrderNotifyResult(xmlData);
+            if (!"SUCCESS".equalsIgnoreCase(result.getReturnCode())
+                    || !"SUCCESS".equalsIgnoreCase(result.getResultCode())) {
+                log.warn("充值支付回调失败: outTradeNo={}, resultCode={}, returnMsg={}",
+                        outTradeNo, result.getResultCode(), result.getReturnMsg());
+                return WxPayNotifyResponse.fail("支付未成功");
+            }
+            if (result.getTotalFee() == null || result.getTotalFee().intValue() != order.getAmount().intValue()) {
+                log.warn("充值支付回调金额不一致: outTradeNo={}, expected={}, actual={}",
+                        outTradeNo, order.getAmount(), result.getTotalFee());
+                return WxPayNotifyResponse.fail("金额不一致");
+            }
+            rechargeService.markPaidByNotify(outTradeNo, result.getTransactionId());
+            log.info("充值支付回调成功: outTradeNo={}, transactionId={}", outTradeNo, result.getTransactionId());
+            return WxPayNotifyResponse.success("OK");
+        } catch (Exception e) {
+            log.error("充值支付回调处理异常", e);
             return WxPayNotifyResponse.fail("处理失败");
         }
     }

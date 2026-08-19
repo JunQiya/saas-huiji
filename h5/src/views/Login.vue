@@ -53,6 +53,11 @@
         <div class="head-sub">手机号验证码登录，5 分钟内有效</div>
       </div>
 
+      <div v-if="!isProd" class="demo-tip" @click="fillDemo">
+        演示会员 <b>13800000001</b> · 验证码 <b>8888</b>
+        <span class="demo-fill">点击一键填充</span>
+      </div>
+
       <div class="form">
         <div class="form-item">
           <div class="form-label">手机号</div>
@@ -141,6 +146,14 @@ const slogans = [
 const slogan = slogans[Math.floor(Math.random() * slogans.length)]
 
 const sendingCode = ref(false)
+const isProd = import.meta.env.PROD
+
+// 演示账号一键填充(仅非生产环境展示)
+function fillDemo() {
+  phone.value = '13800000001'
+  code.value = '8888'
+  showToast('已填充演示账号，点击登录即可')
+}
 
 async function onSendCode() {
   if (!phoneValid.value) {
@@ -176,7 +189,7 @@ async function onLogin() {
   if (code.value.length < 4) return showToast('请输入 4 位验证码')
   loading.value = true
   try {
-    const res = await h5Api.login(phone.value, code.value)
+    const res = await h5Api.login(phone.value, code.value, getTenantId())
     memberStore.setToken(res.memberToken)
     memberStore.setMember(res.member)
     // 登录成功后从 member token 中解析 tenantId，覆盖 URL 中可能被篡改的值
@@ -283,7 +296,7 @@ onUnmounted(() => {
 .brand-zone {
   position: relative;
   text-align: center;
-  padding: 72px 16px 32px;
+  padding: calc(env(safe-area-inset-top, 0px) + 72px) 16px 32px;
   z-index: 1;
   animation: x-fade-in 0.5s var(--ease-out) both;
 }
@@ -329,7 +342,7 @@ onUnmounted(() => {
   box-shadow: var(--shadow-md);
   animation: x-fade-in 0.6s var(--ease-out) 0.1s both;
 }
-.card-head { margin-bottom: 22px; }
+.card-head { margin-bottom: 16px; }
 .head-title {
   font-family: var(--font-serif);
   font-size: 19px; font-weight: 500; color: var(--ink);
@@ -340,6 +353,23 @@ onUnmounted(() => {
   font-size: 12px; color: var(--muted);
   margin-top: 6px; letter-spacing: 0.06em;
 }
+
+.demo-tip {
+  display: flex; align-items: center; gap: 6px;
+  flex-wrap: wrap;
+  font-size: 12px; color: var(--ink-2);
+  padding: 9px 12px;
+  margin-bottom: 16px;
+  background: var(--brand-soft);
+  border: 1px dashed var(--brand);
+  border-radius: 10px;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: transform var(--dur) var(--ease-out);
+}
+.demo-tip b { color: var(--brand-ink); font-weight: 600; }
+.demo-fill { margin-left: auto; color: var(--brand); font-size: 11px; }
+.demo-tip:active { transform: scale(0.99); }
 
 .form { display: flex; flex-direction: column; gap: 16px; }
 .form-item { display: flex; flex-direction: column; gap: 6px; }

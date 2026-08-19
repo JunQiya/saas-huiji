@@ -5,7 +5,7 @@
     <div class="page-padding">
       <div class="page-tip">把好券先收下，到店时正好用上。</div>
 
-      <div v-if="loading" class="loading"><van-loading color="#6f94b8" /></div>
+      <div v-if="loading" class="loading"><van-loading /></div>
       <EmptyState v-else-if="!list.length" title="暂无可领取的券" sub="更多好券正在路上" art="box" />
 
       <div v-else class="grid">

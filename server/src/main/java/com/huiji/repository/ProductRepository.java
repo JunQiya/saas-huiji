@@ -45,6 +45,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findByTenantIdAndMenuCategoryIdAndStatusAndDeletedFalseOrderByIdAsc(
             Long tenantId, Long menuCategoryId, String status);
 
+    /** 未关联菜单分类的商品(用于点餐菜单数据补全) */
+    List<Product> findByTenantIdAndMenuCategoryIdNullAndDeletedFalseOrderByIdAsc(Long tenantId);
+
     /** 按 ID 批量查商品(绑定分类用) */
     List<Product> findByIdInAndTenantIdAndDeletedFalse(List<Long> ids, Long tenantId);
 

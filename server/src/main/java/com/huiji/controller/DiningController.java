@@ -6,6 +6,7 @@ import com.huiji.entity.DiningTable;
 import com.huiji.entity.KitchenOrder;
 import com.huiji.entity.MenuCategory;
 import com.huiji.security.LoginUserHolder;
+import com.huiji.security.PreAllowed;
 import com.huiji.service.DiningService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -21,11 +22,12 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 线下门店点餐管理端接口(需 admin token)。
+ * 线下门店点餐管理端接口(需 admin token, 全角色可操作)。
  */
 @RestController
 @RequestMapping("/api/dining")
 @RequiredArgsConstructor
+@PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
 public class DiningController {
 
     private final DiningService diningService;

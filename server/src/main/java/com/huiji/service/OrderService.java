@@ -125,6 +125,11 @@ public class OrderService {
         }
 
         // 5) 持久化订单
+        if (req.getMemberId() != null) {
+            // 校验会员归属本租户, 防止跨租户绑定
+            memberRepository.findByIdAndTenantIdAndDeletedFalse(req.getMemberId(), tenantId)
+                    .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "会员不存在"));
+        }
         Order order = new Order();
         order.setTenantId(tenantId);
         order.setOrderNo(genOrderNo());
@@ -151,9 +156,17 @@ public class OrderService {
                 order.setPaidAt(LocalDateTime.now());
                 order.setPaidAmount(payable);
             } else if ("MIXED".equals(payMethod)) {
+                if (req.getMemberId() == null) {
+                    throw new BizException(ErrorCode.BIZ_ERROR, "混合支付需绑定会员");
+                }
+                // 混合支付: 余额可抵扣部分优先扣余额, 剩余部分视为现金/其他补足; 实付金额一律等于应付
+                long balanceDeduct = Math.min(payable, memberBalance(req.getMemberId(), tenantId));
+                if (balanceDeduct > 0) {
+                    consumeBalance(req.getMemberId(), tenantId, storeId, balanceDeduct, order.getOrderNo(), req.getRemark());
+                }
                 order.setStatus("PAID");
                 order.setPaidAt(LocalDateTime.now());
-                order.setPaidAmount(0L);
+                order.setPaidAmount(payable);
             } else if (List.of("CASH", "WECHAT", "ALIPAY").contains(payMethod)) {
                 order.setStatus("PAID");
                 order.setPaidAt(LocalDateTime.now());
@@ -221,7 +234,8 @@ public class OrderService {
             consumeBalance(order.getMemberId(), tenantId, order.getStoreId(), payable, order.getOrderNo(), null);
         }
         order.setPayMethod(method);
-        order.setPaidAmount(req.getPaidAmount() == null ? payable : req.getPaidAmount());
+        // 实付金额一律按服务端应付金额计算, 不接受客户端传入, 防止少记/负数
+        order.setPaidAmount(payable);
         order.setStatus("PAID");
         order.setPaidAt(LocalDateTime.now());
         orderRepository.save(order);
@@ -269,7 +283,23 @@ public class OrderService {
         if ("VOID".equals(order.getStatus())) {
             throw new BizException(ErrorCode.BIZ_ERROR, "订单已是作废状态");
         }
-        for (OrderItem oi : orderItemRepository.findByOrderIdOrderByIdAsc(id)) {
+        restoreStock(order);
+        order.setStatus("VOID");
+        order.setRefundedAt(LocalDateTime.now());
+        order.setRefundReason(req == null ? null : req.getReason());
+        orderRepository.save(order);
+        auditHelper.record("订单作废", "order:" + order.getOrderNo(), req == null ? "" : req.getReason());
+        return detail(id);
+    }
+
+    /**
+     * 归还订单占用库存(商品恢复 stock, 扣回 soldCount)。
+     * 供订单作废/商城取消/超时关单复用; 幂等由调用方保证(PENDING 状态才调用)。
+     */
+    @Transactional
+    public void restoreStock(Order order) {
+        Long tenantId = order.getTenantId();
+        for (OrderItem oi : orderItemRepository.findByOrderIdOrderByIdAsc(order.getId())) {
             if (oi.getProductId() == null) continue;
             productRepository.findByIdAndTenantIdAndDeletedFalse(oi.getProductId(), tenantId)
                     .ifPresent(p -> {
@@ -280,12 +310,6 @@ public class OrderService {
                         }
                     });
         }
-        order.setStatus("VOID");
-        order.setRefundedAt(LocalDateTime.now());
-        order.setRefundReason(req == null ? null : req.getReason());
-        orderRepository.save(order);
-        auditHelper.record("订单作废", "order:" + order.getOrderNo(), req == null ? "" : req.getReason());
-        return detail(id);
     }
 
     public Map<String, Object> detail(Long id) {
@@ -349,6 +373,13 @@ public class OrderService {
     }
 
     // ---- 内部方法 ----
+
+    /** 查询会员当前余额(分), 会员不存在返回 0 */
+    private long memberBalance(Long memberId, Long tenantId) {
+        return memberRepository.findByIdAndTenantIdAndDeletedFalse(memberId, tenantId)
+                .map(m -> m.getBalance() == null ? 0L : m.getBalance())
+                .orElse(0L);
+    }
 
     private void consumeBalance(Long memberId, Long tenantId, Long storeId, long amount,
                                 String orderNo, String remark) {
@@ -420,7 +451,8 @@ public class OrderService {
         if (points <= 0) {
             return;
         }
-        Member m = memberRepository.findById(memberId)
+        Long tenantId = LoginUserHolder.currentTenantId();
+        Member m = memberRepository.findByIdAndTenantIdAndDeletedFalse(memberId, tenantId)
                 .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "会员不存在"));
         long currentPoints = m.getPoints() == null ? 0L : m.getPoints();
         m.setPoints(currentPoints + points);

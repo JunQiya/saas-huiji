@@ -3,6 +3,7 @@ package com.huiji.controller;
 import com.huiji.common.PageData;
 import com.huiji.common.Result;
 import com.huiji.dto.ProductDto;
+import com.huiji.security.PreAllowed;
 import com.huiji.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,11 +26,13 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/products")
 @RequiredArgsConstructor
+@PreAllowed({"TENANT_ADMIN", "STORE_MANAGER"})
 public class ProductController {
 
     private final ProductService productService;
 
     @GetMapping
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<PageData<Map<String, Object>>> list(@RequestParam(required = false) String keyword,
                                                       @RequestParam(required = false) String category,
                                                       @RequestParam(required = false) Long storeId,
@@ -41,12 +44,14 @@ public class ProductController {
     }
 
     @GetMapping("/active")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<List<Map<String, Object>>> active(@RequestParam(required = false) String category,
                                                      @RequestParam(required = false) Long storeId) {
         return Result.success(productService.listActive(category, storeId));
     }
 
     @GetMapping("/{id}")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<Map<String, Object>> detail(@PathVariable Long id) {
         return Result.success(productService.detail(id));
     }

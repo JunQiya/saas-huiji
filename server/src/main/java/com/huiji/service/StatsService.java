@@ -268,6 +268,8 @@ public class StatsService {
         long lastMonthRevenue = nvl(walletRepository.sumConsume(tenantId, lastMonthStartDt, lastMonthEndDt, storeId));
         long monthOrders = nvl(walletRepository.countConsume(tenantId, monthStartDt, monthEndDt, storeId));
         long newMembersMonth = memberRepository.countNewAfter(tenantId, monthStartDt);
+        long monthRecharge = nvl(walletRepository.sumRecharge(tenantId, monthStartDt, monthEndDt));
+        long lastMonthRecharge = nvl(walletRepository.sumRecharge(tenantId, lastMonthStartDt, lastMonthEndDt));
 
         Map<String, Object> vo = new LinkedHashMap<>();
         vo.put("todayRevenue", todayRevenue);
@@ -276,6 +278,8 @@ public class StatsService {
         vo.put("weekDelta", deltaPct(weekRevenue, lastWeekRevenue));
         vo.put("monthRevenue", monthRevenue);
         vo.put("monthDelta", deltaPct(monthRevenue, lastMonthRevenue));
+        vo.put("monthRecharge", monthRecharge);
+        vo.put("monthRechargeDelta", deltaPct(monthRecharge, lastMonthRecharge));
         vo.put("todayOrders", todayOrders);
         vo.put("weekOrders", weekOrders);
         vo.put("monthOrders", monthOrders);

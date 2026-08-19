@@ -95,6 +95,7 @@ const {
 } = useGamePage()
 
 const revealed = ref(false)
+const pendingReveal = ref(false) // 慢网速下已刮开但结果未返回时, 等待开奖
 
 // Canvas
 const canvasRef = ref<HTMLCanvasElement | null>(null)
@@ -233,6 +234,11 @@ function checkReveal() {
 // 揭示结果
 function reveal() {
   if (revealed.value) return
+  if (!result.value) {
+    // 慢网速: 结果尚未返回, 标记等待, 由 playOnce 成功后自动揭示
+    pendingReveal.value = true
+    return
+  }
   revealed.value = true
   // 清空 canvas 剩余部分
   const canvas = canvasRef.value
@@ -242,11 +248,9 @@ function reveal() {
   }
   // 延迟展示弹窗
   setTimeout(() => {
-    if (result.value) {
-      resultVisible.value = true
-      remaining.value = Math.max(0, remaining.value - 1)
-      loadRecords()
-    }
+    resultVisible.value = true
+    remaining.value = Math.max(0, remaining.value - 1)
+    loadRecords()
   }, 600)
 }
 
@@ -259,9 +263,17 @@ async function playOnce() {
   try {
     const res = await gameApi.play(gameId)
     result.value = res
+    if (pendingReveal.value) {
+      pendingReveal.value = false
+      reveal()
+    }
   } catch (e: any) {
     showToast(e?.message || '游戏失败，请稍后再试')
     result.value = { prizeType: 'EMPTY', prizeName: '未中奖' }
+    if (pendingReveal.value) {
+      pendingReveal.value = false
+      reveal()
+    }
   }
 }
 

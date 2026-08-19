@@ -234,11 +234,7 @@ public class ReportService {
         LocalDate today = LocalDate.now();
         LocalDateTime todayStart = today.atStartOfDay();
         LocalDateTime tomorrowStart = today.plusDays(1).atStartOfDay();
-        long todayRuns = reportTaskRepository.findAll().stream()
-                .filter(r -> !Boolean.TRUE.equals(r.getDeleted()))
-                .filter(r -> tenantId.equals(r.getTenantId()))
-                .filter(r -> r.getLastRunAt() != null && r.getLastRunAt().isAfter(todayStart) && r.getLastRunAt().isBefore(tomorrowStart))
-                .count();
+        long todayRuns = reportTaskRepository.countRunBetween(tenantId, todayStart, tomorrowStart);
         Map<String, Object> vo = new LinkedHashMap<>();
         vo.put("todayRuns", todayRuns);
         vo.put("todayFiles", todayRuns * 2); // pdf + xlsx

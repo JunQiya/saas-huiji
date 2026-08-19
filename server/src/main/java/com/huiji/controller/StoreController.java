@@ -2,6 +2,7 @@ package com.huiji.controller;
 
 import com.huiji.common.Result;
 import com.huiji.dto.StoreDto;
+import com.huiji.security.PreAllowed;
 import com.huiji.service.StoreService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,15 +18,17 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.Map;
 
-/** 门店接口 */
+/** 门店接口 (增删改仅超管) */
 @RestController
 @RequestMapping("/api/stores")
 @RequiredArgsConstructor
+@PreAllowed({"TENANT_ADMIN"})
 public class StoreController {
 
     private final StoreService storeService;
 
     @GetMapping
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<List<Map<String, Object>>> list() {
         return Result.success(storeService.list());
     }

@@ -29,4 +29,11 @@ public interface ReportTaskRepository extends JpaRepository<ReportTask, Long> {
 
     @Query("select count(r) from ReportTask r where r.tenantId = :tenantId and r.deleted = false and r.enabled = true")
     long countEnabledByTenant(@Param("tenantId") Long tenantId);
+
+    /** 统计: 今天有执行记录的任务数 */
+    @Query("select count(r) from ReportTask r where r.tenantId = :tenantId and r.deleted = false " +
+            "and r.lastRunAt is not null and r.lastRunAt >= :start and r.lastRunAt < :end")
+    long countRunBetween(@Param("tenantId") Long tenantId,
+                         @Param("start") LocalDateTime start,
+                         @Param("end") LocalDateTime end);
 }

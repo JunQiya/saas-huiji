@@ -3,6 +3,7 @@ package com.huiji.controller;
 import com.huiji.common.PageData;
 import com.huiji.common.Result;
 import com.huiji.dto.MemberDto;
+import com.huiji.security.PreAllowed;
 import com.huiji.service.MemberService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,15 +24,17 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.Map;
 
-/** 会员接口 */
+/** 会员接口 (敏感操作: 储值/消费/积分/等级/批量/删除/导入 仅超管与店长) */
 @RestController
 @RequestMapping("/api/members")
 @RequiredArgsConstructor
+@PreAllowed({"TENANT_ADMIN", "STORE_MANAGER"})
 public class MemberController {
 
     private final MemberService memberService;
 
     @GetMapping
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<PageData<Map<String, Object>>> list(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer level,
@@ -43,16 +46,19 @@ public class MemberController {
     }
 
     @PostMapping
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<Map<String, Object>> create(@Valid @RequestBody MemberDto.MemberRequest req) {
         return Result.success(memberService.create(req));
     }
 
     @GetMapping("/{id}")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<Map<String, Object>> detail(@PathVariable Long id) {
         return Result.success(memberService.detail(id));
     }
 
     @PutMapping("/{id}")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<Map<String, Object>> update(@PathVariable Long id, @RequestBody MemberDto.MemberRequest req) {
         return Result.success(memberService.update(id, req));
     }
@@ -64,6 +70,7 @@ public class MemberController {
     }
 
     @GetMapping("/{id}/transactions")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<PageData<Map<String, Object>>> transactions(
             @PathVariable Long id,
             @RequestParam(required = false) String type,
@@ -77,18 +84,28 @@ public class MemberController {
         return Result.success(memberService.recharge(id, req));
     }
 
+    /** 储值退款(运营): 扣回余额并记 REFUND 流水 */
+    @PostMapping("/{id}/refund")
+    public Result<Map<String, Object>> refund(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        long amount = body == null || body.get("amount") == null ? 0 : Long.parseLong(String.valueOf(body.get("amount")));
+        String reason = body == null ? null : (String) body.get("reason");
+        return Result.success(memberService.refundBalance(id, amount, reason));
+    }
+
     @PostMapping("/{id}/consume")
     public Result<Map<String, Object>> consume(@PathVariable Long id, @RequestBody MemberDto.ConsumeRequest req) {
         return Result.success(memberService.consume(id, req));
     }
 
     @PostMapping("/{id}/tags")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<Void> tags(@PathVariable Long id, @RequestBody MemberDto.TagsRequest req) {
         memberService.updateTags(id, req.getTags());
         return Result.success();
     }
 
     @GetMapping("/{id}/coupons")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<List<Map<String, Object>>> coupons(@PathVariable Long id) {
         return Result.success(memberService.memberCoupons(id));
     }
@@ -116,7 +133,12 @@ public class MemberController {
     /** 修改单个会员等级 */
     @PutMapping("/{id}/level")
     public Result<Map<String, Object>> setLevel(@PathVariable Long id, @RequestBody Map<String, Object> body) {
-        Integer level = body.get("level") == null ? null : Integer.parseInt(body.get("level").toString());
+        Integer level;
+        try {
+            level = body.get("level") == null ? null : Integer.parseInt(body.get("level").toString());
+        } catch (NumberFormatException e) {
+            throw new com.huiji.common.BizException(com.huiji.common.ErrorCode.VALIDATION, "等级格式不正确");
+        }
         return Result.success(memberService.setLevel(id, level));
     }
 
@@ -128,6 +150,7 @@ public class MemberController {
 
     /** CSV 导出 */
     @GetMapping("/export")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public ResponseEntity<byte[]> exportCsv(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer level,
@@ -141,6 +164,7 @@ public class MemberController {
 
     /** 会员画像 */
     @GetMapping("/{id}/profile")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<Map<String, Object>> profile(@PathVariable Long id) {
         return Result.success(memberService.profile(id));
     }

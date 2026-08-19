@@ -8,7 +8,11 @@ import java.util.Optional;
 
 public interface AgentRepository extends JpaRepository<Agent, Long> {
 
-    List<Agent> findByStatus(String status);
+    List<Agent> findByTenantIdAndDeletedFalseOrderByIdDesc(Long tenantId);
 
-    Optional<Agent> findByIdAndStatus(Long id, String status);
+    long countByTenantIdAndDeletedFalse(Long tenantId);
+
+    Optional<Agent> findByIdAndTenantIdAndDeletedFalse(Long id, Long tenantId);
+
+    Optional<Agent> findByIdAndStatusAndDeletedFalse(Long id, String status);
 }

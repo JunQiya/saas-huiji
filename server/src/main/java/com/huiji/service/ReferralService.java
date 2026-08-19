@@ -60,6 +60,9 @@ public class ReferralService {
     /** 取会员的推荐码(若没有则生成并创建一条"自我推荐"占位) */
     @Transactional
     public String myReferralCode(Long memberId) {
+        Member me = memberRepository.findById(memberId)
+                .filter(m -> !Boolean.TRUE.equals(m.getDeleted()))
+                .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "会员不存在"));
         // 看是否已存在该 referrer 的 code
         List<Referral> list = referralRepository.findByReferrerIdAndDeletedFalseOrderByIdDesc(memberId);
         for (Referral r : list) {
@@ -74,6 +77,7 @@ public class ReferralService {
             if (tries > 50) throw new BizException(ErrorCode.SERVER_ERROR, "推荐码生成失败");
         } while (referralRepository.findFirstByCodeAndDeletedFalse(code).isPresent());
         Referral r = new Referral();
+        r.setTenantId(me.getTenantId());
         r.setReferrerId(memberId);
         r.setRefereeId(memberId); // 自占
         r.setRefereeName("(self)");
@@ -198,11 +202,15 @@ public class ReferralService {
     }
 
     public List<Map<String, Object>> listByReferrer(Long memberId) {
+        // 租户隔离: 目标会员必须属于当前租户
+        requireMemberInTenant(memberId);
         List<Referral> list = referralRepository.findByReferrerIdAndDeletedFalseOrderByIdDesc(memberId);
         return list.stream().map(this::toVO).toList();
     }
 
     public Map<String, Object> stats(Long memberId) {
+        // 租户隔离: 目标会员必须属于当前租户
+        requireMemberInTenant(memberId);
         long total = referralRepository.countByReferrerIdAndDeletedFalse(memberId);
         long active = referralRepository.countByReferrerIdAndStatusAndDeletedFalse(memberId, "ACTIVE");
         long rewarded = referralRepository.countByReferrerIdAndStatusAndDeletedFalse(memberId, "REWARDED");
@@ -284,6 +292,13 @@ public class ReferralService {
     }
 
     // ---- 内部 ----
+
+    /** 校验会员属于当前登录租户, 防止跨租户 IDOR */
+    private Member requireMemberInTenant(Long memberId) {
+        Long tenantId = LoginUserHolder.currentTenantId();
+        return memberRepository.findByIdAndTenantIdAndDeletedFalse(memberId, tenantId)
+                .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "会员不存在"));
+    }
 
     public Map<String, Object> toVO(Referral r) {
         Map<String, Object> vo = new LinkedHashMap<>();

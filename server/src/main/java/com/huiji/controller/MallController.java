@@ -5,6 +5,7 @@ import com.huiji.dto.MallDto;
 import com.huiji.entity.MallCategory;
 import com.huiji.entity.OrderExtend;
 import com.huiji.security.LoginUserHolder;
+import com.huiji.security.PreAllowed;
 import com.huiji.service.MallService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -21,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 商城管理(admin token):
+ * 商城管理(admin token, 写操作仅超管与店长):
  *  GET    /api/mall/categories            分类列表
  *  POST   /api/mall/categories            创建/更新分类
  *  DELETE /api/mall/categories/{id}       删除分类
@@ -32,12 +33,14 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/mall")
 @RequiredArgsConstructor
+@PreAllowed({"TENANT_ADMIN", "STORE_MANAGER"})
 public class MallController {
 
     private final MallService mallService;
 
     /** 分类列表 */
     @GetMapping("/categories")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<List<MallCategory>> categories() {
         Long tenantId = LoginUserHolder.currentTenantId();
         return Result.success(mallService.categories(tenantId));
@@ -69,6 +72,7 @@ public class MallController {
 
     /** 商城订单列表 */
     @GetMapping("/orders")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<List<Map<String, Object>>> orders(@RequestParam(required = false) String status,
                                                      @RequestParam(defaultValue = "1") int page,
                                                      @RequestParam(defaultValue = "20") int size) {

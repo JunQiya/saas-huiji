@@ -2,6 +2,7 @@ package com.huiji.controller;
 
 import com.huiji.common.Result;
 import com.huiji.dto.CouponDto;
+import com.huiji.security.PreAllowed;
 import com.huiji.service.CouponService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,15 +20,17 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** 优惠券接口 */
+/** 优惠券接口 (创建/导入/修改/删除/发放/停用 仅超管与店长) */
 @RestController
 @RequestMapping("/api/coupons")
 @RequiredArgsConstructor
+@PreAllowed({"TENANT_ADMIN", "STORE_MANAGER"})
 public class CouponController {
 
     private final CouponService couponService;
 
     @GetMapping
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<List<Map<String, Object>>> list(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String type) {
@@ -68,6 +71,7 @@ public class CouponController {
     }
 
     @GetMapping("/{id}/records")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<Map<String, Object>> records(
             @PathVariable Long id,
             @RequestParam(defaultValue = "1") int page,
@@ -86,12 +90,14 @@ public class CouponController {
     }
 
     @PostMapping("/verify")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<Map<String, Object>> verify(@Valid @RequestBody CouponDto.VerifyRequest req) {
         return Result.success(couponService.verify(req));
     }
 
     /** 核销码展示(只查不核销) */
     @GetMapping("/records/{code}/qrcode")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<Map<String, Object>> display(@PathVariable String code) {
         return Result.success(couponService.display(code));
     }

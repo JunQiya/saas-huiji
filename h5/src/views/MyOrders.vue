@@ -32,7 +32,7 @@
         :finished-text="list.length ? '没有更多了' : ''"
         @load="load"
       >
-        <div v-if="loading && !list.length" class="loading"><van-loading color="#6f94b8" /></div>
+        <div v-if="loading && !list.length" class="loading"><van-loading /></div>
         <EmptyState v-else-if="!list.length && finished" title="暂无该状态订单" sub="到店消费后会自动出现在这里" art="box" />
         <div v-else class="order-list">
           <div v-for="o in list" :key="o.id" class="order-card ui-card hoverable" @click="open(o)">
@@ -57,6 +57,7 @@
       </van-list>
     </div>
     </van-pull-refresh>
+    <TabBar :items="TAB_ITEMS" />
   </div>
 </template>
 
@@ -67,6 +68,8 @@ import { showToast } from 'vant'
 import { h5Api, type OrderInfo as Order } from '@/api/h5'
 import NavBar from '@/components/NavBar.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import TabBar from '@/components/TabBar.vue'
+import { TAB_ITEMS } from '@/constants/tabs'
 import { fenToYuan, formatDateTime } from '@/utils/format'
 
 const router = useRouter()
@@ -141,6 +144,8 @@ onActivated(() => { reset(); load() })
 </script>
 
 <style scoped>
+.my-orders { padding-bottom: 130px; }
+
 .tip {
   font-size: 12px; color: var(--muted);
   letter-spacing: 0.04em; margin-bottom: 14px;

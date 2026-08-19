@@ -2,7 +2,7 @@
   <div class="page promotion">
     <NavBar title="活动详情" back />
 
-    <div v-if="loading" class="loading"><van-loading color="#5a7a9c" /></div>
+    <div v-if="loading" class="loading"><van-loading /></div>
     <EmptyState v-else-if="!detail" title="活动不存在" sub="活动可能已结束或链接有误" art="box" />
 
     <div v-else class="page-padding">

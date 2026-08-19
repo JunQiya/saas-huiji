@@ -17,6 +17,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     Optional<Order> findByOrderNoAndDeletedFalse(String orderNo);
 
+    /** 超时未支付的订单(用于定时关单) */
+    List<Order> findByStatusAndCreatedAtBefore(String status, LocalDateTime before);
+
     /**
      * 订单列表筛选: 状态/门店/会员/时间。
      * storeId 强制覆盖: 角色 STAFF/CASHIER 时由 service 层强写 currentStoreId。

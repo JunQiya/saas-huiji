@@ -35,7 +35,7 @@
       :finished-text="list.length ? '没有更多了' : ''"
       @load="load"
     >
-      <div v-if="loading && !list.length" class="loading"><van-loading color="#6f94b8" /></div>
+      <div v-if="loading && !list.length" class="loading"><van-loading /></div>
       <EmptyState
         v-else-if="!list.length && finished"
         :title="emptyTitle"

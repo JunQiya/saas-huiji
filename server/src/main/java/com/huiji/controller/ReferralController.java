@@ -4,6 +4,7 @@ import com.huiji.common.BizException;
 import com.huiji.common.ErrorCode;
 import com.huiji.common.PageData;
 import com.huiji.common.Result;
+import com.huiji.security.PreAllowed;
 import com.huiji.service.ReferralService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -17,20 +18,23 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.Map;
 
-/** 推荐裂变接口(后台) */
+/** 推荐裂变接口(后台, 写操作仅超管与店长) */
 @RestController
 @RequestMapping("/api/referrals")
 @RequiredArgsConstructor
+@PreAllowed({"TENANT_ADMIN", "STORE_MANAGER"})
 public class ReferralController {
 
     private final ReferralService referralService;
 
     @GetMapping("/list")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<List<Map<String, Object>>> list(@RequestParam Long memberId) {
         return Result.success(referralService.listByReferrer(memberId));
     }
 
     @GetMapping("/admin/all")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<PageData<Map<String, Object>>> adminAll(
             @RequestParam(required = false) Long memberId,
             @RequestParam(defaultValue = "1") int page,
@@ -39,12 +43,14 @@ public class ReferralController {
     }
 
     @GetMapping("/admin/stats")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<Map<String, Object>> stats(@RequestParam Long memberId) {
         return Result.success(referralService.stats(memberId));
     }
 
     /** 全局裂变汇总(全租户) */
     @GetMapping("/admin/summary")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<Map<String, Object>> globalSummary() {
         return Result.success(referralService.globalSummary());
     }

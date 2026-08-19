@@ -64,6 +64,11 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     long countByTenantIdAndDeletedFalse(Long tenantId);
 
+    /** 统计指定 id 中属于本租户且未删除的数量(用于批量校验归属) */
+    long countByIdInAndTenantIdAndDeletedFalse(List<Long> ids, Long tenantId);
+
+    List<Member> findByTenantIdAndDeletedFalse(Long tenantId);
+
     @Query("select count(m) from Member m where m.tenantId = :tenantId and m.deleted = false and m.createdAt >= :start")
     long countNewAfter(@Param("tenantId") Long tenantId, @Param("start") LocalDateTime start);
 

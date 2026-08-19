@@ -1,5 +1,7 @@
 package com.huiji.controller;
 
+import com.huiji.common.BizException;
+import com.huiji.common.ErrorCode;
 import com.huiji.common.Result;
 import com.huiji.dto.SettingsDto;
 import com.huiji.entity.Store;
@@ -9,6 +11,7 @@ import com.huiji.repository.TenantSettingRepository;
 import com.huiji.security.JwtUtil;
 import com.huiji.security.LoginUser;
 import com.huiji.security.LoginUserHolder;
+import com.huiji.security.PreAllowed;
 import com.huiji.service.SettingsService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,10 +27,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** 租户设置: 基础/品牌/计费/多店 */
+/** 租户设置: 基础/品牌/计费/多店 (写操作仅租户超管) */
 @RestController
 @RequestMapping("/api/settings")
 @RequiredArgsConstructor
+@PreAllowed({"TENANT_ADMIN"})
 public class SettingsController {
 
     private final SettingsService settingsService;
@@ -36,6 +40,7 @@ public class SettingsController {
     private final JwtUtil jwtUtil;
 
     @GetMapping
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<Map<String, Object>> get() {
         Long tenantId = LoginUserHolder.currentTenantId();
         return Result.success(toMap(settingsService.getSettings(tenantId)));
@@ -50,6 +55,7 @@ public class SettingsController {
 
     /** 获取功能开关 */
     @GetMapping("/features")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<SettingsDto.FeatureFlags> features() {
         Long tenantId = LoginUserHolder.currentTenantId();
         return Result.success(settingsService.getFeatureFlags(tenantId));
@@ -66,6 +72,7 @@ public class SettingsController {
 
     /** 计费版信息: plan / expiresAt / startedAt / smsBalance / 各维度上限 */
     @GetMapping("/plan")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<Map<String, Object>> plan() {
         Long tenantId = LoginUserHolder.currentTenantId();
         TenantSetting ts = tenantSettingRepository.findByTenantId(tenantId).orElse(null);
@@ -99,6 +106,7 @@ public class SettingsController {
 
     /** 当前门店 */
     @GetMapping("/store/current")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<Map<String, Object>> currentStore() {
         Long tenantId = LoginUserHolder.currentTenantId();
         LoginUser lu = LoginUserHolder.get();
@@ -127,16 +135,22 @@ public class SettingsController {
 
     /** 切换门店: 生成含新 storeId 的 token 返回前端 */
     @PostMapping("/store/switch")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<Map<String, Object>> switchStore(@RequestBody Map<String, Object> body) {
         if (body == null || body.get("storeId") == null) {
-            throw new IllegalArgumentException("storeId 不能为空");
+            throw new BizException(ErrorCode.VALIDATION, "storeId 不能为空");
         }
-        long storeId = Long.parseLong(body.get("storeId").toString());
+        long storeId;
+        try {
+            storeId = Long.parseLong(body.get("storeId").toString());
+        } catch (NumberFormatException e) {
+            throw new BizException(ErrorCode.VALIDATION, "storeId 格式不正确");
+        }
         Long tenantId = LoginUserHolder.currentTenantId();
         Store store = storeRepository.findById(storeId)
-                .orElseThrow(() -> new IllegalArgumentException("门店不存在"));
+                .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "门店不存在"));
         if (Boolean.TRUE.equals(store.getDeleted()) || !tenantId.equals(store.getTenantId())) {
-            throw new IllegalArgumentException("门店不存在");
+            throw new BizException(ErrorCode.NOT_FOUND, "门店不存在");
         }
         LoginUser old = LoginUserHolder.get();
         LoginUser fresh = LoginUser.builder()

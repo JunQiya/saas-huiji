@@ -14,9 +14,11 @@ import com.huiji.entity.MallCategory;
 import com.huiji.entity.Member;
 import com.huiji.entity.MemberTag;
 import com.huiji.entity.MenuCategory;
+import com.huiji.entity.MessageTask;
 import com.huiji.entity.Order;
 import com.huiji.entity.OrderItem;
 import com.huiji.entity.Product;
+import com.huiji.entity.Referral;
 import com.huiji.entity.ReportTask;
 import com.huiji.entity.Store;
 import com.huiji.entity.Tenant;
@@ -38,9 +40,11 @@ import com.huiji.repository.MallCategoryRepository;
 import com.huiji.repository.MemberRepository;
 import com.huiji.repository.MemberTagRepository;
 import com.huiji.repository.MenuCategoryRepository;
+import com.huiji.repository.MessageTaskRepository;
 import com.huiji.repository.OrderItemRepository;
 import com.huiji.repository.OrderRepository;
 import com.huiji.repository.ProductRepository;
+import com.huiji.repository.ReferralRepository;
 import com.huiji.repository.ReportTaskRepository;
 import com.huiji.repository.StoreRepository;
 import com.huiji.repository.TenantRepository;
@@ -101,6 +105,8 @@ public class DataInitializer {
     private final AgentRepository agentRepository;
     private final WxAccountRepository wxAccountRepository;
     private final ReportTaskRepository reportTaskRepository;
+    private final MessageTaskRepository messageTaskRepository;
+    private final ReferralRepository referralRepository;
     private final TenantSettingRepository tenantSettingRepository;
     private final SettingsService settingsService;
     private final PasswordEncoder passwordEncoder;
@@ -172,7 +178,9 @@ public class DataInitializer {
 
     private void doSeed() {
         if (tenantRepository.count() > 0) {
-            log.info("演示数据已存在, 跳过初始化");
+            // 演示租户已存在: 不重建(避免影响正常操作), 仅补全缺失的演示数据模块
+            log.info("演示数据已存在, 检查并补全缺失模块...");
+            fillMissingModules();
             return;
         }
         log.info("开始初始化星河·会记演示数据...");
@@ -552,9 +560,13 @@ public class DataInitializer {
             log.warn("商品演示数据初始化失败: {}", e.getMessage());
         }
 
+        // 13.5 商品关联菜单分类(点餐菜单依赖), 幂等
+        ensureMenuLinks(tid, s1);
+
         // 14. Agent 代理演示数据
         try {
             Agent a1 = new Agent();
+            a1.setTenantId(tid);
             a1.setName("张代理");
             a1.setContactName("张代理");
             a1.setContactPhone("13900000001");
@@ -563,6 +575,7 @@ public class DataInitializer {
             agentRepository.save(a1);
 
             Agent a2 = new Agent();
+            a2.setTenantId(tid);
             a2.setName("李代理");
             a2.setContactName("李代理");
             a2.setContactPhone("13900000002");
@@ -855,6 +868,408 @@ public class DataInitializer {
 
         log.info("演示数据初始化完成: 租户={}, 会员={}, 流水={}",
                 tid, members.size(), walletRepository.count());
+    }
+
+    /**
+     * 演示数据补全: 逐模块检查, 为空则补齐, 不覆盖已有数据、不影响正常操作。
+     * 保证演示系统"任何时候打开都有数据"(如消息中心/推荐裂变/核心业务模块被清空后可恢复)。
+     */
+    private void fillMissingModules() {
+        try {
+            Tenant tenant = tenantRepository.findAll().stream().findFirst().orElse(null);
+            if (tenant == null) return;
+            Long tid = tenant.getId();
+            List<Member> members = memberRepository.findByTenantIdAndDeletedFalse(tid);
+            List<Store> stores = storeRepository.findByTenantIdAndDeletedFalseOrderByIdDesc(tid);
+            Store s1 = stores.isEmpty() ? null : stores.get(0);
+            if (members.isEmpty() || s1 == null) {
+                log.warn("演示租户缺少基础数据(会员/门店), 跳过补全");
+                return;
+            }
+            ensureDemoMessages(tid, members);
+            ensureDemoReferrals(tid, members);
+            ensureDemoCoupons(tid, s1, members);
+            ensureDemoCampaigns(tid);
+            ensureDemoTables(tid, s1);
+            ensureDemoMenus(tid, s1);
+            ensureDemoGames(tid, s1);
+            ensureDemoProducts(tid, s1);
+            ensureDemoMallCategories(tid);
+            ensureDemoAgents(tid);
+            ensureMenuLinks(tid, s1);
+        } catch (Exception e) {
+            log.warn("演示数据补全异常: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * 商品关联菜单分类(点餐菜单依赖): 幂等, 仅处理 menuCategoryId 为空的商品。
+     * 首次 seed 与每次启动补全都会执行, 保证点餐页面有菜可点。
+     */
+    private void ensureMenuLinks(Long tid, Store s1) {
+        try {
+            // 演示菜单分类可能挂在任一门店, 用租户级查询, 不依赖具体门店
+            List<MenuCategory> cats = menuCategoryRepository
+                    .findByTenantIdAndDeletedFalseOrderBySortOrderAscIdAsc(tid);
+            if (cats.isEmpty()) return;
+            List<Product> unlinked = productRepository.findByTenantIdAndMenuCategoryIdNullAndDeletedFalseOrderByIdAsc(tid);
+            int n = 0;
+            for (int i = 0; i < unlinked.size(); i++) {
+                Product p = unlinked.get(i);
+                p.setMenuCategoryId(cats.get(i % cats.size()).getId());
+                productRepository.save(p);
+                n++;
+            }
+            if (n > 0) log.info("演示数据补全: 商品关联菜单分类 {} 个", n);
+        } catch (Exception e) {
+            log.warn("商品关联菜单分类失败: {}", e.getMessage());
+        }
+    }
+
+    // ---- 模块级补全 ----
+
+    /** 消息中心: 至少 3 条不同状态/渠道的演示消息 */
+    private void ensureDemoMessages(Long tid, List<Member> members) {
+        try {
+            if (messageTaskRepository.count() > 0) return;
+            String[] ids = members.subList(0, Math.min(3, members.size()))
+                    .stream().map(m -> "\"" + m.getId() + "\"").toArray(String[]::new);
+            String json = "[" + String.join(",", ids) + "]";
+            LocalDateTime now = LocalDateTime.now();
+
+            MessageTask t1 = new MessageTask();
+            t1.setTenantId(tid);
+            t1.setChannel("IN_APP");
+            t1.setTemplateType("CAMPAIGN");
+            t1.setSubject("三月焕新季 · 会员专属");
+            t1.setContent("尊敬的会员, 星河·会记三月焕新季开启, 洗护套餐 8 折起, 期待您的光临!");
+            t1.setMemberIds(json);
+            t1.setTotalCount(ids.length);
+            t1.setSentCount(ids.length);
+            t1.setStatus("COMPLETED");
+            t1.setCost(0L);
+            t1.setScheduledAt(now.minusDays(3));
+            messageTaskRepository.save(t1);
+
+            MessageTask t2 = new MessageTask();
+            t2.setTenantId(tid);
+            t2.setChannel("SMS");
+            t2.setTemplateType("COUPON_EXPIRE");
+            t2.setSubject("优惠券即将到期提醒");
+            t2.setContent("您有一张优惠券将在 3 天后到期, 欢迎到店使用。【星河会记】");
+            t2.setMemberIds(json);
+            t2.setTotalCount(ids.length);
+            t2.setSentCount(0);
+            t2.setFailedCount(1);
+            t2.setCost(ids.length * 50L);
+            t2.setStatus("PENDING");
+            t2.setScheduledAt(now.plusMinutes(30));
+            messageTaskRepository.save(t2);
+
+            MessageTask t3 = new MessageTask();
+            t3.setTenantId(tid);
+            t3.setChannel("WECHAT");
+            t3.setTemplateType("BIRTHDAY");
+            t3.setSubject("生日关怀");
+            t3.setContent("亲爱的会员, 生日快乐! 赠您一张 100 元礼券, 愿美好常伴左右。");
+            t3.setMemberIds("[" + ids[0] + "]");
+            t3.setTotalCount(1);
+            t3.setSentCount(1);
+            t3.setStatus("COMPLETED");
+            t3.setCost(0L);
+            t3.setScheduledAt(now.minusDays(1));
+            messageTaskRepository.save(t3);
+
+            log.info("演示数据补全: 消息中心 {} 条", 3);
+        } catch (Exception e) {
+            log.warn("消息中心演示数据补全失败: {}", e.getMessage());
+        }
+    }
+
+    /** 推荐裂变: 前 3 个会员作为推荐人, 各邀请后续会员 */
+    private void ensureDemoReferrals(Long tid, List<Member> members) {
+        try {
+            if (referralRepository.countByTenantIdAndDeletedFalse(tid) > 0) return;
+            String[] codes = {"XH001", "XH002", "XH003"};
+            for (int i = 0; i < 3 && i < members.size(); i++) {
+                Member referrer = members.get(i);
+                for (int j = 1; j <= 2; j++) {
+                    int idx = 3 + i * 2 + j - 1;
+                    if (idx >= members.size()) break;
+                    Member referee = members.get(idx);
+                    Referral r = new Referral();
+                    r.setTenantId(tid);
+                    r.setReferrerId(referrer.getId());
+                    r.setRefereeId(referee.getId());
+                    r.setRefereeName(referee.getName());
+                    r.setRefereePhone(referee.getPhone());
+                    r.setCode(codes[i]);
+                    r.setStatus("REGISTERED");
+                    r.setRewardAmount(0L);
+                    referralRepository.save(r);
+                }
+            }
+            log.info("演示数据补全: 推荐裂变关系 {} 条", referralRepository.countByTenantIdAndDeletedFalse(tid));
+        } catch (Exception e) {
+            log.warn("推荐裂变演示数据补全失败: {}", e.getMessage());
+        }
+    }
+
+    /** 优惠券: 空则补 4 张并发放 */
+    private void ensureDemoCoupons(Long tid, Store s1, List<Member> members) {
+        try {
+            if (couponRepository.countByTenantIdAndDeletedFalse(tid) > 0) return;
+            LocalDate now = LocalDate.now();
+            Coupon c1 = coupon(tid, "新人 50 元券", "FULL_CUT", 5000L, 0L, "DAYS", 30, null, null, 100, 1, "ALL");
+            Coupon c2 = coupon(tid, "满 300 打 8.5 折", "PERCENT", 85L, 30000L, "DAYS", 30, null, null, 200, 1, "ALL");
+            Coupon c3 = coupon(tid, "免费头皮护理体验", "EXPERIENCE", 12800L, 0L, "RANGE", null, now, now.plusDays(60), 50, 1, "ALL");
+            coupon(tid, "生日 100 元礼券", "BIRTHDAY", 10000L, 0L, "DAYS", 15, null, null, null, 1, "ALL");
+            grant(tid, c1, members.get(0), members.get(1));
+            grant(tid, c2, members.get(2), members.get(4));
+            List<CouponRecord> recs = couponRecordRepository.findByCoupon(tid, c1.getId());
+            if (!recs.isEmpty()) {
+                CouponRecord r = recs.get(0);
+                r.setStatus("USED");
+                r.setUsedAt(LocalDateTime.now().minusDays(3));
+                r.setUsedStoreId(s1.getId());
+                couponRecordRepository.save(r);
+                c1.setUsedCount(1);
+                couponRepository.save(c1);
+            }
+            log.info("演示数据补全: 优惠券");
+        } catch (Exception e) {
+            log.warn("优惠券演示数据补全失败: {}", e.getMessage());
+        }
+    }
+
+    /** 营销活动: 空则补 3 个 */
+    private void ensureDemoCampaigns(Long tid) {
+        try {
+            if (campaignRepository.countByTenantIdAndDeletedFalse(tid) > 0) return;
+            LocalDateTime now = LocalDateTime.now();
+            campaign(tid, "生日自动关怀", "BIRTHDAY", "生日前 3 天", "level>=1", "WECHAT",
+                    "亲爱的会员, 生日快乐! 赠您 100 元礼券, 祝您美好的一天。", now.minusDays(20), now.plusDays(60), true, 12, 12, 5);
+            campaign(tid, "沉睡会员唤醒", "DORMANT", "90 天未到店", "lastConsume<90d", "SMS",
+                    "好久不见! 回店即享 8.5 折优惠, 期待您的再次光临。", now.minusDays(10), now.plusDays(30), true, 8, 8, 2);
+            campaign(tid, "复购激励", "REPURCHASE", "消费后 7 天", "consumeCount>=1", "IN_APP",
+                    "感谢您的光临, 再次消费可领专属优惠券。", now.minusDays(5), now.plusDays(90), false, 0, 0, 0);
+            log.info("演示数据补全: 营销活动");
+        } catch (Exception e) {
+            log.warn("营销活动演示数据补全失败: {}", e.getMessage());
+        }
+    }
+
+    /** 桌台: 空则补 8 张 */
+    private void ensureDemoTables(Long tid, Store s1) {
+        try {
+            if (diningTableRepository.count() > 0) return;
+            String[][] tableSeed = {
+                    {"A1", "大厅", "4"}, {"A2", "大厅", "4"}, {"A3", "大厅", "4"}, {"A4", "大厅", "4"},
+                    {"B1", "包间", "8"}, {"B2", "包间", "8"}, {"C1", "露台", "6"}, {"C2", "露台", "6"}
+            };
+            for (int i = 0; i < tableSeed.length; i++) {
+                DiningTable t = new DiningTable();
+                t.setTenantId(tid);
+                t.setStoreId(s1.getId());
+                t.setName(tableSeed[i][0]);
+                t.setArea(tableSeed[i][1]);
+                t.setSeats(Integer.parseInt(tableSeed[i][2]));
+                t.setStatus("IDLE");
+                t.setSortOrder(i + 1);
+                diningTableRepository.save(t);
+            }
+            log.info("演示数据补全: 桌台");
+        } catch (Exception e) {
+            log.warn("桌台演示数据补全失败: {}", e.getMessage());
+        }
+    }
+
+    /** 菜单分类: 空则补 */
+    private void ensureDemoMenus(Long tid, Store s1) {
+        try {
+            if (menuCategoryRepository.count() > 0) return;
+            String[] names = {"招牌洗护", "头皮护理", "造型设计", "精选好物"};
+            for (int i = 0; i < names.length; i++) {
+                MenuCategory mc = new MenuCategory();
+                mc.setTenantId(tid);
+                mc.setStoreId(s1.getId());
+                mc.setName(names[i]);
+                mc.setSortOrder(i + 1);
+                menuCategoryRepository.save(mc);
+            }
+            log.info("演示数据补全: 菜单分类");
+        } catch (Exception e) {
+            log.warn("菜单分类演示数据补全失败: {}", e.getMessage());
+        }
+    }
+
+    /** 商城分类: 空则补 */
+    private void ensureDemoMallCategories(Long tid) {
+        try {
+            if (mallCategoryRepository.count() > 0) return;
+            String[][] cats = {{"洗护好物", "商品"}, {"男士专区", "商品"}, {"体验服务", "服务"}};
+            for (String[] c : cats) {
+                MallCategory mc = new MallCategory();
+                mc.setTenantId(tid);
+                mc.setName(c[0]);
+                mc.setIcon(c[1]);
+                mc.setStatus("ACTIVE");
+                mc.setSortOrder(0);
+                mallCategoryRepository.save(mc);
+            }
+            log.info("演示数据补全: 商城分类");
+        } catch (Exception e) {
+            log.warn("商城分类演示数据补全失败: {}", e.getMessage());
+        }
+    }
+
+    /** 游戏: 空则补 2 个带奖品 */
+    private void ensureDemoGames(Long tid, Store s1) {
+        try {
+            if (gameRepository.count() > 0) return;
+            LocalDateTime now = LocalDateTime.now();
+
+            Game wheel = new Game();
+            wheel.setTenantId(tid);
+            wheel.setStoreId(s1.getId());
+            wheel.setName("幸运大转盘");
+            wheel.setType("WHEEL");
+            wheel.setSubtitle("转动好运");
+            wheel.setStartTime(now.minusDays(30));
+            wheel.setEndTime(now.plusDays(90));
+            wheel.setDailyLimit(3);
+            wheel.setTotalLimit(0);
+            wheel.setPointsCost(0);
+            wheel.setStatus("ENABLED");
+            wheel.setRules("每人每天可转动3次, 奖品包括优惠券和积分");
+            entityManager.persist(wheel);
+            entityManager.flush();
+            Long wid = wheel.getId();
+            GamePrize wp1 = prize(wid, "5元优惠券", "COUPON", 1L, "新人券", 200, 1);
+            GamePrize wp2 = prize(wid, "50积分", "POINTS", null, null, 150, 2);
+            GamePrize wp3 = prize(wid, "谢谢参与", "EMPTY", null, null, 650, 3);
+
+            Game egg = new Game();
+            egg.setTenantId(tid);
+            egg.setStoreId(s1.getId());
+            egg.setName("金蛋好运");
+            egg.setType("EGG");
+            egg.setSubtitle("砸出你的好运来");
+            egg.setStartTime(now.minusDays(30));
+            egg.setEndTime(now.plusDays(90));
+            egg.setDailyLimit(1);
+            egg.setTotalLimit(0);
+            egg.setPointsCost(0);
+            egg.setStatus("ENABLED");
+            egg.setRules("每人每天可砸1个金蛋，奖品包括优惠券和积分");
+            entityManager.persist(egg);
+            entityManager.flush();
+            Long eid = egg.getId();
+            prize(eid, "10元优惠券", "COUPON", 1L, "新人券", 150, 1);
+            prize(eid, "80积分", "POINTS", null, null, 300, 2);
+            prize(eid, "谢谢参与", "EMPTY", null, null, 550, 3);
+            log.info("演示数据补全: 游戏");
+        } catch (Exception e) {
+            log.warn("游戏演示数据补全失败: {}", e.getMessage());
+        }
+    }
+
+    private GamePrize prize(Long gameId, String name, String type, Long refId, String refName, int prob, int sort) {
+        GamePrize p = new GamePrize();
+        p.setGameId(gameId);
+        p.setName(name);
+        p.setType(type);
+        p.setRefId(refId);
+        p.setRefName(refName);
+        p.setProbability(prob);
+        p.setSortOrder(sort);
+        gamePrizeRepository.save(p);
+        return p;
+    }
+
+    /** 商品: 空则补 6 服务 + 4 商品并关联商城分类 */
+    private void ensureDemoProducts(Long tid, Store s1) {
+        try {
+            if (productRepository.count() > 0) return;
+            Object[][] serviceProducts = {
+                    {"男士剪发", 6800L, 1500L, 0},
+                    {"女士烫染", 38800L, 12000L, 0},
+                    {"头皮护理", 12800L, 3000L, 0},
+                    {"造型设计", 9800L, 2500L, 0},
+                    {"染发", 26800L, 8000L, 0},
+                    {"洗发吹风", 3800L, 500L, 0},
+            };
+            for (Object[] row : serviceProducts) {
+                Product p = new Product();
+                p.setTenantId(tid);
+                p.setName((String) row[0]);
+                p.setCategory("SERVICE");
+                p.setPrice((Long) row[1]);
+                p.setCostPrice((Long) row[2]);
+                p.setStatus("ACTIVE");
+                p.setStoreIds(List.of(s1.getId()));
+                productRepository.save(p);
+            }
+            Object[][] goodsProducts = {
+                    {"护理套装", 29800L, 12000L, 50, 12},
+                    {"洗发水 500ml", 8800L, 3500L, 100, 28},
+                    {"护发素 500ml", 8800L, 3500L, 80, 18},
+                    {"造型喷雾", 6800L, 2500L, 60, 8},
+            };
+            for (Object[] row : goodsProducts) {
+                Product p = new Product();
+                p.setTenantId(tid);
+                p.setName((String) row[0]);
+                p.setCategory("GOODS");
+                p.setPrice((Long) row[1]);
+                p.setCostPrice((Long) row[2]);
+                p.setStock((Integer) row[3]);
+                p.setStatus("ACTIVE");
+                p.setStoreIds(List.of(s1.getId()));
+                p.setSoldCount((Integer) row[4]);
+                productRepository.save(p);
+            }
+            List<MallCategory> mallCats = mallCategoryRepository.findByTenantIdOrderBySortOrderAsc(tid);
+            List<Product> products = productRepository.listActive(tid, null);
+            if (!mallCats.isEmpty() && !products.isEmpty()) {
+                int bound = Math.min(4, products.size());
+                for (int i = 0; i < bound; i++) {
+                    Product p = products.get(i);
+                    p.setMallVisible(true);
+                    p.setMallCategoryId(mallCats.get(i % mallCats.size()).getId());
+                    productRepository.save(p);
+                }
+            }
+            log.info("演示数据补全: 商品");
+        } catch (Exception e) {
+            log.warn("商品演示数据补全失败: {}", e.getMessage());
+        }
+    }
+
+    /** 代理商: 空则补 2 个(必须带 tenantId, 租户隔离查询依赖) */
+    private void ensureDemoAgents(Long tid) {
+        try {
+            if (agentRepository.countByTenantIdAndDeletedFalse(tid) > 0) return;
+            Agent a1 = new Agent();
+            a1.setTenantId(tid);
+            a1.setName("张代理");
+            a1.setContactName("张代理");
+            a1.setContactPhone("13900000001");
+            a1.setCommissionRate(150);
+            a1.setStatus("ACTIVE");
+            agentRepository.save(a1);
+            Agent a2 = new Agent();
+            a2.setTenantId(tid);
+            a2.setName("李代理");
+            a2.setContactName("李代理");
+            a2.setContactPhone("13900000002");
+            a2.setCommissionRate(80);
+            a2.setStatus("ACTIVE");
+            agentRepository.save(a2);
+            log.info("演示数据补全: 代理商");
+        } catch (Exception e) {
+            log.warn("代理商演示数据补全失败: {}", e.getMessage());
+        }
     }
 
     // ---- 构造辅助 ----

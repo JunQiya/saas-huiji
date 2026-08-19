@@ -41,7 +41,7 @@
         <div class="sp-title">选择门店</div>
         <div class="sp-sub">请选择就餐门店后查看菜单</div>
       </div>
-      <div v-if="storesLoading" class="loading"><van-loading color="#3d597a" /></div>
+      <div v-if="storesLoading" class="loading"><van-loading /></div>
       <EmptyState v-else-if="!stores.length" title="暂无门店" sub="门店正陆续上线中" art="leaf" />
       <div v-else class="sp-list">
         <div
@@ -84,7 +84,7 @@
 
       <!-- 右侧商品 -->
       <div class="prod-list">
-        <div v-if="loading" class="loading"><van-loading color="#3d597a" /></div>
+        <div v-if="loading" class="loading"><van-loading /></div>
         <EmptyState v-else-if="!currentProducts.length" title="暂无菜品" sub="该分类下还没有商品" art="box" />
         <div v-else>
           <div class="prod-cat-title">{{ currentCat?.name }}</div>

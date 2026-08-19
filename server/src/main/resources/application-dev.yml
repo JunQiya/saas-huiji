@@ -16,9 +16,16 @@ spring:
 
 huiji:
   init-data: true
+  plan-upgrade-free: true
   h5:
     sms-dev-mode: true
     sms-code: "8888"
+    mall-demo-pay: true
+    recharge-demo-pay: true
+
+# 开发专用 JWT 密钥(长度>=32), 仅用于本地演示; 生产必须用 JWT_SECRET 注入
+huiji-jwt:
+  secret: ${JWT_SECRET:dev-only-huiji-secret-key-please-change-in-prod-2026}
 
 logging:
   level:

@@ -4,7 +4,7 @@
     <div class="page-padding">
       <div class="page-tip">把好运，轻轻递到手里。</div>
 
-      <div v-if="loading" class="loading"><van-loading color="#5a7a9c" /></div>
+      <div v-if="loading" class="loading"><van-loading /></div>
       <EmptyState v-else-if="!list.length" title="暂无可玩的游戏" sub="更多惊喜正在路上" art="star" />
 
       <div v-else class="game-cards x-stagger">

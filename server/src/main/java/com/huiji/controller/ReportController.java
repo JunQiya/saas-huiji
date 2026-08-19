@@ -3,6 +3,7 @@ package com.huiji.controller;
 import com.huiji.common.PageData;
 import com.huiji.common.Result;
 import com.huiji.dto.ReportDto;
+import com.huiji.security.PreAllowed;
 import com.huiji.service.ReportService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -25,15 +26,17 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
-/** 报表订阅接口 */
+/** 报表订阅接口 (写操作仅超管与店长) */
 @RestController
 @RequestMapping("/api/reports")
 @RequiredArgsConstructor
+@PreAllowed({"TENANT_ADMIN", "STORE_MANAGER"})
 public class ReportController {
 
     private final ReportService reportService;
 
     @GetMapping
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<PageData<Map<String, Object>>> list(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
@@ -41,6 +44,7 @@ public class ReportController {
     }
 
     @GetMapping("/{id}")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<Map<String, Object>> detail(@PathVariable Long id) {
         return Result.success(reportService.detail(id));
     }
@@ -73,6 +77,7 @@ public class ReportController {
     }
 
     @GetMapping("/{id}/download")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public void download(@PathVariable Long id,
                          @RequestParam(defaultValue = "pdf") String type,
                          HttpServletResponse response) throws Exception {
@@ -97,6 +102,7 @@ public class ReportController {
     }
 
     @GetMapping("/stats")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<Map<String, Object>> stats() {
         return Result.success(reportService.stats());
     }

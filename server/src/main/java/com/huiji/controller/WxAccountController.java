@@ -4,6 +4,7 @@ import com.huiji.common.Result;
 import com.huiji.entity.WxAccount;
 import com.huiji.repository.WxAccountRepository;
 import com.huiji.security.LoginUserHolder;
+import com.huiji.security.PreAllowed;
 import com.huiji.service.WxMpConfigService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,11 +18,12 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/** 微信公众号配置管理 */
+/** 微信公众号配置管理 (仅租户超管) */
 @Slf4j
 @RestController
 @RequestMapping("/api/wx/account")
 @RequiredArgsConstructor
+@PreAllowed({"TENANT_ADMIN"})
 public class WxAccountController {
 
     private final WxMpConfigService wxMpConfigService;
@@ -69,10 +71,11 @@ public class WxAccountController {
         }
         try {
             String accessToken = mpService.getAccessToken();
+            // 仅返回连通性结果, 不回显 accessToken(可换取用户信息/操作公众号)
             Map<String, Object> vo = new LinkedHashMap<>();
             vo.put("ok", true);
             vo.put("appId", mpService.getWxMpConfigStorage().getAppId());
-            vo.put("accessToken", accessToken);
+            vo.put("tokenHint", accessToken == null ? null : "已获取, 长度 " + accessToken.length());
             return Result.success(vo);
         } catch (Exception e) {
             log.warn("微信连通性测试失败", e);

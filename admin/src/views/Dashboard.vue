@@ -162,7 +162,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import * as echarts from '@/utils/echarts'
 import KpiCard from '@/components/KpiCard.vue'
 import ChartCard from '@/components/ChartCard.vue'
@@ -226,7 +226,7 @@ async function load() {
       activeMembers: summary.consumeMembersToday || 0,
       monthRevenue: summary.monthRevenue || 0,
       monthDelta: summary.monthDelta ?? 0,
-      monthRecharge: summary.monthRevenue || 0,
+      monthRecharge: summary.monthRecharge || 0,
       couponUseRate: 0,
       avgOrder: overview?.avgPrice || 0,
       repurchase: 0,
@@ -298,12 +298,20 @@ async function load() {
 async function loadLevelDistribution() {
   levelDistLoading.value = true
   try {
-    const members: any = await membersApi.list({ page: 1, size: 500 })
-    const list = (members?.list || members?.data?.list || []) as any[]
     const agg = new Map<string, number>()
-    for (const m of list) {
-      const name = m.levelName || `L${m.level || 1}`
-      agg.set(name, (agg.get(name) || 0) + 1)
+    let page = 1
+    let total = Infinity
+    while (page * 500 < total + 500) {
+      const res: any = await membersApi.list({ page, size: 500 })
+      const list = (res?.list || res?.data?.list || []) as any[]
+      if (res?.total != null) total = Number(res.total)
+      if (!list.length) break
+      for (const m of list) {
+        const name = m.levelName || `L${m.level || 1}`
+        agg.set(name, (agg.get(name) || 0) + 1)
+      }
+      if (list.length < 500) break
+      page++
     }
     levelDist.value = Array.from(agg.entries()).map(([name, value]) => ({ name, value }))
     drawPie(levelDist.value)
@@ -316,16 +324,26 @@ async function loadLevelDistribution() {
 }
 
 async function loadExtendedKpi() {
-  // 月度积分发放: 累加本月 POINT 流水
+  // 月度积分发放: 累加本月 POINT 流水(分页拉全量, 避免 size 硬编码截断)
   try {
-    const tx: any = await walletApi.transactions({ type: 'POINT', page: 1, size: 200 })
-    const list = (tx?.list || tx?.data?.list || []) as any[]
     const monthStart = new Date()
     monthStart.setDate(1)
     monthStart.setHours(0, 0, 0, 0)
-    kpi.value.monthPoints = list
-      .filter(t => new Date(t.createdAt) >= monthStart)
-      .reduce((s, t) => s + (t.amount || 0), 0)
+    let points = 0
+    let page = 1
+    let total = Infinity
+    while (page * 200 < total + 200) {
+      const tx: any = await walletApi.transactions({ type: 'POINT', page, size: 200 })
+      const list = (tx?.list || tx?.data?.list || []) as any[]
+      if (tx?.total != null) total = Number(tx.total)
+      if (!list.length) break
+      points += list
+        .filter(t => new Date(t.createdAt) >= monthStart)
+        .reduce((s, t) => s + (t.amount || 0), 0)
+      if (list.length < 200) break
+      page++
+    }
+    kpi.value.monthPoints = points
   } catch { kpi.value.monthPoints = 0 }
 
   // 厨房待出工单（按当前选中门店）
@@ -373,15 +391,19 @@ async function loadExtendedKpi() {
 
 async function loadActivity() {
   const items: any[] = []
+  const push = (raw: any, item: any) => {
+    const ts = new Date(raw).getTime()
+    if (isNaN(ts)) return
+    items.push({ ...item, _ts: ts, time: formatTime(raw) })
+  }
   try {
     const o: any = await ordersApi.list({ page: 1, size: 5, status: 'PAID' })
     const list = (o?.list || o?.data?.list || []) as any[]
-    list.slice(0, 5).forEach((od: any) => {
-      items.push({
+    list.forEach((od: any) => {
+      push(od.paidAt || od.createdAt, {
         member: od.memberName || '散客',
         action: `完成了一笔 ${(od.totalAmount / 100).toFixed(0)} 元消费`,
         sub: od.remark || od.payMethod || '到店',
-        time: formatTime(od.paidAt || od.createdAt),
         tone: 'brand'
       })
     })
@@ -389,21 +411,17 @@ async function loadActivity() {
   try {
     const tx: any = await walletApi.transactions({ type: 'RECHARGE', page: 1, size: 3 })
     const list = (tx?.list || tx?.data?.list || []) as any[]
-    list.slice(0, 3).forEach((t: any) => {
-      items.push({
+    list.forEach((t: any) => {
+      push(t.createdAt, {
         member: t.memberName || '会员',
         action: `储值 ¥${(Math.abs(t.amount) / 100).toFixed(0)}`,
         sub: t.remark || '微信支付',
-        time: formatTime(t.createdAt),
         tone: 'twilight'
       })
     })
   } catch {/* */}
-  // 按时间倒序, 取最近 5 条
-  activity.value = items
-    .filter(x => x.time !== '—')
-    .sort((a, b) => (a.time < b.time ? 1 : -1))
-    .slice(0, 5)
+  // 按真实时间戳倒序, 取最近 5 条
+  activity.value = items.sort((a, b) => b._ts - a._ts).slice(0, 5)
 }
 
 function formatTime(s: any) {
@@ -647,6 +665,12 @@ function drawGrowth(data: any[]) {
 }
 
 onMounted(load)
+
+onUnmounted(() => {
+  ;[trendEl, pieEl, hourEl, storeEl, growthEl].forEach(el => {
+    if (el.value) echarts.getInstanceByDom(el.value)?.dispose()
+  })
+})
 
 // 60s 轮询刷新实时动态与今日指标(不重载整页, 避免图表闪烁)
 usePolling({

@@ -141,16 +141,30 @@ public class MemberService {
     @Transactional
     public Map<String, Object> recharge(Long memberId, MemberDto.RechargeRequest req) {
         Long tenantId = LoginUserHolder.currentTenantId();
-        Member m = memberRepository.findByIdAndTenantIdAndDeletedFalse(memberId, tenantId)
-                .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "会员不存在"));
         if (req.getAmount() == null || req.getAmount() <= 0) {
             throw new BizException(ErrorCode.VALIDATION, "充值金额必须大于 0");
         }
-        // 赠送金额: 显式传入优先, 否则按租户储值规则匹配
         long gift = req.getGift() != null ? req.getGift() : settingsService.matchGift(tenantId, req.getAmount());
+        Long operatorId = LoginUserHolder.get() == null ? null : LoginUserHolder.get().getUserId();
+        long after = creditRecharge(tenantId, memberId, req.getAmount(), gift,
+                req.getPayMethod(), req.getRemark(), operatorId);
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("balance", after);
+        resp.put("gift", gift);
+        return resp;
+    }
 
+    /**
+     * 充值入账核心(幂等由调用方保证): 增加余额 + 本金/赠送流水 + 审计。
+     * 供充值订单(微信回调/演示模拟)与旧直充接口复用。
+     */
+    @Transactional
+    public long creditRecharge(Long tenantId, Long memberId, long amount, long gift,
+                               String payMethod, String remark, Long operatorId) {
+        Member m = memberRepository.findByIdAndTenantIdAndDeletedFalse(memberId, tenantId)
+                .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "会员不存在"));
         long before = m.getBalance() == null ? 0L : m.getBalance();
-        long after = before + req.getAmount() + gift;
+        long after = before + amount + gift;
         m.setBalance(after);
         memberRepository.save(m);
 
@@ -159,12 +173,12 @@ public class MemberService {
         tx.setTenantId(tenantId);
         tx.setMemberId(memberId);
         tx.setType("RECHARGE");
-        tx.setAmount(req.getAmount());
+        tx.setAmount(amount);
         tx.setGift(gift);
         tx.setBalanceAfter(after);
-        tx.setPayMethod(req.getPayMethod() == null ? "CASH" : req.getPayMethod());
-        tx.setRemark(req.getRemark());
-        tx.setOperatorId(LoginUserHolder.get().getUserId());
+        tx.setPayMethod(payMethod == null ? "WECHAT" : payMethod);
+        tx.setRemark(remark);
+        tx.setOperatorId(operatorId);
         walletRepository.save(tx);
 
         // 赠送单独记一条 GIFT 流水, 便于统计
@@ -176,16 +190,12 @@ public class MemberService {
             giftTx.setAmount(gift);
             giftTx.setBalanceAfter(after);
             giftTx.setRemark("充值赠送");
-            giftTx.setOperatorId(LoginUserHolder.get().getUserId());
+            giftTx.setOperatorId(operatorId);
             walletRepository.save(giftTx);
         }
         auditHelper.record("会员充值", "member:" + memberId,
-                "充" + req.getAmount() + "赠" + gift + ",余额" + after);
-
-        Map<String, Object> resp = new LinkedHashMap<>();
-        resp.put("balance", after);
-        resp.put("gift", gift);
-        return resp;
+                "充" + amount + "赠" + gift + ",余额" + after);
+        return after;
     }
 
     /** 消费扣款: 优先扣储值余额, 不足则报错; 若传入 couponCode 则核销对应券 */
@@ -251,6 +261,41 @@ public class MemberService {
                 .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "会员不存在"));
         saveTags(tenantId, memberId, tags);
         auditHelper.record("更新会员标签", "member:" + memberId, tags == null ? "" : String.join(",", tags));
+    }
+
+    /** 储值退款(运营操作): 扣回余额 + 记 REFUND 流水 + 审计; 余额不足时拒绝 */
+    @Transactional
+    public Map<String, Object> refundBalance(Long memberId, long amount, String reason) {
+        Long tenantId = LoginUserHolder.currentTenantId();
+        if (amount <= 0) {
+            throw new BizException(ErrorCode.VALIDATION, "退款金额必须大于 0");
+        }
+        Member m = memberRepository.findByIdAndTenantIdAndDeletedFalse(memberId, tenantId)
+                .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "会员不存在"));
+        long balance = m.getBalance() == null ? 0L : m.getBalance();
+        if (balance < amount) {
+            throw new BizException(ErrorCode.BIZ_ERROR, "会员余额不足, 当前余额 " + (balance / 100.0) + " 元");
+        }
+        long after = balance - amount;
+        m.setBalance(after);
+        memberRepository.save(m);
+
+        WalletTransaction tx = new WalletTransaction();
+        tx.setTenantId(tenantId);
+        tx.setMemberId(memberId);
+        tx.setType("REFUND");
+        tx.setAmount(-amount);
+        tx.setBalanceAfter(after);
+        tx.setRemark(reason == null || reason.isBlank() ? "运营退款" : reason);
+        tx.setOperatorId(LoginUserHolder.get() == null ? null : LoginUserHolder.get().getUserId());
+        walletRepository.save(tx);
+
+        auditHelper.record("储值退款", "member:" + memberId, "退" + amount + ",余额" + after + (reason == null ? "" : ",原因:" + reason));
+
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("balance", after);
+        resp.put("refundAmount", amount);
+        return resp;
     }
 
 

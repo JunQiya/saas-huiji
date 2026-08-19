@@ -54,6 +54,16 @@ interface WxSdk {
     success: (res: WxChooseImageResult) => void
   }): void
   previewImage(options: { current: string; urls: string[] }): void
+  chooseWXPay(options: {
+    timestamp: string
+    nonceStr: string
+    pkg: string
+    signType: string
+    paySign: string
+    success: (res: { errMsg: string }) => void
+    cancel: (res: { errMsg: string }) => void
+    fail: (res: { errMsg: string }) => void
+  }): void
 }
 
 declare global {
@@ -102,7 +112,8 @@ export async function initWxSdk(): Promise<void> {
         'updateTimelineShareData',
         'scanQRCode',
         'chooseImage',
-        'previewImage'
+        'previewImage',
+        'chooseWXPay'
       ]
     })
     await new Promise<void>((resolve, reject) => {
@@ -122,4 +133,35 @@ export function wxShare(title: string, desc: string, link: string, imgUrl: strin
   if (!window.wx) return
   window.wx.updateAppMessageShareData({ title, desc, link, imgUrl })
   window.wx.updateTimelineShareData({ title, link, imgUrl })
+}
+
+// 微信 JSAPI 支付唤起参数
+export interface WxPayParams {
+  appId?: string
+  timeStamp: string
+  nonceStr: string
+  pkg?: string
+  package?: string
+  signType: string
+  paySign: string
+}
+
+// 唤起微信支付, 返回支付结果(errMsg)
+export function wxChooseWXPay(params: WxPayParams): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (!window.wx) {
+      reject(new Error('请在微信中打开完成支付'))
+      return
+    }
+    window.wx.chooseWXPay({
+      timestamp: params.timeStamp,
+      nonceStr: params.nonceStr,
+      pkg: params.pkg || params.package || '',
+      signType: params.signType,
+      paySign: params.paySign,
+      success: (res) => resolve(res.errMsg),
+      cancel: () => reject(new Error('支付已取消')),
+      fail: (res) => reject(new Error(res.errMsg || '支付失败'))
+    })
+  })
 }

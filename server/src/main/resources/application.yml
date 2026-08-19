@@ -31,9 +31,9 @@ spring:
         # 自动给 SQL 标识符加反引号, 避免 type/status/trigger 等 MySQL 保留字冲突
         globally_quoted_identifiers: true
 
-# JWT (生产环境请通过环境变量 JWT_SECRET 注入, 密钥长度至少 32 字符)
+# JWT (必须通过环境变量 JWT_SECRET 注入, 密钥长度至少 32 字符; 未注入时启动即失败, 避免弱密钥)
 huiji-jwt:
-  secret: ${JWT_SECRET:huiji-secret-key-for-jwt-signing-please-change-in-production-2024}
+  secret: ${JWT_SECRET:}
   expire-minutes: 720
   member-expire-minutes: 1440
 
@@ -51,6 +51,10 @@ huiji:
     sms-dev-mode: false
     # 兜底固定验证码(仅演示环境配置, 生产留空以禁用)
     sms-code: ""
+    # 商城订单"免支付直接成功"(仅演示环境, 生产必须关闭): true 时未配置微信支付也允许直接支付成功
+    mall-demo-pay: false
+    # 储值充值"免支付直接到账"(仅演示环境, 生产必须关闭): true 时充值走模拟支付
+    recharge-demo-pay: false
 
 logging:
   level:

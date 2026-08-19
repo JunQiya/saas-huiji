@@ -320,8 +320,16 @@ async function submitForm() {
       await employeesApi.update(form.id, rest)
       ElMessage.success('已更新')
     } else {
-      await employeesApi.create({ ...form })
-      ElMessage.success('已新增')
+      const res: any = await employeesApi.create({ ...form })
+      formVisible.value = false
+      loadList()
+      if (res?.initialPassword) {
+        ElMessageBox.alert(`员工「${form.name}」初始密码：${res.initialPassword}`, '创建成功', {
+          confirmButtonText: '知道了'
+        })
+      } else {
+        ElMessage.success('已新增')
+      }
     }
     formVisible.value = false
     loadList()

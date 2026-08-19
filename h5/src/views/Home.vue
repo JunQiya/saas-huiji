@@ -19,12 +19,14 @@
         />
         <div v-if="memberStore.isLogin" class="card-actions">
           <div class="card-hint" @click="openMemberQr">
-            <van-icon name="qr" size="12" />
-            <span>会员码 · 到店出示</span>
+            <van-icon name="qr" size="15" />
+            <span>会员码</span>
+            <span class="ch-sub">到店出示</span>
           </div>
           <div class="card-hint primary" @click="router.push('/recharge')">
-            <van-icon name="gold-coin-o" size="12" />
+            <van-icon name="gold-coin-o" size="15" />
             <span>余额充值</span>
+            <span class="ch-sub">储值到账</span>
           </div>
         </div>
       </div>
@@ -276,30 +278,36 @@ onMounted(() => {
 <style scoped>
 .home { padding: 0 0 24px; }
 .home-refresh { min-height: 70vh; }
-.card-wrap { padding: 8px 16px 12px; }
+.card-wrap { padding: 8px 16px 10px; }
 .card-actions {
-  display: flex; gap: 8px;
-  margin: -4px 0 4px;
+  display: flex; gap: 10px;
+  margin: 8px 0 4px;
 }
 .card-hint {
   flex: 1;
-  display: flex; align-items: center; justify-content: center; gap: 4px;
-  padding: 6px 0;
-  font-size: 11px;
-  color: var(--brand-ink);
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  height: 40px;
+  font-size: 13px;
+  color: var(--brand-deep);
   background: var(--brand-softer);
-  border: 1px dashed var(--brand-soft);
-  border-radius: var(--r-sm);
-  letter-spacing: 0.1em;
+  border: 1px solid var(--brand-soft);
+  border-radius: 999px;
+  letter-spacing: 0.04em;
   cursor: pointer;
-  transition: opacity var(--dur) var(--ease-out);
+  transition: transform var(--dur) var(--ease-out), box-shadow var(--dur) var(--ease-out), opacity var(--dur) var(--ease-out);
+}
+.card-hint .ch-sub {
+  font-size: 10.5px; opacity: 0.7;
+  letter-spacing: 0.08em;
 }
 .card-hint.primary {
   color: #fff;
-  background: var(--brand-deep);
+  background: linear-gradient(135deg, var(--brand-deep), var(--brand));
   border-color: transparent;
+  box-shadow: 0 4px 12px var(--brand-glow);
 }
-.card-hint:active { opacity: 0.7; }
+.card-hint.primary .ch-sub { opacity: 0.75; }
+.card-hint:active { transform: scale(0.97); opacity: 0.9; }
 
 /* 客服浮窗 */
 .service-fab {
@@ -323,10 +331,10 @@ onMounted(() => {
 /* 4 宫格 */
 .grid-card {
   margin: 0 16px;
-  padding: 16px 8px 14px;
+  padding: 16px 6px 14px;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px 0;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px 0;
 }
 .grid-item {
   text-align: center;
@@ -349,7 +357,7 @@ onMounted(() => {
 .grid-icon.ic-clay { background: var(--accent-clay-soft); color: #8a5a3a; }
 .grid-icon.ic-twilight { background: var(--accent-twilight-soft); color: #5e5278; }
 .grid-icon.ic-sage { background: var(--accent-sage-soft); color: #4a6655; }
-.grid-label { font-size: 12px; color: var(--ink-2); letter-spacing: 0.02em; }
+.grid-label { font-size: 11.5px; color: var(--ink-2); letter-spacing: 0.01em; }
 
 /* 今日小语 */
 .quote-card {
@@ -408,8 +416,7 @@ onMounted(() => {
   min-height: 88px;
 }
 /* 去除高饱和渐变，使用低饱和纯色 */
-.banner-rose { background: var(--accent-rose); }
-.banner-brand { background: var(--brand); }
+.banner-rose { background: var(--accent-rose); }.banner-brand { background: var(--brand); }
 .banner-clay { background: var(--accent-clay); }
 .b-tag {
   display: inline-block;
@@ -467,6 +474,4 @@ onMounted(() => {
 .lk-left { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--ink-2); font-family: var(--font-serif); letter-spacing: 0.04em; }
 .lk-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; }
 .lk-arrow { color: var(--muted-2); font-size: 16px; line-height: 1; font-family: var(--font-serif); }
-
-.bottom-placeholder { height: 70px; }
 </style>

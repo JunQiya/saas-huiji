@@ -4,7 +4,7 @@
     <div class="page-padding">
       <div class="page-tip">每一场活动，都是一次被认真对待的邀约。</div>
 
-      <div v-if="loading" class="loading"><van-loading color="#5a7a9c" /></div>
+      <div v-if="loading" class="loading"><van-loading /></div>
       <EmptyState v-else-if="!list.length" title="暂无进行中的活动" sub="新活动正在路上，敬请期待" art="star" />
 
       <div v-else class="camp-list">

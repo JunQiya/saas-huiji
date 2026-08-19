@@ -16,7 +16,7 @@
         </div>
       </div>
 
-      <div v-if="loading" class="loading"><van-loading color="#6f94b8" /></div>
+      <div v-if="loading" class="loading"><van-loading /></div>
       <EmptyState v-else-if="!list.length" title="暂无该状态券" sub="领几张好券，下次到店就有小惊喜" art="leaf" />
 
       <div v-else class="coupon-list">

@@ -2,7 +2,7 @@
   <div class="page mall-product">
     <NavBar title="商品详情" back />
 
-    <div v-if="loading" class="loading"><van-loading color="#6f94b8" /></div>
+    <div v-if="loading" class="loading"><van-loading /></div>
     <EmptyState v-else-if="!product" title="商品不存在或已下架" sub="返回商城再逛逛" art="box" />
 
     <template v-else>

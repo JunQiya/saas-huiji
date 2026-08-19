@@ -12,7 +12,7 @@ public class EmployeeDto {
     public static class EmployeeRequest {
         @NotBlank(message = "用户名不能为空")
         private String username;
-        @NotBlank(message = "密码不能为空")
+        /** 初始密码: 为空时服务端生成随机临时密码并返回 */
         private String password;
         @NotBlank(message = "姓名不能为空")
         private String name;

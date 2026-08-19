@@ -8,6 +8,7 @@ import com.huiji.common.PageData;
 import com.huiji.dto.MessageDto;
 import com.huiji.entity.MessageTask;
 import com.huiji.entity.TenantSetting;
+import com.huiji.repository.MemberRepository;
 import com.huiji.repository.MessageTaskRepository;
 import com.huiji.repository.TenantSettingRepository;
 import com.huiji.security.LoginUserHolder;
@@ -50,6 +51,7 @@ public class MessageService {
 
     private final MessageTaskRepository messageTaskRepository;
     private final TenantSettingRepository tenantSettingRepository;
+    private final MemberRepository memberRepository;
     private final AuditHelper auditHelper;
     private final ObjectMapper objectMapper;
     private final EntityManager entityManager;
@@ -95,6 +97,11 @@ public class MessageService {
         Long tenantId = LoginUserHolder.currentTenantId();
         if (req.getMemberIds() == null || req.getMemberIds().isEmpty()) {
             throw new BizException(ErrorCode.VALIDATION, "请选择目标会员");
+        }
+        // 租户隔离: 目标会员必须全部属于当前租户, 防止跨租户骚扰/烧本租户短信
+        long validCount = memberRepository.countByIdInAndTenantIdAndDeletedFalse(req.getMemberIds(), tenantId);
+        if (validCount != req.getMemberIds().size()) {
+            throw new BizException(ErrorCode.VALIDATION, "部分目标会员不存在或不属于本门店租户");
         }
         long count = req.getMemberIds().size();
         // 短信余额校验

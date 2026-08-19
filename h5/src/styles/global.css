@@ -202,6 +202,16 @@ img { display: block; max-width: 100%; }
 }
 .empty-box .empty-tip { font-size: 11.5px; color: var(--muted-2); margin-top: 4px; }
 
+/* ===== 加载态 ===== */
+.loading {
+  display: flex; align-items: center; justify-content: center;
+  padding: 40px 0; color: var(--muted);
+}
+.loading .van-loading__spinner { color: var(--brand-deep); }
+.loading .van-loading__text { color: var(--muted); font-size: 12px; letter-spacing: 0.08em; }
+.loading:empty { display: none; }
+.empty-box .van-loading__spinner { color: var(--brand-deep); }
+
 /* ===== chip ===== */
 .chip {
   display: inline-flex; align-items: center; gap: 4px;
@@ -317,6 +327,26 @@ img { display: block; max-width: 100%; }
 
 .x-fade { animation: x-fade-in var(--dur-slow) var(--ease-out) backwards; }
 
+/* ===== 全局交互反馈: 可点击元素统一按压感(排除表单/滑动) ===== */
+button, [role="button"], .clickable, .card-hint, .grid-item, .menu-row, .ben-row,
+.link-row, .rx-row, .tx-item, .cat-chip, .order-card, .banner-item, .stat-cell {
+  -webkit-tap-highlight-color: transparent;
+}
+button:not(:disabled):active, .clickable:active {
+  opacity: 0.82;
+  transform: scale(0.99);
+}
+
+/* ===== 长内容防溢出 ===== */
+.ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ellipsis-2 {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ===== 数字/金额统一等宽字体 ===== */
+.num, .money { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+
 /* ===== Vant 主题变量覆盖 ===== */
 :root {
   --van-primary-color: var(--brand-deep);
@@ -359,9 +389,33 @@ img { display: block; max-width: 100%; }
   --van-field-input-text-color: var(--ink);
 }
 
+/* ===== Vant 组件细节统一(搜索框/弹层圆角/标签) ===== */
+.van-search { background: transparent !important; }
+.van-search__content {
+  background: var(--surface-2) !important;
+  border: 1px solid var(--line);
+  border-radius: 999px !important;
+}
+.van-search__content .van-field__control { color: var(--ink); }
+.van-popup { border-radius: var(--r-lg) var(--r-lg) 0 0; }
+.van-popup--center, .van-popup--round { border-radius: var(--r-lg); }
+.van-action-sheet {
+  background: var(--surface);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+}
+.van-action-sheet__header,
+.van-action-sheet__item {
+  font-family: var(--font-serif);
+  letter-spacing: 0.06em;
+}
+.van-tag--plain { background: transparent; }
+
 /* ===== 安全区适配 ===== */
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0); }
 .safe-top { padding-top: env(safe-area-inset-top, 0); }
+
+/* 固定底部 TabBar 的内容占位(含 iOS 底部安全区) */
+.bottom-placeholder { height: calc(76px + env(safe-area-inset-bottom, 0px)); }
 
 /* ===== 链接箭头 ===== */
 .link-arrow {

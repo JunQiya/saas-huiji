@@ -17,6 +17,7 @@ import com.huiji.repository.OrderItemRepository;
 import com.huiji.repository.OrderRepository;
 import com.huiji.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -48,6 +49,10 @@ public class MallService {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final OrderService orderService;
+
+    /** 商城"免支付直接成功"开关(仅演示环境; 生产 false 时禁止免支付) */
+    @Value("${huiji.h5.mall-demo-pay:false}")
+    private boolean mallDemoPay;
 
     // ============ 分类管理 ============
 
@@ -358,7 +363,7 @@ public class MallService {
         return toOrderVO(order, true);
     }
 
-    /** 商城订单支付(演示环境直接成功: PENDING -> PAID) */
+    /** 商城订单支付: 演示环境可直接成功; 生产环境必须走真实微信支付(/api/wxpay/order/{id}) */
     @Transactional
     public Map<String, Object> payOrder(Long tenantId, Long memberId, Long orderId) {
         Order order = orderRepository.findByIdAndTenantIdAndDeletedFalse(orderId, tenantId)
@@ -368,6 +373,9 @@ public class MallService {
         }
         if (!"PENDING".equals(order.getStatus())) {
             throw new BizException(ErrorCode.BIZ_ERROR, "当前订单状态不可支付: " + order.getStatus());
+        }
+        if (!mallDemoPay) {
+            throw new BizException(ErrorCode.BIZ_ERROR, "请通过微信支付完成付款");
         }
         long payable = order.getTotalAmount()
                 - (order.getDiscountAmount() == null ? 0L : order.getDiscountAmount());
@@ -390,6 +398,8 @@ public class MallService {
         if (!"PENDING".equals(order.getStatus())) {
             throw new BizException(ErrorCode.BIZ_ERROR, "当前订单状态不可取消: " + order.getStatus());
         }
+        // 归还下单时占用的库存
+        orderService.restoreStock(order);
         order.setStatus("CANCELLED");
         orderRepository.save(order);
         return orderDetail(tenantId, memberId, orderId);

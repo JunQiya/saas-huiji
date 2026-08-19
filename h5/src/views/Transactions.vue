@@ -19,7 +19,7 @@
         :finished-text="list.length ? '没有更多了' : ''"
         @load="load"
       >
-        <div v-if="loading && !list.length" class="loading"><van-loading color="#6f94b8" /></div>
+        <div v-if="loading && !list.length" class="loading"><van-loading /></div>
         <EmptyState v-else-if="!list.length && finished" title="暂无流水" sub="下一次到店，会出现在这里" art="leaf" />
         <div v-else class="tx-list">
           <div v-for="tx in list" :key="tx.id" class="tx-item">

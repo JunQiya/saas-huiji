@@ -34,6 +34,7 @@ function onBack() { if (window.history.length > 1) router.back(); else router.pu
   background: var(--surface);
   position: relative;
   z-index: 10;
+  padding-top: env(safe-area-inset-top, 0);
 }
 .nav-bar.is-fixed {
   position: sticky; top: 0; left: 0; right: 0;
@@ -45,8 +46,7 @@ function onBack() { if (window.history.length > 1) router.back(); else router.pu
   height: 44px; padding: 0 6px;
   border-bottom: 1px dashed var(--line-2);
   position: relative;
-}
-.nav-row::after {
+}.nav-row::after {
   content: '';
   position: absolute;
   bottom: -1px; left: 16px;

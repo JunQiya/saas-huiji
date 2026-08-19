@@ -225,9 +225,9 @@ public class ProductService {
         }
     }
 
-    /** 解析套餐名: 当前实现为 FREE, 未来可从 TenantSetting 读取 tenantPlan 字段 */
+    /** 解析套餐名: 从租户设置读取实际套餐 */
     private String planName(TenantSetting s) {
-        return "FREE";
+        return s.getPlan() == null ? "FREE" : s.getPlan();
     }
 
     private void applyReq(Product p, ProductDto.ProductRequest req) {

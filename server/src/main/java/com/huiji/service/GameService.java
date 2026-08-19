@@ -12,6 +12,7 @@ import com.huiji.repository.GamePlayRepository;
 import com.huiji.repository.GamePrizeRepository;
 import com.huiji.repository.GameRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,9 +22,11 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 /** 赢奖小游戏服务: 游戏配置、奖品配置、抽奖核心逻辑、记录与统计。 */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class GameService {
@@ -34,6 +37,13 @@ public class GameService {
     private final CouponService couponService;
     private final MemberService memberService;
     private final AuditHelper auditHelper;
+
+    /** 每(游戏,会员)一把锁, 串行化抽奖次数校验, 防并发刷奖 */
+    private final Map<String, Object> playLocks = new ConcurrentHashMap<>();
+
+    private Object lockFor(Long gameId, Long memberId) {
+        return playLocks.computeIfAbsent(gameId + ":" + memberId, k -> new Object());
+    }
 
     // ---- 游戏管理 ----
 
@@ -165,6 +175,13 @@ public class GameService {
      */
     @Transactional
     public GameDto.PlayResult play(Long tenantId, Long memberId, Long gameId) {
+        // 同(游戏,会员)串行, 防止并发同时通过次数校验后重复抽奖
+        synchronized (lockFor(gameId, memberId)) {
+            return doPlay(tenantId, memberId, gameId);
+        }
+    }
+
+    private GameDto.PlayResult doPlay(Long tenantId, Long memberId, Long gameId) {
         Game g = gameRepository.findByIdAndTenantIdAndDeletedFalse(gameId, tenantId)
                 .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "游戏不存在"));
 
@@ -268,7 +285,9 @@ public class GameService {
             }
             // EMPTY 类型不发放
         } catch (Exception e) {
-            // 发放失败不影响游戏记录, 保留中奖信息便于人工补发
+            // 发放失败不影响游戏记录, 但必须记录日志便于人工补发
+            log.error("游戏奖品发放失败: tenantId={}, memberId={}, prizeId={}, prizeType={}",
+                    tenantId, memberId, prize.getId(), prize.getType(), e);
         }
     }
 

@@ -92,8 +92,12 @@ function pickList<T>(data: T[] | PageData<T>): T[] {
 
 // H5 API
 export const h5Api = {
-  login(phone: string, code: string) {
-    return request.post<LoginResult>('/api/h5/login', { phone, code })
+  login(phone: string, code: string, tenantId?: number | string) {
+    return request.post<LoginResult>('/api/h5/login', {
+      phone,
+      code,
+      ...(tenantId ? { tenantId: Number(tenantId) } : {})
+    })
   },
   // 发送登录短信验证码（公开）
   sendSmsCode(phone: string) {
@@ -112,9 +116,29 @@ export const h5Api = {
   walletRules() {
     return request.get<{ recharge: number; gift: number }[]>('/api/h5/wallet/rules')
   },
-  // 会员充值（演示环境直接到账）
+  // 会员充值（演示环境直接到账，兼容旧逻辑）
   recharge(body: { amount: number; payMethod?: string }) {
     return request.post<{ balance: number; gift: number }>('/api/h5/wallet/recharge', body)
+  },
+  // 创建充值单（先落单待支付）
+  createRechargeOrder(body: { amount: number; payMethod?: string }) {
+    return request.post<{
+      rechargeOrderId: number
+      outTradeNo: string
+      amount: number
+      gift: number
+      status: string
+    }>('/api/h5/wallet/recharge/create', body)
+  },
+  // 充值支付（演示环境模拟成功；生产走真实微信支付）
+  payRecharge(rechargeOrderId: number | string) {
+    return request.post<{
+      rechargeOrderId: number
+      status: string
+      balanceAfter?: number
+      gift?: number
+      transactionId?: string
+    }>('/api/h5/wallet/recharge/pay', { rechargeOrderId })
   },
   async myCoupons(status: 'UNUSED' | 'USED' | 'EXPIRED'): Promise<CouponRecord[]> {
     const data = await request.get<CouponRecord[] | PageData<CouponRecord>>('/api/h5/coupons', {

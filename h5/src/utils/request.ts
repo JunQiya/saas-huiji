@@ -1,4 +1,5 @@
 import axios, { type AxiosInstance, type InternalAxiosRequestConfig } from 'axios'
+import { useMemberStore } from '@/stores/member'
 
 // 后端统一响应结构
 export interface ApiResult<T = unknown> {
@@ -72,8 +73,8 @@ instance.interceptors.response.use(
   (error) => {
     const status = error?.response?.status
     if (status === 401) {
-      localStorage.removeItem('memberToken')
-      localStorage.removeItem('memberInfo')
+      // 同步 store(内存态) + localStorage, 避免 UI 残留登录态
+      useMemberStore().logout()
       setTimeout(() => {
         if (location.pathname !== '/login') {
           // 保留原始目标, 登录后跳回

@@ -14,6 +14,8 @@ public class H5Dto {
         private String phone;
         @NotBlank(message = "验证码不能为空")
         private String code;
+        /** 可选: 目标租户, 指定后按 手机号+租户 精确定位会员, 避免跨租户匹配 */
+        private Long tenantId;
     }
 
     /** H5 会员充值请求 */

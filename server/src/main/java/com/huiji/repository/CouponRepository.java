@@ -12,6 +12,8 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
 
     Optional<Coupon> findByIdAndTenantIdAndDeletedFalse(Long id, Long tenantId);
 
+    long countByTenantIdAndDeletedFalse(Long tenantId);
+
     @Query("select c from Coupon c where c.tenantId = :tenantId and c.deleted = false " +
             "and (:status is null or :status = '' or c.status = :status) " +
             "and (:type is null or :type = '' or c.type = :type) order by c.id desc")

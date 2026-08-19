@@ -3,6 +3,7 @@ package com.huiji.controller;
 import com.huiji.common.Result;
 import com.huiji.repository.OrderItemRepository;
 import com.huiji.security.LoginUserHolder;
+import com.huiji.security.PreAllowed;
 import com.huiji.service.OrderService;
 import com.huiji.service.StatsService;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/stats")
 @RequiredArgsConstructor
+@PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
 public class StatsController {
 
     private final StatsService statsService;
@@ -29,44 +31,52 @@ public class StatsController {
     private final OrderItemRepository orderItemRepository;
 
     @GetMapping("/overview")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<Map<String, Object>> overview(@RequestParam(required = false) String range) {
         return Result.success(statsService.overview());
     }
 
     @GetMapping("/summary")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<Map<String, Object>> summary(@RequestParam(required = false) String range) {
         return Result.success(statsService.summary());
     }
 
     @GetMapping("/trend")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<List<Map<String, Object>>> trend(@RequestParam(required = false) String range,
                                                    @RequestParam(required = false) String metric) {
         return Result.success(statsService.trend(range == null ? "month" : range, metric));
     }
 
     @GetMapping("/member-growth")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<List<Map<String, Object>>> memberGrowth(@RequestParam(required = false) String range) {
         return Result.success(statsService.memberGrowth());
     }
 
     /** 门店营收排行(近 N 天) */
     @GetMapping("/store-ranking")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<List<Map<String, Object>>> storeRanking(@RequestParam(defaultValue = "30") int days) {
         return Result.success(statsService.storeRanking(days));
     }
 
     @GetMapping("/top-services")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<List<Map<String, Object>>> topServices(@RequestParam(required = false) String range,
                                                          @RequestParam(defaultValue = "10") int limit) {
         return Result.success(statsService.topServices());
     }
 
     @GetMapping("/rfm")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<Map<String, Object>> rfm() {
         return Result.success(statsService.rfm());
     }
 
     @GetMapping("/hour")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<List<Map<String, Object>>> hour() {
         return Result.success(statsService.hour());
     }
@@ -74,12 +84,14 @@ public class StatsController {
     // ============ 新增: 今日订单统计 ============
 
     @GetMapping("/orders/today")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<Map<String, Object>> ordersToday() {
         return Result.success(orderService.todayStats());
     }
 
     /** 商品 Top N(按销量排序, 限定时间范围) */
     @GetMapping("/products/top")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
     public Result<List<Map<String, Object>>> topProducts(@RequestParam(defaultValue = "10") int limit,
                                                          @RequestParam(required = false) String start,
                                                          @RequestParam(required = false) String end) {

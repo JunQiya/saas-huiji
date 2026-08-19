@@ -3,6 +3,7 @@ package com.huiji.controller;
 import com.huiji.common.PageData;
 import com.huiji.common.Result;
 import com.huiji.dto.OrderDto;
+import com.huiji.security.PreAllowed;
 import com.huiji.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/orders")
 @RequiredArgsConstructor
+@PreAllowed({"TENANT_ADMIN", "STORE_MANAGER", "STAFF", "CASHIER"})
 public class OrderController {
 
     private final OrderService orderService;

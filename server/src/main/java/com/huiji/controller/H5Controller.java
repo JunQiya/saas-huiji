@@ -16,6 +16,7 @@ import com.huiji.service.MallService;
 import com.huiji.service.MemberService;
 import com.huiji.service.OrderService;
 import com.huiji.service.ProductService;
+import com.huiji.service.RechargeService;
 import com.huiji.service.SmsCodeService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -49,6 +50,7 @@ public class H5Controller {
     private final MemberService memberService;
     private final CampaignRepository campaignRepository;
     private final SmsCodeService smsCodeService;
+    private final RechargeService rechargeService;
 
     @PostMapping("/login")
     public Result<Map<String, Object>> login(@Valid @RequestBody H5Dto.LoginRequest req) {
@@ -135,7 +137,7 @@ public class H5Controller {
         return Result.success(h5Service.rechargeRules(ctx[1]));
     }
 
-    /** 会员充值(演示环境直接到账) */
+    /** 会员充值(演示环境直接到账, 保留兼容; 新流程见 create/pay) */
     @PostMapping("/wallet/recharge")
     public Result<Map<String, Object>> recharge(HttpServletRequest req,
                                                 @Valid @RequestBody H5Dto.RechargeRequest body) {
@@ -143,6 +145,31 @@ public class H5Controller {
         bindAsMember(ctx[0], ctx[1]);
         try {
             return Result.success(memberService.recharge(ctx[0], body.toMemberRecharge()));
+        } finally {
+            LoginUserHolder.clear();
+        }
+    }
+
+    /** 创建充值单(先落单待支付) */
+    @PostMapping("/wallet/recharge/create")
+    public Result<Map<String, Object>> createRecharge(HttpServletRequest req,
+                                                      @Valid @RequestBody H5Dto.RechargeRequest body) {
+        long[] ctx = currentMember(req);
+        return Result.success(rechargeService.create(ctx[1], ctx[0], body.getAmount(), body.getPayMethod()));
+    }
+
+    /** 充值支付(演示环境模拟成功; 生产走真实微信支付) */
+    @PostMapping("/wallet/recharge/pay")
+    public Result<Map<String, Object>> payRecharge(HttpServletRequest req,
+                                                   @RequestBody Map<String, Object> body) {
+        long[] ctx = currentMember(req);
+        bindAsMember(ctx[0], ctx[1]);
+        try {
+            Object id = body == null ? null : body.get("rechargeOrderId");
+            if (id == null) {
+                throw new BizException(ErrorCode.VALIDATION, "请指定充值单");
+            }
+            return Result.success(rechargeService.pay(ctx[1], ctx[0], Long.valueOf(String.valueOf(id))));
         } finally {
             LoginUserHolder.clear();
         }

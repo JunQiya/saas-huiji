@@ -2,6 +2,7 @@ package com.huiji.controller;
 
 import com.huiji.common.PageData;
 import com.huiji.common.Result;
+import com.huiji.security.PreAllowed;
 import com.huiji.service.AuditService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,10 +13,11 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDateTime;
 import java.util.Map;
 
-/** 审计接口 */
+/** 审计接口 (仅超管) */
 @RestController
 @RequestMapping("/api/audit")
 @RequiredArgsConstructor
+@PreAllowed({"TENANT_ADMIN"})
 public class AuditController {
 
     private final AuditService auditService;

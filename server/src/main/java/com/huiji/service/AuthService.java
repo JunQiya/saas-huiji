@@ -18,10 +18,20 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+
 /** 鉴权服务: 登录/登出/资料/改密。 */
 @Service
 @RequiredArgsConstructor
 public class AuthService {
+
+    private static final int MAX_LOGIN_FAILURES = 5;
+    private static final long LOCK_SECONDS = 300L;
+
+    /** 登录失败计数(内存态, 单实例有效): username -> 失败信息 */
+    private final Map<String, LoginFail> loginFails = new ConcurrentHashMap<>();
 
     private final UserRepository userRepository;
     private final LoginLogRepository loginLogRepository;
@@ -30,9 +40,18 @@ public class AuthService {
 
     @Transactional
     public AuthDto.LoginResponse login(AuthDto.LoginRequest req) {
+        String username = req.getUsername();
+        // 防爆破: 检查是否锁定
+        LoginFail fail = loginFails.get(username);
+        long now = System.currentTimeMillis();
+        if (fail != null && fail.lockUntil > now) {
+            long left = TimeUnit.MILLISECONDS.toSeconds(fail.lockUntil - now);
+            throw new BizException(ErrorCode.BIZ_ERROR, "尝试次数过多, 请 " + left + " 秒后再试");
+        }
         User user = userRepository.findByUsernameAndDeletedFalse(req.getUsername())
                 .orElseThrow(() -> {
                     recordLogin(null, req.getUsername(), "FAIL", "账号不存在");
+                    markFailure(username);
                     return new BizException(ErrorCode.BIZ_ERROR, "账号或密码错误");
                 });
         if (!"ACTIVE".equals(user.getStatus())) {
@@ -41,8 +60,11 @@ public class AuthService {
         }
         if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
             recordLogin(user.getId(), user.getUsername(), "FAIL", "密码错误");
+            markFailure(username);
             throw new BizException(ErrorCode.BIZ_ERROR, "账号或密码错误");
         }
+        // 登录成功: 清除失败计数
+        loginFails.remove(username);
         String token = jwtUtil.generate(user.getId(), user.getTenantId(), user.getUsername(), user.getRole(), firstStoreId(user));
         recordLogin(user.getId(), user.getUsername(), "SUCCESS", "登录成功");
 
@@ -51,6 +73,30 @@ public class AuthService {
         resp.setExpiresIn(jwtUtil.getExpireSeconds());
         resp.setUser(toProfile(user));
         return resp;
+    }
+
+    /** 记录一次登录失败, 连续失败达到阈值则锁定账号一段时间 */
+    private void markFailure(String username) {
+        long now = System.currentTimeMillis();
+        LoginFail f = loginFails.computeIfAbsent(username, k -> new LoginFail());
+        if (f.lockUntil > now) return;
+        if (now - f.firstFailAt > 60_000L) {
+            // 超过 1 分钟的滑动窗口, 重置计数
+            f.failCount = 0;
+            f.firstFailAt = now;
+        }
+        f.failCount++;
+        if (f.failCount >= MAX_LOGIN_FAILURES) {
+            f.lockUntil = now + LOCK_SECONDS * 1000L;
+            f.failCount = 0;
+        }
+    }
+
+    /** 登录失败计数状态 */
+    private static class LoginFail {
+        long firstFailAt = System.currentTimeMillis();
+        int failCount = 0;
+        long lockUntil = 0L;
     }
 
     public AuthDto.UserProfile profile() {

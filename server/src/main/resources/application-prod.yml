@@ -23,9 +23,12 @@ spring:
 #   - 真实生产(false): 需接入真实短信网关, 否则登录不可用
 huiji:
   init-data: false
+  plan-upgrade-free: false
   h5:
     sms-dev-mode: ${SMS_DEV_MODE:false}
     sms-code: ${SMS_FIXED_CODE:}
+    mall-demo-pay: false
+    recharge-demo-pay: false
   # H5 访问域名(如 https://h5.example.com), 微信 OAuth 回调与点餐二维码依赖
   h5-domain: ${H5_DOMAIN:}
 

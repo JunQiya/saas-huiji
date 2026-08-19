@@ -9,6 +9,7 @@ import com.huiji.repository.MemberRepository;
 import com.huiji.security.LoginUserHolder;
 import com.huiji.security.MemberContext;
 import com.huiji.security.MemberTokenUtil;
+import com.huiji.security.PreAllowed;
 import com.huiji.service.WxMpConfigService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -147,8 +148,9 @@ public class WeChatController {
         return Result.success(signature);
     }
 
-    /** 4. 发送模板消息(需要 adminToken) */
+    /** 4. 发送模板消息(需要 adminToken, 仅超管/店长) */
     @PostMapping("/template/send")
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER"})
     public Result<Void> sendTemplate(@RequestBody Map<String, Object> body) {
         Long tenantId = LoginUserHolder.currentTenantId();
         String openid = str(body.get("openid"));
@@ -162,6 +164,9 @@ public class WeChatController {
         }
         @SuppressWarnings("unchecked")
         Map<String, String> data = (Map<String, String>) body.get("data");
+        if (data == null) {
+            data = Map.of();
+        }
         wxMpConfigService.sendTemplateMessage(tenantId, openid, templateKey, data, url);
         return Result.success();
     }

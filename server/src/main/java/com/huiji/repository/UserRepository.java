@@ -20,4 +20,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
                             @Param("role") String role);
 
     boolean existsByUsernameAndDeletedFalse(String username);
+
+    /** 用户名在当前租户内是否已存在(租户级唯一) */
+    boolean existsByUsernameAndTenantIdAndDeletedFalse(String username, Long tenantId);
+
+    List<User> findByTenantIdAndDeletedFalse(Long tenantId);
 }

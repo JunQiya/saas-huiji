@@ -31,6 +31,10 @@ public class JwtUtil {
 
     @PostConstruct
     public void init() {
+        if (secret == null || secret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalStateException(
+                    "JWT 密钥未配置或长度不足: 请通过环境变量 JWT_SECRET 注入至少 32 字符的密钥, 禁止使用弱密钥");
+        }
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 

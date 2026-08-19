@@ -60,9 +60,15 @@ public class H5Service {
         if (!ok) {
             throw new BizException(ErrorCode.BIZ_ERROR, "验证码错误或已过期");
         }
-        // 按手机号查找会员(演示单租户, 取首个匹配)
-        Member m = memberRepository.findFirstByPhoneAndDeletedFalseOrderByIdAsc(req.getPhone())
-                .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "会员不存在, 请先到门店登记"));
+        // 按手机号查找会员; 若指定租户则精确匹配, 避免跨租户手机号匹配
+        Member m;
+        if (req.getTenantId() != null) {
+            m = memberRepository.findByPhoneAndTenantIdAndDeletedFalse(req.getPhone(), req.getTenantId())
+                    .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "会员不存在, 请先到门店登记"));
+        } else {
+            m = memberRepository.findFirstByPhoneAndDeletedFalseOrderByIdAsc(req.getPhone())
+                    .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "会员不存在, 请先到门店登记"));
+        }
         m.setLastLoginAt(LocalDateTime.now());
         memberRepository.save(m);
         String token = memberTokenUtil.generate(m.getId(), m.getTenantId());

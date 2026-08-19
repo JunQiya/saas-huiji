@@ -49,7 +49,7 @@ public class WxMpConfigService {
 
     private Agent getAgent(Long agentId) {
         if (agentId == null) return null;
-        return agentRepository.findByIdAndStatus(agentId, "ENABLED").orElse(null);
+        return agentRepository.findByIdAndStatusAndDeletedFalse(agentId, "ENABLED").orElse(null);
     }
 
     /**

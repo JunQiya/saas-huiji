@@ -64,6 +64,8 @@ export const membersApi = {
     request.get<any, PageData<Transaction>>(`/members/${id}/transactions`, { params }),
   recharge: (id: number, data: { amount: number; gift: number; payMethod: string; remark?: string }) =>
     request.post<any, { balance: number }>(`/members/${id}/recharge`, data),
+  refund: (id: number, data: { amount: number; reason?: string }) =>
+    request.post<any, { balance: number; refundAmount: number }>(`/members/${id}/refund`, data),
   consume: (id: number, data: any) => request.post<any, any>(`/members/${id}/consume`, data),
   setTags: (id: number, tags: string[]) => request.post<any, null>(`/members/${id}/tags`, { tags }),
   coupons: (id: number) => request.get<any, CouponRecord[]>(`/members/${id}/coupons`),

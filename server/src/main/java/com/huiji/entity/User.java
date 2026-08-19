@@ -1,6 +1,7 @@
 package com.huiji.entity;
 
 import com.huiji.entity.converter.LongListConverter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
@@ -21,6 +22,8 @@ public class User extends BaseEntity {
     @Column(nullable = false, unique = true)
     private String username;
 
+    /** 密码哈希, 严禁序列化到任何接口响应 */
+    @JsonIgnore
     @Column(nullable = false)
     private String password;
 

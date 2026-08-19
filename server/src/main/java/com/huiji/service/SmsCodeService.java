@@ -27,6 +27,8 @@ public class SmsCodeService {
     private static final long EXPIRE_SECONDS = 300L;
     /** 60 秒内同号限发一次 */
     private static final long SEND_COOLDOWN_SECONDS = 60L;
+    /** 单码最大失败尝试次数, 超过即作废, 防暴力破解 */
+    private static final int MAX_VERIFY_ATTEMPTS = 5;
 
     private final SecureRandom random = new SecureRandom();
 
@@ -83,7 +85,14 @@ public class SmsCodeService {
             codeMap.remove(phone);
             return false;
         }
-        if (!e.code.equals(code)) return false;
+        if (!e.code.equals(code)) {
+            // 连续错误达到上限则作废验证码, 防暴力枚举
+            e.failCount++;
+            if (e.failCount >= MAX_VERIFY_ATTEMPTS) {
+                codeMap.remove(phone);
+            }
+            return false;
+        }
         codeMap.remove(phone);
         return true;
     }
@@ -99,6 +108,7 @@ public class SmsCodeService {
     private static class Entry {
         final String code;
         final long expireAt;
+        int failCount = 0;
         Entry(String code, long expireAt) {
             this.code = code;
             this.expireAt = expireAt;

@@ -24,14 +24,10 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    /** 业务异常: 业务层 NOT_FOUND 一律按 200 业务失败返回, 避免与"接口不存在"语义混淆 */
+    /** 业务异常: 按错误码返回对应 HTTP 状态码(如 NOT_FOUND=404), 前端按 ok:false 处理 */
     @ExceptionHandler(BizException.class)
     public Result<Void> handleBiz(BizException e, HttpServletResponse resp) {
-        int status = e.getErrorCode().getHttpStatus();
-        if (status == HttpStatus.NOT_FOUND.value()) {
-            status = HttpStatus.OK.value();
-        }
-        resp.setStatus(status);
+        resp.setStatus(e.getErrorCode().getHttpStatus());
         log.warn("业务异常: {}", e.getMessage());
         return Result.fail(e.getErrorCode(), e.getMessage());
     }

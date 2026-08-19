@@ -1,11 +1,15 @@
 package com.huiji.controller;
 
+import com.huiji.common.BizException;
+import com.huiji.common.ErrorCode;
 import com.huiji.common.Result;
 import com.huiji.entity.Agent;
 import com.huiji.entity.WxAccount;
 import com.huiji.repository.AgentRepository;
 import com.huiji.repository.OrderRepository;
 import com.huiji.repository.WxAccountRepository;
+import com.huiji.security.LoginUserHolder;
+import com.huiji.security.PreAllowed;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,20 +26,23 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/** 代理商管理 */
+/** 代理商管理 (仅租户超管, 且严格按租户隔离) */
 @RestController
 @RequestMapping("/api/agents")
 @RequiredArgsConstructor
+@PreAllowed({"TENANT_ADMIN"})
 public class AgentController {
 
     private final AgentRepository agentRepository;
     private final WxAccountRepository wxAccountRepository;
     private final OrderRepository orderRepository;
 
-    /** 列表 */
+    /** 列表(当前租户) */
     @GetMapping
+    @PreAllowed({"TENANT_ADMIN", "STORE_MANAGER"})
     public Result<List<Map<String, Object>>> list() {
-        List<Agent> agents = agentRepository.findAll();
+        Long tenantId = LoginUserHolder.currentTenantId();
+        List<Agent> agents = agentRepository.findByTenantIdAndDeletedFalseOrderByIdDesc(tenantId);
         return Result.success(agents.stream().map(this::toView).collect(Collectors.toList()));
     }
 
@@ -43,6 +50,7 @@ public class AgentController {
     @PostMapping
     public Result<Map<String, Object>> create(@RequestBody Map<String, Object> body) {
         Agent agent = new Agent();
+        agent.setTenantId(LoginUserHolder.currentTenantId());
         applyBody(agent, body);
         agentRepository.save(agent);
         return Result.success(toView(agent));
@@ -51,8 +59,7 @@ public class AgentController {
     /** 更新 */
     @PutMapping("/{id}")
     public Result<Map<String, Object>> update(@PathVariable Long id, @RequestBody Map<String, Object> body) {
-        Agent agent = agentRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("代理商不存在"));
+        Agent agent = requireAgent(id);
         applyBody(agent, body);
         agentRepository.save(agent);
         return Result.success(toView(agent));
@@ -61,18 +68,16 @@ public class AgentController {
     /** 删除(软删除) */
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
-        agentRepository.findById(id).ifPresent(agent -> {
-            agent.setDeleted(true);
-            agentRepository.save(agent);
-        });
+        Agent agent = requireAgent(id);
+        agent.setDeleted(true);
+        agentRepository.save(agent);
         return Result.success();
     }
 
     /** 代理商业绩统计: 挂靠商家数、总交易额、抽佣金额 */
     @GetMapping("/{id}/stats")
     public Result<Map<String, Object>> stats(@PathVariable Long id) {
-        Agent agent = agentRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("代理商不存在"));
+        Agent agent = requireAgent(id);
         List<WxAccount> accounts = wxAccountRepository.findByAgentIdAndStatus(id, "ENABLED");
         List<Long> tenantIds = accounts.stream()
                 .map(WxAccount::getTenantId)
@@ -90,6 +95,13 @@ public class AgentController {
         stats.put("commissionRate", rate);
         stats.put("commission", commission);
         return Result.success(stats);
+    }
+
+    /** 校验代理商属于当前租户 */
+    private Agent requireAgent(Long id) {
+        Long tenantId = LoginUserHolder.currentTenantId();
+        return agentRepository.findByIdAndTenantIdAndDeletedFalse(id, tenantId)
+                .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "代理商不存在"));
     }
 
     private void applyBody(Agent agent, Map<String, Object> body) {

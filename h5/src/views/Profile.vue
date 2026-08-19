@@ -512,5 +512,4 @@ onActivated(() => {
   letter-spacing: 0.16em;
   opacity: 0.7;
 }
-.bottom-placeholder { height: 70px; }
 </style>

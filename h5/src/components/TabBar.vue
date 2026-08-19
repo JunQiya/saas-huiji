@@ -27,6 +27,8 @@ const route = useRoute()
 const router = useRouter()
 
 function isActive(p: string) {
+  // 首页 tab 配置为 '/', 实际路由为 '/home'(根路径重定向)
+  if (p === '/') return route.path === '/' || route.path === '/home'
   return route.path === p || route.path.startsWith(p + '/')
 }
 function go(p: string) { router.push(p) }

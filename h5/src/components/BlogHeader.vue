@@ -42,7 +42,7 @@ const today = computed(() => {
 
 <style scoped>
 .blog-header {
-  padding: 16px 16px 0;
+  padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px 0;
   background: var(--surface);
   position: relative;
 }

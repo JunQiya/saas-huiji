@@ -5,7 +5,7 @@
     <div class="page-padding">
       <div class="page-tip">把你最常去的那家，放在心里最稳的位置。</div>
 
-      <div v-if="loading" class="empty-box"><van-loading color="#6f94b8" /></div>
+      <div v-if="loading" class="empty-box"><van-loading /></div>
       <EmptyState v-else-if="!list.length" title="暂无可显示的门店" sub="门店正陆续上线中" art="leaf" />
 
       <div v-else class="store-list">

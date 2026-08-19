@@ -10,5 +10,7 @@ public interface MenuCategoryRepository extends JpaRepository<MenuCategory, Long
 
     List<MenuCategory> findByTenantIdAndStoreIdAndDeletedFalseOrderBySortOrderAscIdAsc(Long tenantId, Long storeId);
 
+    List<MenuCategory> findByTenantIdAndDeletedFalseOrderBySortOrderAscIdAsc(Long tenantId);
+
     Optional<MenuCategory> findByIdAndTenantIdAndDeletedFalse(Long id, Long tenantId);
 }

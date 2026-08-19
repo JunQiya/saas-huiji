@@ -12,7 +12,7 @@ onMounted(() => {
 <template>
   <router-view v-slot="{ Component }">
     <transition name="page-fade" mode="out-in">
-      <keep-alive :include="['Home', 'Profile', 'MallOrders', 'Dining']">
+      <keep-alive :include="['Home', 'Profile', 'MallOrders', 'Dining', 'MyOrders']">
         <component :is="Component" />
       </keep-alive>
     </transition>

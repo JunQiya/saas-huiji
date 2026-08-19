@@ -9,6 +9,7 @@ import com.huiji.entity.TenantSetting;
 import com.huiji.repository.TenantSettingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +31,10 @@ public class SettingsService {
 
     private final TenantSettingRepository settingRepository;
     private final ObjectMapper objectMapper;
+
+    /** 是否允许免支付升级套餐(仅演示环境开启; 生产必须关闭, 走商务开通流程) */
+    @Value("${huiji.plan-upgrade-free:false}")
+    private boolean planUpgradeFree;
 
     /** 默认等级规则 */
     private static final String DEFAULT_LEVEL_RULES =
@@ -95,9 +100,12 @@ public class SettingsService {
         return m;
     }
 
-    /** 升级套餐: 按 plan/months 延长有效期并重置短信余额 */
+    /** 升级套餐: 按 plan/months 延长有效期并重置短信余额 (生产环境仅允许演示模式, 防止白嫖) */
     @Transactional
     public Map<String, Object> upgrade(Long tenantId, String plan, int months) {
+        if (!planUpgradeFree) {
+            throw new BizException(ErrorCode.BIZ_ERROR, "套餐升级请通过商务渠道开通, 请联系管理员");
+        }
         TenantSetting ts = settingRepository.findByTenantId(tenantId).orElseGet(() -> {
             TenantSetting s = new TenantSetting();
             s.setTenantId(tenantId);

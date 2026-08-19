@@ -62,13 +62,11 @@ public class StoreService {
         Store s = storeRepository.findById(id)
                 .filter(st -> st.getTenantId().equals(tenantId) && !Boolean.TRUE.equals(st.getDeleted()))
                 .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "门店不存在"));
-        // 校验: 有会员或员工归属则禁用删除
-        boolean hasMember = memberRepository.findAll().stream()
-                .anyMatch(m -> m.getTenantId().equals(tenantId) && !Boolean.TRUE.equals(m.getDeleted())
-                        && m.getStoreIds() != null && m.getStoreIds().contains(id));
-        boolean hasUser = userRepository.findAll().stream()
-                .anyMatch(u -> u.getTenantId().equals(tenantId) && !Boolean.TRUE.equals(u.getDeleted())
-                        && u.getStoreIds() != null && u.getStoreIds().contains(id));
+        // 校验: 有会员或员工归属则禁用删除 (仅加载本租户数据)
+        boolean hasMember = memberRepository.findByTenantIdAndDeletedFalse(tenantId).stream()
+                .anyMatch(m -> m.getStoreIds() != null && m.getStoreIds().contains(id));
+        boolean hasUser = userRepository.findByTenantIdAndDeletedFalse(tenantId).stream()
+                .anyMatch(u -> u.getStoreIds() != null && u.getStoreIds().contains(id));
         if (hasMember || hasUser) {
             throw new BizException(ErrorCode.BIZ_ERROR, "该门店下仍有会员或员工, 无法删除");
         }
