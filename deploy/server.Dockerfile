@@ -27,9 +27,9 @@ RUN useradd -r -u 10001 -m appuser \
     && chown -R appuser:appuser /app
 USER appuser
 
-# 内存/CPU 限制配套: 容器 limit 内存 512m, JVM 堆上限 384m(其余留给非堆/元空间),
+# 内存/CPU 限制配套: 容器 limit 内存 384m, JVM 堆上限 256m(小内存 ECS 友好),
 # MaxRAMPercentage 兜底防止 JVM 按宿主内存自适应导致 OOMKilled
-ENV JAVA_OPTS="-Xms256m -Xmx384m -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Shanghai"
+ENV JAVA_OPTS="-Xms192m -Xmx256m -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Shanghai"
 
 EXPOSE 8081
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar --spring.profiles.active=${SPRING_PROFILES_ACTIVE:-prod}"]

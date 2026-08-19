@@ -24,8 +24,8 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     # ---- 内存/CPU 限制 (API 内存上限 512m, JVM 堆 384m 配套) ----
-    mem_limit: 512m
-    memswap_limit: 768m
+    mem_limit: 384m
+    memswap_limit: 512m
     cpus: 1.0
     environment:
       SPRING_PROFILES_ACTIVE: prod
