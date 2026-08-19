@@ -14,7 +14,7 @@
 1. 阿里云控制台 → 搜索 **容器镜像服务 ACR** → 开通
 2. 创建**命名空间**：`huiji`
 3. 在命名空间下创建 **3 个镜像仓库**：`server`、`admin`、`h5`（类型选「公开」最省事；私有需配拉取凭证）
-4. 记录镜像地址：`registry.cn-hangzhou.aliyuncs.com/huiji/server`（地域按你选的，下面以杭州 `cn-hangzhou` 为例）
+4. 记录镜像地址：`registry.cn-hangzhou.aliyuncs.com/lxxno/huiji-server`（地域按你选的，下面以杭州 `cn-hangzhou` 为例）
 
 ### 0.3 ECS 准备
 ```bash
@@ -82,7 +82,7 @@ ECS 安全组放行：`80`(网关)、`22`(SSH，仅你的 IP)；SLB 场景另行
 |---|---|---|
 | 步骤 | 镜像构建并推送至ACR | 镜像构建并推送至ACR |
 | **服务连接** | `huiji-acr`（个人版） | 同上 |
-| **镜像仓库地址** | `registry.cn-hangzhou.aliyuncs.com/huiji/server` | `.../huiji/gateway` |
+| **镜像仓库地址** | `registry.cn-hangzhou.aliyuncs.com/lxxno/huiji-server` | `.../lxxno/huiji-gateway` |
 | **镜像版本 Tag** | `latest` | `latest` |
 | **Dockerfile 路径** | `deploy/server.Dockerfile` | `deploy/gateway.Dockerfile` |
 | **构建上下文** | 仓库根目录 `.` | `.` |
@@ -95,7 +95,7 @@ ECS 安全组放行：`80`(网关)、`22`(SSH，仅你的 IP)；SLB 场景另行
 
 ### 3.3 验证步骤配置正确
 
-运行一次流水线后，去 **ACR 控制台 → 镜像仓库 → huiji/server、huiji/gateway → 镜像版本**，应能看到刚推送的 `latest`（或对应 Tag）。
+运行一次流水线后，去 **ACR 控制台 → 镜像仓库 → lxxno/huiji-server、lxxno/huiji-gateway → 镜像版本**，应能看到刚推送的 `latest`（或对应 Tag）。
 
 ---
 

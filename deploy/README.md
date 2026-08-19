@@ -15,8 +15,8 @@
 
 | 容器 | 镜像 | CPU limit | 内存 limit | 说明 |
 |---|---|---|---|---|
-| server | `server:tag` | 1 核 | **1Gi** | Spring Boot，JVM `-Xmx512m`（与 limit 配套，防 OOMKilled）|
-| gateway | `gateway:tag` | 500m | **256Mi** | Nginx 统一网关：官网+admin+h5+`/api` 反代 |
+| server | `huiji-server:tag` | 1 核 | **1Gi** | Spring Boot，JVM `-Xmx512m`（与 limit 配套，防 OOMKilled）|
+| gateway | `huiji-gateway:tag` | 500m | **256Mi** | Nginx 统一网关：官网+admin+h5+`/api` 反代 |
 
 内存/CPU 限制定义在 **两处**：
 - 单机/本地：`deploy/docker-compose.yml` 的 `mem_limit` / `cpus`
@@ -30,7 +30,7 @@
    - 白名单加入 ASK/ECS 所在 VPC 网段（或本机 IP 用于导入数据）
    - 初始化数据：本机导出演示数据后导入，或 `server/deploy/huiji-db.sql`
 2. **ACR 容器镜像服务**
-   - 创建命名空间（如 `huiji`）→ 创建镜像仓库 `server` / `gateway`（公开/私有均可，ASK 拉取需凭证）
+   - 创建命名空间（如 `lxxno`）→ 创建镜像仓库 `huiji-server` / `huiji-gateway`（公开/私有均可，ASK 拉取需凭证）
 3. **ASK 容器服务（Serverless K8s）**
    - 创建集群（与 RDS 同 VPC）→ 启用 **ALB Ingress**
 4. **域名与证书**
