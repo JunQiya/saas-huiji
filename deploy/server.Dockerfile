@@ -1,9 +1,13 @@
 # =============================================================================
 # 星河·会记 后端 (Spring Boot 3.2 / Java 17) — 多阶段构建
 # 构建: docker build -f deploy/server.Dockerfile -t huiji-server:1.0.0 .
+# 基础镜像走 DaoCloud 加速(docker.io 国内直拉超时); 若有内网 ACR 镜像可自行替换
 # =============================================================================
-FROM maven:3.9-eclipse-temurin-17 AS build
+FROM docker.m.daocloud.io/library/maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /build
+# Maven 走阿里云镜像(国内直连 Maven Central 可能超时)
+RUN mkdir -p /root/.m2 && \
+    printf '<settings><mirrors><mirror><id>aliyun</id><mirrorOf>central</mirrorOf><url>https://maven.aliyun.com/repository/public</url></mirror></mirrors></settings>\n' > /root/.m2/settings.xml
 # 先拷 pom 拉依赖(利用构建缓存)
 COPY server/pom.xml .
 RUN mvn -q dependency:go-offline -B || true
@@ -11,7 +15,7 @@ COPY server/src ./src
 RUN mvn -q -DskipTests -B package
 
 # ---------- 运行阶段 ----------
-FROM eclipse-temurin:17-jre
+FROM docker.m.daocloud.io/library/eclipse-temurin:17-jre
 WORKDIR /app
 ENV TZ=Asia/Shanghai
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
