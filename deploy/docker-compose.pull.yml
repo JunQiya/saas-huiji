@@ -17,7 +17,7 @@ name: huiji
 
 services:
   server:
-    image: registry.cn-hangzhou.aliyuncs.com/${ACR_NAMESPACE:-lxxno}/huiji-server:${IMAGE_TAG:-latest}
+    image: ${REGISTRY:-registry.cn-hangzhou.aliyuncs.com}/${ACR_NAMESPACE:-lxxno}/huiji-server:${IMAGE_TAG:-latest}
     container_name: huiji-server
     restart: unless-stopped
     # ---- 内存/CPU 限制 ----
@@ -38,7 +38,7 @@ services:
 
   # 统一网关: 官网(/) + 管理后台(/admin/) + H5(/h5/) + /api 反代
   gateway:
-    image: registry.cn-hangzhou.aliyuncs.com/${ACR_NAMESPACE:-lxxno}/huiji-gateway:${IMAGE_TAG:-latest}
+    image: ${REGISTRY:-registry.cn-hangzhou.aliyuncs.com}/${ACR_NAMESPACE:-lxxno}/huiji-gateway:${IMAGE_TAG:-latest}
     container_name: huiji-gateway
     restart: unless-stopped
     # ---- 内存/CPU 限制 ----

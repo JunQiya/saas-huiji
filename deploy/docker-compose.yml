@@ -18,7 +18,7 @@ services:
     build:
       context: ..
       dockerfile: deploy/server.Dockerfile
-    image: registry.cn-hangzhou.aliyuncs.com/${ACR_NAMESPACE:-lxxno}/huiji-server:${IMAGE_TAG:-latest}
+    image: ${REGISTRY:-registry.cn-hangzhou.aliyuncs.com}/${ACR_NAMESPACE:-lxxno}/huiji-server:${IMAGE_TAG:-latest}
     restart: unless-stopped
     # ---- 内存/CPU 限制 ----
     mem_limit: 1024m
@@ -43,7 +43,7 @@ services:
     build:
       context: ..
       dockerfile: deploy/gateway.Dockerfile
-    image: registry.cn-hangzhou.aliyuncs.com/${ACR_NAMESPACE:-lxxno}/huiji-gateway:${IMAGE_TAG:-latest}
+    image: ${REGISTRY:-registry.cn-hangzhou.aliyuncs.com}/${ACR_NAMESPACE:-lxxno}/huiji-gateway:${IMAGE_TAG:-latest}
     restart: unless-stopped
     # ---- 内存/CPU 限制 ----
     mem_limit: 256m
