@@ -1,6 +1,6 @@
 # 云效 Flow 自动部署 — 完整操作步骤（ECS + ACR + Compose）
 
-> 目标：代码推送到 `main` → 云效自动构建 3 个镜像（server/admin/h5）推 ACR → SSH 到 ECS 执行 `pull + up` 滚动更新。
+> 目标：代码推送到 `main` → 云效自动构建 2 个镜像（server / gateway）推 ACR → SSH 到 ECS 执行 `pull + up` 滚动更新。
 > 全程在阿里云控制台完成，以下按顺序照做。
 
 ---
@@ -34,7 +34,7 @@ vi .env && chmod 600 .env
 `.env` 必填项：`ACR_NAMESPACE=huiji`、`DB_URL`（RDS 内网）、`DB_USERNAME/PASSWORD`、`JWT_SECRET`、`H5_DOMAIN`、`CORS_ORIGINS`、`SMS_DEV_MODE=false`。
 
 ### 0.4 安全组
-ECS 安全组放行：`8080`(admin)、`8088`(h5)、`22`(SSH，仅你的 IP)；SLB 场景另行配置。
+ECS 安全组放行：`80`(网关)、`22`(SSH，仅你的 IP)；SLB 场景另行配置。
 
 ---
 
@@ -61,7 +61,7 @@ ECS 安全组放行：`8080`(admin)、`8088`(h5)、`22`(SSH，仅你的 IP)；SL
 
 ## 第 3 步：配置「镜像构建并推送至 ACR 个人版」构建阶段
 
-流水线默认有一个「阶段」（可改名 `构建`）。在阶段内添加 **3 个「镜像构建并推送至ACR」任务**（后端/后台/H5 各一，可并行）。
+流水线默认有一个「阶段」（可改名 `构建`）。在阶段内添加 **2 个「镜像构建并推送至ACR」任务**（后端 + 统一网关，可并行）。
 
 ### 3.1 先建 ACR 个人版「服务连接」（一次）
 
@@ -74,28 +74,28 @@ ECS 安全组放行：`8080`(admin)、`8088`(h5)、`22`(SSH，仅你的 IP)；SL
    - 点「验证并保存」，用当前登录的阿里云账号授权即可
 4. 若提示需要 RAM 授权，按引导给云效授 ACR 推送权限（AliyunContainerRegistryFullAccess 或最小权限）
 
-### 3.2 添加构建任务（每个应用填一次）
+### 3.2 添加构建任务（每个镜像填一次）
 
 在「构建」阶段点 **+ 添加任务** → 搜索并选择 **「镜像构建并推送至ACR」**，按如下填写：
 
-| 参数 | 任务1(后端) | 任务2(管理后台) | 任务3(H5) |
-|---|---|---|---|
-| 步骤 | 镜像构建并推送至ACR | 镜像构建并推送至ACR | 镜像构建并推送至ACR |
-| **服务连接** | `huiji-acr`（个人版） | 同上 | 同上 |
-| **镜像仓库地址** | `registry.cn-hangzhou.aliyuncs.com/huiji/server` | `.../huiji/admin` | `.../huiji/h5` |
-| **镜像版本 Tag** | `latest` | `latest` | `latest` |
-| **Dockerfile 路径** | `deploy/server.Dockerfile` | `deploy/admin.Dockerfile` | `deploy/h5.Dockerfile` |
-| **构建上下文** | 仓库根目录 `.` | `.` | `.` |
+| 参数 | 任务1(后端) | 任务2(统一网关) |
+|---|---|---|
+| 步骤 | 镜像构建并推送至ACR | 镜像构建并推送至ACR |
+| **服务连接** | `huiji-acr`（个人版） | 同上 |
+| **镜像仓库地址** | `registry.cn-hangzhou.aliyuncs.com/huiji/server` | `.../huiji/gateway` |
+| **镜像版本 Tag** | `latest` | `latest` |
+| **Dockerfile 路径** | `deploy/server.Dockerfile` | `deploy/gateway.Dockerfile` |
+| **构建上下文** | 仓库根目录 `.` | `.` |
 
 > 说明：
-> - 「镜像仓库地址」也可通过下拉直接选服务连接下已有的 ACR 命名空间+仓库（`huiji`/`server`）
+> - 「镜像仓库地址」也可通过下拉直接选服务连接下已有的 ACR 命名空间+仓库（`huiji`/`server`、`huiji`/`gateway`）
 > - Tag 用 `latest` 最省事；需要回滚可改成变量 `${DATETIME}`，但 ECS 拉取侧要同步改 `.env` 的 `IMAGE_TAG`
-> - 后端/admin/h5 的 Dockerfile 均为多阶段构建（内嵌 `mvn package` / `npm run build`），**无需额外 Java/Node 构建步骤**
-> - 三个任务放同一阶段内并勾选「并行」，构建更快
+> - server 镜像多阶段构建（内嵌 `mvn package`），**无需额外 Java 构建步骤**；gateway 镜像内嵌 admin+h5 的 `npm run build`，**无需额外 Node 构建步骤**
+> - 两个任务放同一阶段内并勾选「并行」，构建更快
 
 ### 3.3 验证步骤配置正确
 
-运行一次流水线后，去 **ACR 控制台 → 镜像仓库 → huiji/server → 镜像版本**，应能看到刚推送的 `latest`（或对应 Tag）。
+运行一次流水线后，去 **ACR 控制台 → 镜像仓库 → huiji/server、huiji/gateway → 镜像版本**，应能看到刚推送的 `latest`（或对应 Tag）。
 
 ---
 
@@ -127,12 +127,13 @@ ECS 安全组放行：`8080`(admin)、`8088`(h5)、`22`(SSH，仅你的 IP)；SL
 3. 验证：
    ```bash
    # ECS 上
-   docker ps                     # 应看到 huiji-server / huiji-admin / huiji-h5
-   curl -s http://localhost:8081/api/h5/stores | head   # 后端健康
-   curl -s http://localhost:8080/ | head                 # admin
-   curl -s http://localhost:8088/ | head                 # h5
+   docker ps                     # 应看到 huiji-server / huiji-gateway
+   curl -s http://localhost:8081/api/h5/stores | head   # 后端健康(容器内网)
+   curl -s http://localhost/ | head                     # 网关: 官网
+   curl -s http://localhost/admin/ | head               # 网关: 管理后台
+   curl -s http://localhost/h5/ | head                  # 网关: H5
    ```
-4. 浏览器访问：`http://ECS公网IP:8080`（admin）、`:8088`（h5）
+4. 浏览器访问：`http://ECS公网IP/`（官网）、`/admin`（后台）、`/h5`（会员端）；域名解析生效后访问 `https://huiji.lxxno.cn/` 等
 
 ---
 

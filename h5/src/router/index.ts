@@ -172,7 +172,7 @@ const routes: RouteRecordRaw[] = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory('/h5/'),
   routes,
   scrollBehavior() {
     return { top: 0 }

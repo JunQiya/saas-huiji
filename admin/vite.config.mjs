@@ -8,6 +8,8 @@ import { fileURLToPath, URL } from 'node:url'
 // Vite 配置：dev 端口 5273，代理 /api 到后端 8081
 // 使用 .mjs 避免 vite 对 TS 配置写临时打包文件（沙盒环境下 EPERM）
 export default defineConfig({
+  // 生产部署到域名的 /admin/ 路径(与 nginx 网关匹配)
+  base: '/admin/',
   plugins: [
     vue(),
     AutoImport({ resolvers: [ElementPlusResolver()] }),

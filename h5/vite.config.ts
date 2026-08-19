@@ -6,6 +6,8 @@ import { fileURLToPath, URL } from 'node:url'
 
 // Vite 配置：H5 会员端，端口 5274，dev 代理 /api → 后端 8081
 export default defineConfig({
+  // 生产部署到域名的 /h5/ 路径(与 nginx 网关匹配)
+  base: '/h5/',
   plugins: [
     vue(),
     Components({

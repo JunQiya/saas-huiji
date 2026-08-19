@@ -1,20 +1,22 @@
 # 星河·会记 — 阿里云容器化上线部署
 
-> 目标：3 个容器（后端 / 管理后台 / H5）+ 阿里云 RDS MySQL，云效 Flow 自动构建镜像 → 推送 ACR → 部署 ASK，并限制每个容器的内存/CPU。
+> 目标：2 个容器（后端 + 统一网关）+ 阿里云 RDS MySQL，单域名 `huiji.lxxno.cn` 路径分发，云效 Flow 自动构建镜像 → 推送 ACR → 部署，并限制每个容器的内存/CPU。
 
 ## 一、部署架构与资源限制
 
 ```
-[SLB/ALB Ingress] ──┬── admin.example.com ──▶ admin 容器(nginx静态 + /api反代) ─┐
-                    └── h5.example.com   ──▶ h5 容器(nginx静态 + /api反代)   ─┼─▶ server 容器(Java 8081)
-                                                                            └─▶ RDS MySQL(阿里云托管)
+[SLB/Ingress] ──▶ huiji.lxxno.cn ──▶ gateway 容器(nginx 统一网关)
+                                        ├─ /        → 官网介绍页(web/)
+                                        ├─ /admin/  → 管理后台静态(history 回退)
+                                        ├─ /h5/     → H5 会员端静态(history 回退)
+                                        └─ /api/    → 反向代理
+                                             └──▶ server 容器(Java 8081) ──▶ RDS MySQL
 ```
 
 | 容器 | 镜像 | CPU limit | 内存 limit | 说明 |
 |---|---|---|---|---|
 | server | `server:tag` | 1 核 | **1Gi** | Spring Boot，JVM `-Xmx512m`（与 limit 配套，防 OOMKilled）|
-| admin | `admin:tag` | 250m | **128Mi** | Nginx 静态 + `/api` 反代 |
-| h5 | `h5:tag` | 250m | **128Mi** | Nginx 静态 + `/api` 反代 |
+| gateway | `gateway:tag` | 500m | **256Mi** | Nginx 统一网关：官网+admin+h5+`/api` 反代 |
 
 内存/CPU 限制定义在 **两处**：
 - 单机/本地：`deploy/docker-compose.yml` 的 `mem_limit` / `cpus`
@@ -28,11 +30,11 @@
    - 白名单加入 ASK/ECS 所在 VPC 网段（或本机 IP 用于导入数据）
    - 初始化数据：本机导出演示数据后导入，或 `server/deploy/huiji-db.sql`
 2. **ACR 容器镜像服务**
-   - 创建命名空间（如 `huiji`）→ 创建镜像仓库 `server` / `admin` / `h5`（公开/私有均可，ASK 拉取需凭证）
+   - 创建命名空间（如 `huiji`）→ 创建镜像仓库 `server` / `gateway`（公开/私有均可，ASK 拉取需凭证）
 3. **ASK 容器服务（Serverless K8s）**
    - 创建集群（与 RDS 同 VPC）→ 启用 **ALB Ingress**
 4. **域名与证书**
-   - 备案域名：`admin.example.com`、`h5.example.com`
+   - 备案域名：`huiji.lxxno.cn`（主站 /admin /h5 同一域名路径区分）
    - 申请 SSL 证书（阿里云免费证书），域名 CNAME/解析指向 ALB/SLB
 5. **云效**（flow.aliyun.com）开通
 
@@ -48,9 +50,9 @@ docker build -f deploy/h5.Dockerfile -t huiji-h5:1.0.0 .
 
 # 本地编排(含内存/CPU 限制, 自带 MySQL 供验证)
 DB_URL='jdbc:mysql://localhost:13306/huiji?...' \
-DB_USERNAME=root DB_PASSWORD=root123456 JWT_SECRET='<随机>' H5_DOMAIN='http://localhost:8088' \
+DB_USERNAME=root DB_PASSWORD=root123456 JWT_SECRET='<随机>' H5_DOMAIN='http://localhost:8080/h5' \
 docker compose -f deploy/docker-compose.yml up -d --build
-# admin: http://localhost:8080   h5: http://localhost:8088
+# 本地访问: http://localhost:8080 官网, /admin 后台, /h5 会员端
 ```
 
 ## 四、部署到 ASK
@@ -63,15 +65,15 @@ kubectl -n huiji create secret generic huiji-env \
   --from-literal=DB_USERNAME='huiji_app' \
   --from-literal=DB_PASSWORD='<密码>' \
   --from-literal=JWT_SECRET='<随机48位以上>' \
-  --from-literal=H5_DOMAIN='https://h5.example.com' \
-  --from-literal=CORS_ORIGINS='https://admin.example.com,https://h5.example.com' \
+  --from-literal=H5_DOMAIN='https://huiji.lxxno.cn/h5' \
+  --from-literal=CORS_ORIGINS='https://huiji.lxxno.cn' \
   --from-literal=SMS_DEV_MODE='false'
 
 # 2. 部署前把 yaml 中 <ACR_NAMESPACE> 与 <IMAGE_TAG> 替换为真实值
 kubectl -n huiji apply -f deploy/k8s/01-namespace.yaml \
   -f deploy/k8s/02-server.yaml -f deploy/k8s/03-admin.yaml -f deploy/k8s/04-h5.yaml
 
-# 3. Ingress(域名 + ALB), 替换 admin.example.com / h5.example.com
+# 3. Ingress(域名 + ALB), host 填 huiji.lxxno.cn
 kubectl -n huiji apply -f deploy/k8s/05-ingress.yaml
 
 # 4. 检查
@@ -137,9 +139,9 @@ docker image prune -f
 
 ### 4. 端口与域名
 
-compose 默认：admin 映射 `8080`、h5 映射 `8088`（`.env` 里可改）。流量入口两种方式：
-- **阿里云 SLB**：监听 80/443 → 转发到 ECS 的 8080(admin)、8088(h5)，两个域名各自建监听
-- 或 ECS 安全组开放 80/443，宿主 nginx 反代到 8080/8088
+compose 默认：gateway 映射 `80`（`.env` 里 `GATEWAY_PORT` 可改）。流量入口：
+- **单域名 `huiji.lxxno.cn`**：DNS 解析到 ECS 公网 IP（或 SLB），`/` 官网、`/admin` 后台、`/h5` 会员端由网关 nginx 自动分发
+- HTTPS：SLB 监听 443 挂证书转发到 ECS 80，或宿主 nginx 做 SSL 终结后反代到 80
 
 ### 5. 日常更新
 

@@ -1,33 +1,33 @@
-# 管理后台 (Nginx 静态 + /api 反代) — Deployment + Service
-# 资源限制: CPU limit 250m / 内存 limit 128Mi
+# 统一网关 (官网 + 管理后台 /admin + H5 /h5 + /api 反代) — Deployment + Service
+# 资源限制: CPU limit 500m / 内存 limit 256Mi
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: huiji-admin
+  name: huiji-gateway
   namespace: huiji
-  labels: { app: huiji-admin }
+  labels: { app: huiji-gateway }
 spec:
   replicas: 1
   selector:
-    matchLabels: { app: huiji-admin }
+    matchLabels: { app: huiji-gateway }
   template:
     metadata:
-      labels: { app: huiji-admin }
+      labels: { app: huiji-gateway }
     spec:
       containers:
-        - name: admin
-          image: registry.cn-hangzhou.aliyuncs.com/<ACR_NAMESPACE>/admin:<IMAGE_TAG>
+        - name: gateway
+          image: registry.cn-hangzhou.aliyuncs.com/<ACR_NAMESPACE>/gateway:<IMAGE_TAG>
           imagePullPolicy: IfNotPresent
           ports:
             - { containerPort: 80, name: http }
           # ---- 内存/CPU 限制 ----
           resources:
             requests:
-              cpu: 100m
-              memory: 64Mi
-            limits:
-              cpu: 250m
+              cpu: 200m
               memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
           readinessProbe:
             httpGet:
               path: /
@@ -38,9 +38,9 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: admin
+  name: gateway
   namespace: huiji
 spec:
-  selector: { app: huiji-admin }
+  selector: { app: huiji-gateway }
   ports:
     - { port: 80, targetPort: 80, name: http }
