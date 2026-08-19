@@ -23,9 +23,9 @@ services:
     # 允许容器内用 host.docker.internal 访问宿主机(本机 MySQL 等)
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    # ---- 内存/CPU 限制 ----
-    mem_limit: 1024m
-    memswap_limit: 1536m
+    # ---- 内存/CPU 限制 (API 内存上限 512m, JVM 堆 384m 配套) ----
+    mem_limit: 512m
+    memswap_limit: 768m
     cpus: 1.0
     environment:
       SPRING_PROFILES_ACTIVE: prod

@@ -1,5 +1,5 @@
 # 后端 (Spring Boot) — Deployment + Service
-# 资源限制: CPU limit 1 / 内存 limit 1Gi (JVM -Xmx512m 配套, 防 OOMKilled)
+# 资源限制: CPU limit 1 / 内存 limit 512Mi (JVM -Xmx384m 配套, 防 OOMKilled)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -37,10 +37,10 @@ spec:
           resources:
             requests:
               cpu: 250m
-              memory: 512Mi
+              memory: 256Mi
             limits:
               cpu: "1"
-              memory: 1Gi
+              memory: 512Mi
           readinessProbe:
             httpGet:
               path: /api/h5/stores

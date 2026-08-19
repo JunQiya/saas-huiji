@@ -160,8 +160,9 @@ public class DataInitializer {
     }
 
     private boolean isH2() {
-        try {
-            String url = dataSource.getConnection().getMetaData().getURL();
+        // try-with-resources 确保连接归还连接池, 避免 Hikari 连接泄漏告警
+        try (var con = dataSource.getConnection()) {
+            String url = con.getMetaData().getURL();
             return url != null && url.toLowerCase().contains("h2");
         } catch (Exception e) {
             return false;
