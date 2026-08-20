@@ -40,8 +40,10 @@ huiji:
   h5:
     sms-dev-mode: ${SMS_DEV_MODE:false}
     sms-code: ${SMS_FIXED_CODE:}
-    mall-demo-pay: false
-    recharge-demo-pay: false
+    # 演示系统: 环境变量 MALL_DEMO_PAY=true 时商城免支付直接成功; 生产必须 false
+    mall-demo-pay: ${MALL_DEMO_PAY:false}
+    # 演示系统: 环境变量 RECHARGE_DEMO_PAY=true 时充值走模拟支付直接到账; 生产必须 false
+    recharge-demo-pay: ${RECHARGE_DEMO_PAY:false}
   # H5 访问域名(如 https://h5.example.com), 微信 OAuth 回调与点餐二维码依赖
   h5-domain: ${H5_DOMAIN:}
 

@@ -370,19 +370,25 @@ async function onSubmit() {
   finally { submitting.value = false }
 }
 
-// 订单支付: 演示环境直接成功; 生产微信支付走 JSAPI 唤起 + 轮询
+// 订单支付: 演示支付直接成功(后端 mall-demo-pay=true); 生产微信支付走 JSAPI 唤起 + 轮询
 async function handlePay(orderId: number | string): Promise<boolean> {
-  if (isDemo || form.payMethod === 'BALANCE') {
-    try {
-      await mallApi.payOrder(orderId)
-      showToast({ message: '支付成功', position: 'top' })
-      return true
-    } catch (e: any) {
-      showToast(e?.message || '支付失败')
-      return false
+  // 先尝试直接支付(演示环境后端允许免支付直接成功)
+  try {
+    await mallApi.payOrder(orderId)
+    showToast({ type: 'success', message: '支付成功', position: 'top' })
+    return true
+  } catch (e: any) {
+    // 后端拒绝直接支付(生产未开演示支付) → 微信支付走 JSAPI
+    if (form.payMethod === 'WECHAT' && !isDemo) {
+      return wxPayFlow(orderId)
     }
+    showToast(e?.message || '支付失败')
+    return false
   }
-  // 生产微信支付: JSAPI 下单 -> 唤起 -> 轮询结果
+}
+
+// 生产微信支付: JSAPI 下单 -> 唤起 -> 轮询结果
+async function wxPayFlow(orderId: number | string): Promise<boolean> {
   try {
     await initWxSdk()
     const params = await wxApi.pay(Number(orderId))
