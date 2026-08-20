@@ -58,7 +58,7 @@
           <div class="pay-icon"><span class="pay-wechat">微</span></div>
           <div class="pay-info">
             <div class="pay-name">微信支付</div>
-            <div class="pay-sub">安全快捷{{ isDemo ? ' · 演示环境确认后直接到账' : '' }}</div>
+            <div class="pay-sub">演示系统：确认后直接到账，不产生真实扣款</div>
           </div>
           <van-icon name="success" class="pay-check" />
         </div>
@@ -122,7 +122,6 @@ const router = useRouter()
 const memberStore = useMemberStore()
 const balance = computed(() => memberStore.memberInfo?.balance || 0)
 
-const isDemo = !import.meta.env.PROD
 const MIN_AMOUNT = 1
 const MAX_AMOUNT = 50000
 

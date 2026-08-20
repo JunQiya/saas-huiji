@@ -130,6 +130,10 @@
             <van-radio name="BALANCE">余额支付</van-radio>
           </van-radio-group>
         </div>
+        <div class="demo-pay-tip">
+          <van-icon name="info-o" size="13" />
+          <span>演示系统：确认订单后支付将直接成功，不会产生真实扣款</span>
+        </div>
 
         <div class="footnote">提交订单即同意商城服务条款</div>
       </div>
@@ -568,6 +572,16 @@ onMounted(() => {
 
 .pay-card { padding: 14px 16px; }
 .pay-card :deep(.van-radio-group) { gap: 18px; }
+.demo-pay-tip {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 10px;
+  padding: 8px 12px;
+  font-size: 11.5px; color: var(--brand-ink);
+  background: var(--brand-softer);
+  border: 1px dashed var(--brand-soft);
+  border-radius: var(--r-sm);
+  letter-spacing: 0.02em;
+}
 .pay-card :deep(.van-radio__label) { font-size: 13px; color: var(--ink-2); }
 
 :deep(.van-submit-bar) {
