@@ -37,6 +37,9 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-}
       SMS_DEV_MODE: ${SMS_DEV_MODE:-false}
       SMS_FIXED_CODE: ${SMS_FIXED_CODE:-}
+      # 演示支付开关(演示系统 true, 生产 false)
+      MALL_DEMO_PAY: ${MALL_DEMO_PAY:-false}
+      RECHARGE_DEMO_PAY: ${RECHARGE_DEMO_PAY:-false}
     depends_on:
       - mysql
     networks: [huiji]

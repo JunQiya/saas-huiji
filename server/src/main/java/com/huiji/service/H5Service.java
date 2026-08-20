@@ -60,14 +60,14 @@ public class H5Service {
         if (!ok) {
             throw new BizException(ErrorCode.BIZ_ERROR, "验证码错误或已过期");
         }
-        // 按手机号查找会员; 若指定租户则精确匹配, 避免跨租户手机号匹配
-        Member m;
-        if (req.getTenantId() != null) {
-            m = memberRepository.findByPhoneAndTenantIdAndDeletedFalse(req.getPhone(), req.getTenantId())
-                    .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "会员不存在, 请先到门店登记"));
-        } else {
-            m = memberRepository.findFirstByPhoneAndDeletedFalseOrderByIdAsc(req.getPhone())
-                    .orElseThrow(() -> new BizException(ErrorCode.NOT_FOUND, "会员不存在, 请先到门店登记"));
+        // 按手机号查找会员; 指定租户精确匹配, 未命中则回退按手机号查找(兼容历史租户ID)
+        Member m = req.getTenantId() != null
+                ? memberRepository.findByPhoneAndTenantIdAndDeletedFalse(req.getPhone(), req.getTenantId())
+                        .orElseGet(() -> memberRepository.findFirstByPhoneAndDeletedFalseOrderByIdAsc(req.getPhone())
+                                .orElse(null))
+                : memberRepository.findFirstByPhoneAndDeletedFalseOrderByIdAsc(req.getPhone()).orElse(null);
+        if (m == null) {
+            throw new BizException(ErrorCode.NOT_FOUND, "会员不存在, 请先到门店登记");
         }
         m.setLastLoginAt(LocalDateTime.now());
         memberRepository.save(m);
