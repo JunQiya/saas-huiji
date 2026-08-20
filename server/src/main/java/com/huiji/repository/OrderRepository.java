@@ -64,6 +64,23 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             "and o.status = 'PAID' and o.deleted = false")
     Long sumPaidByTenantIds(@Param("tenantIds") List<Long> tenantIds);
 
+    /** 各门店已支付订单聚合(金额分+笔数), 用于门店营业额排行 */
+    @Query("select o.storeId, coalesce(sum(o.paidAmount),0), count(o) from Order o " +
+            "where o.tenantId = :tenantId and o.deleted = false and o.status = 'PAID' " +
+            "and o.paidAt >= :start and o.paidAt < :end group by o.storeId")
+    List<Object[]> paidSumByStore(@Param("tenantId") Long tenantId,
+                                  @Param("start") LocalDateTime start,
+                                  @Param("end") LocalDateTime end);
+
+    /** 按小时统计已支付订单笔数(0-23) */
+    @Query("select hour(o.paidAt), count(o) from Order o where o.tenantId = :tenantId " +
+            "and o.deleted = false and o.status = 'PAID' and o.paidAt >= :start " +
+            "and (:storeId is null or o.storeId = :storeId) " +
+            "group by hour(o.paidAt) order by hour(o.paidAt)")
+    List<Object[]> paidCountByHour(@Param("tenantId") Long tenantId,
+                                   @Param("start") LocalDateTime start,
+                                   @Param("storeId") Long storeId);
+
     /** 商城订单列表: 仅含有 OrderExtend 记录的订单 */
     @Query("select o from Order o where o.tenantId = :tenantId and o.deleted = false " +
             "and o.id in (select e.orderId from OrderExtend e where e.deleted = false) " +

@@ -586,3 +586,23 @@ usePolling({
   .r-thanks, .r-foot { color: #555; }
 }
 </style>
+
+<!-- 全局打印样式: 隐藏 admin 布局(侧边栏/顶栏), 仅保留小票. 必须在 scoped 之外 -->
+<style>
+@media print {
+  body * { visibility: hidden !important; }
+  .receipt-print, .receipt-print * { visibility: visible !important; }
+  .receipt-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 8mm 4mm;
+    background: #fff;
+    border: none;
+  }
+  .pos-page .page-header,
+  .pos-page .pos-body { display: none !important; }
+}
+</style>

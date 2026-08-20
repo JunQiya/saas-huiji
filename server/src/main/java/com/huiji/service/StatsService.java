@@ -4,6 +4,7 @@ import com.huiji.entity.Member;
 import com.huiji.entity.Store;
 import com.huiji.entity.WalletTransaction;
 import com.huiji.repository.MemberRepository;
+import com.huiji.repository.OrderRepository;
 import com.huiji.repository.StoreRepository;
 import com.huiji.repository.WalletTransactionRepository;
 import com.huiji.security.LoginUserHolder;
@@ -28,10 +29,21 @@ public class StatsService {
     private final MemberRepository memberRepository;
     private final WalletTransactionRepository walletRepository;
     private final StoreRepository storeRepository;
+    private final OrderRepository orderRepository;
 
     /** 当前门店 ID(null 表示不按门店过滤, 返回全租户数据) */
     private Long currentStoreId() {
         return LoginUserHolder.requireStoreId();
+    }
+
+    /** 已支付订单统计 [笔数, 金额分]: 营业额口径为已支付订单, 而非储值消费流水 */
+    private long[] paidStats(Long tenantId, LocalDateTime start, LocalDateTime end, Long storeId) {
+        List<Object[]> rows = orderRepository.todayStats(tenantId, start, end, storeId);
+        if (rows == null || rows.isEmpty() || rows.get(0) == null) return new long[]{0, 0};
+        Object[] r = rows.get(0);
+        long count = r[0] == null ? 0 : ((Number) r[0]).longValue();
+        long sum = r[1] == null ? 0 : ((Number) r[1]).longValue();
+        return new long[]{count, sum};
     }
 
     /** 概览: 近 30 天 vs 上 30 天环比 */
@@ -42,10 +54,10 @@ public class StatsService {
         LocalDateTime curStart = now.minusDays(30);
         LocalDateTime prevStart = now.minusDays(60);
 
-        long curRevenue = nvl(walletRepository.sumConsume(tenantId, curStart, now, storeId));
-        long prevRevenue = nvl(walletRepository.sumConsume(tenantId, prevStart, curStart, storeId));
-        long curOrders = nvl(walletRepository.countConsume(tenantId, curStart, now, storeId));
-        long prevOrders = nvl(walletRepository.countConsume(tenantId, prevStart, curStart, storeId));
+        long curRevenue = paidStats(tenantId, curStart, now, storeId)[1];
+        long prevRevenue = paidStats(tenantId, prevStart, curStart, storeId)[1];
+        long curOrders = paidStats(tenantId, curStart, now, storeId)[0];
+        long prevOrders = paidStats(tenantId, prevStart, curStart, storeId)[0];
 
         long memberCount = memberRepository.countByTenantIdAndDeletedFalse(tenantId);
         long newMembers = memberRepository.countNewAfter(tenantId, curStart);
@@ -82,14 +94,14 @@ public class StatsService {
             long value;
             switch (metric == null ? "revenue" : metric) {
                 case "orders":
-                    value = nvl(walletRepository.countConsume(tenantId, dayStart, dayEnd, storeId));
+                    value = paidStats(tenantId, dayStart, dayEnd, storeId)[0];
                     break;
                 case "members":
                     value = members.stream().filter(m -> m.getCreatedAt() != null
                             && m.getCreatedAt().isAfter(dayStart) && m.getCreatedAt().isBefore(dayEnd)).count();
                     break;
                 default:
-                    value = nvl(walletRepository.sumConsume(tenantId, dayStart, dayEnd, storeId));
+                    value = paidStats(tenantId, dayStart, dayEnd, storeId)[1];
             }
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("date", d.toString());
@@ -127,7 +139,7 @@ public class StatsService {
         Long tenantId = LoginUserHolder.currentTenantId();
         LocalDateTime start = LocalDateTime.now().minusDays(Math.max(1, days));
         LocalDateTime end = LocalDateTime.now().plusDays(1);
-        List<Object[]> rows = walletRepository.sumByStore(tenantId, start, end);
+        List<Object[]> rows = orderRepository.paidSumByStore(tenantId, start, end);
         Map<Long, String> storeNames = storeRepository.findByTenantIdAndDeletedFalseOrderByIdDesc(tenantId).stream()
                 .collect(Collectors.toMap(Store::getId, Store::getName, (a, b) -> a));
         return rows.stream().limit(10).map(r -> {
@@ -209,7 +221,7 @@ public class StatsService {
         Long tenantId = LoginUserHolder.currentTenantId();
         Long storeId = currentStoreId();
         LocalDateTime start = LocalDateTime.now().minusDays(30);
-        List<Object[]> rows = walletRepository.countByHour(tenantId, start, storeId);
+        List<Object[]> rows = orderRepository.paidCountByHour(tenantId, start, storeId);
         Map<Integer, Long> map = new TreeMap<>();
         for (Object[] row : rows) {
             int h = ((Number) row[0]).intValue();
@@ -238,9 +250,11 @@ public class StatsService {
         LocalDateTime todayEnd = today.plusDays(1).atStartOfDay();
         LocalDateTime yesterdayStart = today.minusDays(1).atStartOfDay();
         LocalDateTime yesterdayEnd = todayStart;
-        long todayRevenue = nvl(walletRepository.sumConsume(tenantId, todayStart, todayEnd, storeId));
-        long yesterdayRevenue = nvl(walletRepository.sumConsume(tenantId, yesterdayStart, yesterdayEnd, storeId));
-        long todayOrders = nvl(walletRepository.countConsume(tenantId, todayStart, todayEnd, storeId));
+        long[] t = paidStats(tenantId, todayStart, todayEnd, storeId);
+        long[] y = paidStats(tenantId, yesterdayStart, yesterdayEnd, storeId);
+        long todayRevenue = t[1];
+        long yesterdayRevenue = y[1];
+        long todayOrders = t[0];
         long newMembersToday = memberRepository.countNewAfter(tenantId, todayStart);
         long activeMembersToday = memberRepository.countActiveAfter(tenantId, todayStart);
 
@@ -251,9 +265,9 @@ public class StatsService {
         LocalDate lastWeekStart = weekStart.minusDays(7);
         LocalDateTime lastWeekStartDt = lastWeekStart.atStartOfDay();
         LocalDateTime lastWeekEndDt = weekStartDt;
-        long weekRevenue = nvl(walletRepository.sumConsume(tenantId, weekStartDt, weekEndDt, storeId));
-        long lastWeekRevenue = nvl(walletRepository.sumConsume(tenantId, lastWeekStartDt, lastWeekEndDt, storeId));
-        long weekOrders = nvl(walletRepository.countConsume(tenantId, weekStartDt, weekEndDt, storeId));
+        long weekRevenue = paidStats(tenantId, weekStartDt, weekEndDt, storeId)[1];
+        long lastWeekRevenue = paidStats(tenantId, lastWeekStartDt, lastWeekEndDt, storeId)[1];
+        long weekOrders = paidStats(tenantId, weekStartDt, weekEndDt, storeId)[0];
         long newMembersWeek = memberRepository.countNewAfter(tenantId, weekStartDt) - newMembersToday;
 
         // 本月
@@ -264,9 +278,9 @@ public class StatsService {
         LocalDate lastMonthEnd = monthStart.minusDays(1);
         LocalDateTime lastMonthStartDt = lastMonthStart.atStartOfDay();
         LocalDateTime lastMonthEndDt = lastMonthEnd.plusDays(1).atStartOfDay();
-        long monthRevenue = nvl(walletRepository.sumConsume(tenantId, monthStartDt, monthEndDt, storeId));
-        long lastMonthRevenue = nvl(walletRepository.sumConsume(tenantId, lastMonthStartDt, lastMonthEndDt, storeId));
-        long monthOrders = nvl(walletRepository.countConsume(tenantId, monthStartDt, monthEndDt, storeId));
+        long monthRevenue = paidStats(tenantId, monthStartDt, monthEndDt, storeId)[1];
+        long lastMonthRevenue = paidStats(tenantId, lastMonthStartDt, lastMonthEndDt, storeId)[1];
+        long monthOrders = paidStats(tenantId, monthStartDt, monthEndDt, storeId)[0];
         long newMembersMonth = memberRepository.countNewAfter(tenantId, monthStartDt);
         long monthRecharge = nvl(walletRepository.sumRecharge(tenantId, monthStartDt, monthEndDt));
         long lastMonthRecharge = nvl(walletRepository.sumRecharge(tenantId, lastMonthStartDt, lastMonthEndDt));
